@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Gloock, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const grotesk = Space_Grotesk({
+  variable: "--font-grotesk",
   subsets: ["latin"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const display = Gloock({
+  variable: "--font-display",
+  weight: ["400"],
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Zachary Walsh - Head of Design",
-  description: "Design leader focused on experimentation, tinkering, and building at Zapier",
+  title: "Zachary Walsh — Head of Design",
+  description: "Confident, editorial portfolio. Experimentation, systems, and building at scale.",
 };
 
 export default function RootLayout({
@@ -25,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${playfair.variable} antialiased`}
+        className={`${grotesk.variable} ${display.variable} antialiased`}
       >
         {children}
       </body>

@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #0a0a0a;
-  --accent: #ff2d2d;
-  --accent-dark: #cc0000;
-  --gray-50: #f8f8f8;
-  --gray-100: #f0f0f0;
-  --gray-200: #e0e0e0;
-  --gray-300: #d0d0d0;
-  --gray-400: #a0a0a0;
-  --gray-500: #808080;
-  --gray-600: #606060;
-  --gray-700: #404040;
-  --gray-800: #202020;
-  --gray-900: #0a0a0a;
-  --border: #d0d0d0;
-  --shadow: rgba(0, 0, 0, 0.08);
+  --background: #0b0e12; /* near-black blue graphite */
+  --foreground: #f5f7fb; /* off-white for text */
+  --accent: #ff3b3b;     /* confident red */
+  --accent-dark: #c62020;
+  --gray-50: #fafafa;
+  --gray-100: #e6e8ed;
+  --gray-200: #cfd4dc;
+  --gray-300: #a7afbd;
+  --gray-400: #7d8799;
+  --gray-500: #5a6576;
+  --gray-600: #414b5a;
+  --gray-700: #2a3340;
+  --gray-800: #171d26;
+  --gray-900: #0b0e12;
+  --border: #2a3340;
+  --shadow: rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
@@ -36,8 +36,8 @@
   --color-gray-900: var(--gray-900);
   --color-border: var(--border);
   --color-shadow: var(--shadow);
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-grotesk);
+  --font-serif: var(--font-display);
 }
 
 body {
@@ -61,11 +61,11 @@ body {
 
 /* Brutalist utility classes */
 .brutal-shadow {
-  box-shadow: 8px 8px 0px 0px var(--gray-900);
+  box-shadow: 8px 8px 0px 0px #000000;
 }
 
 .brutal-border {
-  border: 3px solid var(--gray-900);
+  border: 3px solid #ffffff;
 }
 
 .brutal-accent-border {
@@ -73,7 +73,7 @@ body {
 }
 
 .text-brutal {
-  text-shadow: 2px 2px 0px var(--gray-300);
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.25);
 }
 
 /* Custom scrollbar */
