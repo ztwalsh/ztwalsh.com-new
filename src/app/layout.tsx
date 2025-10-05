@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
-import { Gloock, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const grotesk = Space_Grotesk({
-  variable: "--font-grotesk",
-  subsets: ["latin"],
-});
-
-const display = Gloock({
-  variable: "--font-display",
-  weight: ["400"],
-  subsets: ["latin"],
+const cabinetGrotesk = localFont({
+  src: [
+    {
+      path: "../../public/CabinetGrotesk-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/CabinetGrotesk-Black.otf",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Zachary Walsh — Head of Design",
-  description: "Confident, editorial portfolio. Experimentation, systems, and building at scale.",
+  title: "Zachary Walsh - Head of Design",
+  description: "Design leader focused on experimentation, tinkering, and building at Zapier",
 };
 
 export default function RootLayout({
@@ -25,9 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${grotesk.variable} ${display.variable} antialiased`}
-      >
+      <body className={cabinetGrotesk.variable}>
         {children}
       </body>
     </html>

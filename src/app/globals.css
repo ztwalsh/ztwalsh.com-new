@@ -1,95 +1,84 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0b0e12; /* near-black blue graphite */
-  --foreground: #f5f7fb; /* off-white for text */
-  --accent: #ff3b3b;     /* confident red */
-  --accent-dark: #c62020;
-  --gray-50: #fafafa;
-  --gray-100: #e6e8ed;
-  --gray-200: #cfd4dc;
-  --gray-300: #a7afbd;
-  --gray-400: #7d8799;
-  --gray-500: #5a6576;
-  --gray-600: #414b5a;
-  --gray-700: #2a3340;
-  --gray-800: #171d26;
-  --gray-900: #0b0e12;
-  --border: #2a3340;
-  --shadow: rgba(0, 0, 0, 0.4);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-accent-dark: var(--accent-dark);
-  --color-gray-50: var(--gray-50);
-  --color-gray-100: var(--gray-100);
-  --color-gray-200: var(--gray-200);
-  --color-gray-300: var(--gray-300);
-  --color-gray-400: var(--gray-400);
-  --color-gray-500: var(--gray-500);
-  --color-gray-600: var(--gray-600);
-  --color-gray-700: var(--gray-700);
-  --color-gray-800: var(--gray-800);
-  --color-gray-900: var(--gray-900);
-  --color-border: var(--border);
-  --color-shadow: var(--shadow);
-  --font-sans: var(--font-grotesk);
-  --font-serif: var(--font-display);
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), system-ui, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.4;
+  color: #403838; /* global ink color */
+  background: #f8f8f8;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.font-serif {
-  font-family: var(--font-playfair), serif;
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #403838;
+}
+
+/* Typography Scale */
+.hero-name {
+  font-size: clamp(80px, 15vw, 180px);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+.subtitle {
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 300;
+  line-height: 1.2;
+  text-transform: lowercase;
+}
+
+.tagline {
+  font-size: clamp(16px, 2.5vw, 20px);
+  font-weight: 400;
+  line-height: 1.6;
+  color: #403838;
+}
+
+.nav-link {
+  font-size: 16px;
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+.nav-link.active {
+  border-bottom: 2px solid #ffd700;
+  padding-bottom: 2px;
+}
+
+.logo {
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
-.font-sans {
-  font-family: var(--font-inter), system-ui, sans-serif;
+/* Layout */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 5%;
 }
 
-/* Brutalist utility classes */
-.brutal-shadow {
-  box-shadow: 8px 8px 0px 0px #000000;
+.content-left {
+  margin-left: 10%;
 }
 
-.brutal-border {
-  border: 3px solid #ffffff;
-}
-
-.brutal-accent-border {
-  border: 3px solid var(--accent);
-}
-
-.text-brutal {
-  text-shadow: 2px 2px 0px rgba(0,0,0,0.25);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--gray-100);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--gray-400);
-  border-radius: 0;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-600);
+@media (max-width: 768px) {
+  .content-left {
+    margin-left: 5%;
+  }
 }
