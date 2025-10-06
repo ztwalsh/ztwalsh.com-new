@@ -50,21 +50,22 @@ export default function Home() {
         <div className="container">
           <div className="projects-grid">
             <article className="project-card">
-              <div className="project-image">
-                <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
+              <div className="project-image gradient-orange-1">
+              <a href="/work/zapier-ai-vision"><img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" /></a>
+
               </div>
               <div className="project-meta">
                 <p className="project-title">
-                  <strong>Vision for building on zapier</strong>
+                  <strong>Vision for building with AI on zapier</strong>
                   <span className="project-desc"> / creating a frictionless, unified experience for building automation through agents, steps, and code.</span>
-                  <a href="#" className="see-more">See more</a>
+                  <a href="/work/zapier-ai-vision" className="see-more">See more</a>
                 </p>
                 <p className="project-sub">zapier 2025</p>
               </div>
             </article>
 
             <article className="project-card">
-              <div className="project-image">
+              <div className="project-image gradient-orange-1">
               <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
               </div>
               <div className="project-meta">
@@ -79,7 +80,7 @@ export default function Home() {
             </article>
 
             <article className="project-card">
-              <div className="project-image">
+              <div className="project-image gradient-orange-1">
               <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
               </div>
               <div className="project-meta">
@@ -94,7 +95,7 @@ export default function Home() {
             </article>
 
             <article className="project-card">
-              <div className="project-image">
+              <div className="project-image gradient-orange-1">
               <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
               </div>
               <div className="project-meta">
