@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
 const cabinetGrotesk = localFont({
@@ -15,7 +16,14 @@ const cabinetGrotesk = localFont({
       style: "normal",
     },
   ],
-  variable: "--font-sans",
+  variable: "--font-cabinet",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "700"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -31,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cabinetGrotesk.variable}>
+      <body className={`${inter.variable} ${cabinetGrotesk.variable}`}>
         {children}
       </body>
     </html>

@@ -1,9 +1,30 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+
 export default function Home() {
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const header = headerRef.current;
+      if (!header) return;
+      if (y > 8) {
+        header.classList.add("condensed");
+      } else {
+        header.classList.remove("condensed");
+      }
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="container py-8">
-        <div className="flex items-center justify-between">
+      <header ref={headerRef} className="site-header">
+        <div className="container flex items-center justify-between navigation">
           <div className="logo">ZW</div>
           <nav className="flex space-x-8">
             <a href="#work" className="nav-link active">work</a>
@@ -14,8 +35,8 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <main className="container">
-        <div className="content-left pt-20 pb-32">
+      <main className="container flex-1 flex items-center">
+        <div className="content-hero">
           <h1 className="hero-name mb-6">zach walsh</h1>
           <h2 className="subtitle mb-8">designer & leader</h2>
           <p className="tagline max-w-2xl">
@@ -23,6 +44,72 @@ export default function Home() {
           </p>
         </div>
       </main>
+
+      {/* Selected Projects */}
+      <section id="work" className="projects-section">
+        <div className="container">
+          <div className="projects-grid">
+            <article className="project-card">
+              <div className="project-image">
+                <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
+              </div>
+              <div className="project-meta">
+                <p className="project-title">
+                  <strong>Vision for building on zapier</strong>
+                  <span className="project-desc"> / creating a frictionless, unified experience for building automation through agents, steps, and code.</span>
+                  <a href="#" className="see-more">See more</a>
+                </p>
+                <p className="project-sub">zapier 2025</p>
+              </div>
+            </article>
+
+            <article className="project-card">
+              <div className="project-image">
+              <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
+              </div>
+              <div className="project-meta">
+                <p className="project-title">
+                  <strong>Unifying the zapier platform</strong>
+                  <span className="divider"> / </span>
+                  <span className="project-desc">a unified experience for building automation through agents, steps, and code.</span>
+                  <a href="#" className="see-more">See more</a>
+                </p>
+                <p className="project-sub">zapier 2024</p>
+              </div>
+            </article>
+
+            <article className="project-card">
+              <div className="project-image">
+              <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
+              </div>
+              <div className="project-meta">
+                <p className="project-title">
+                  <strong>Vision for a multi-product platform</strong>
+                  <span className="divider"> / </span>
+                  <span className="project-desc">creating a frictionless, unified experience for building automation.</span>
+                  <a href="#" className="see-more">See more</a>
+                </p>
+                <p className="project-sub">zapier 2023</p>
+              </div>
+            </article>
+
+            <article className="project-card">
+              <div className="project-image">
+              <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
+              </div>
+              <div className="project-meta">
+                <p className="project-title">
+                  <strong>Rebranded zapier</strong>
+                  <span className="divider"> / </span>
+                  <span className="project-desc">a frictionless, unified experience for building automation through agents, steps, and code.</span>
+                  <a href="#" className="see-more">See more</a>
+                </p>
+                <p className="project-sub">zapier 2021</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
