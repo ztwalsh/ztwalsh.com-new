@@ -1,39 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Header from "../../../components/Header";
 
 export default function ZapierAIVision() {
-  const headerRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const header = headerRef.current;
-      if (!header) return;
-      if (y > 8) {
-        header.classList.add("condensed");
-      } else {
-        header.classList.remove("condensed");
-      }
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header ref={headerRef} className="site-header">
-        <div className="container flex items-center justify-between navigation">
-          <div className="logo">ZW</div>
-          <nav className="flex space-x-8">
-            <a href="/#work" className="nav-link active">work</a>
-            <a href="#experiments" className="nav-link">experiments</a>
-            <a href="#contact" className="nav-link">get in touch</a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="container">

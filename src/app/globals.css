@@ -55,12 +55,15 @@ a:hover {
 }
 
 .nav-link {
+  border-bottom: 2px solid #fcfdfc;
   font-size: 16px;
   font-weight: 400;
   margin-left: 48px;
   text-transform: lowercase;
+  transition: border-color 500ms ease;
 }
 
+.nav-link:hover,
 .nav-link.active {
   border-bottom: 2px solid #ffd700;
   padding-bottom: 2px;
@@ -71,6 +74,14 @@ a:hover {
   font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.05em;
+
+  a {
+    transition: color 200ms ease;
+  }
+
+  a:hover {
+    color:#FFC700;
+  }
 }
 
 /* Layout */
