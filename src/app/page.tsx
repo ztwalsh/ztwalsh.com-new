@@ -39,14 +39,14 @@ export default function Home() {
 
             <article className="project-card">
               <div className="project-image gradient-orange-1">
-              <img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" />
+              <a href="/work/zapier-platform-unification"><img src="images/zapier-ai-building-01-main-canvas.png" alt="Project preview" /></a>
               </div>
               <div className="project-meta">
                 <p className="project-title">
                   <strong>Unifying the zapier platform</strong>
                   <span className="divider"> / </span>
                   <span className="project-desc">a unified experience for building automation through agents, steps, and code.</span>
-                  <a href="#" className="see-more">See more</a>
+                  <a href="/work/zapier-platform-unification" className="see-more">See more</a>
                 </p>
                 <p className="project-sub">zapier 2024</p>
               </div>
