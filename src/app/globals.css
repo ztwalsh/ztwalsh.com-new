@@ -170,15 +170,6 @@ a:hover {
   background: linear-gradient(323deg,rgba(227, 115, 23, 1) 0%, rgba(237, 136, 12, 1) 50%, rgba(255, 179, 0, 1) 100%);
 }
 
-.gradient-green-1 {
-  background: linear-gradient(299deg,rgba(34, 193, 195, 1) 0%, rgba(253, 187, 45, 1) 100%);
-
-}
-
-.gradient-blue-1 {
-  background: linear-gradient(323deg,rgba(47, 99, 72, 1) 0%, rgba(52, 163, 106, 1) 50%, rgba(35, 196, 113, 1) 100%);
-}
-
 .gradient-purple-1 {
   /*background: linear-gradient(323deg,rgba(47, 99, 72, 1) 0%, rgba(52, 163, 106, 1) 50%, rgba(35, 196, 113, 1) 100%);*/
   background-color:hsla(242,100%,80%,0.25);
@@ -250,12 +241,12 @@ a:hover {
 .project-visual {
   border-radius: 8px;
   margin: 0 auto 60px auto;
-  max-width: 900px;
+  max-width: 1200px;
   text-align: center;
 }
 
 .project-visual-slides {
-  padding: 40px;
+  padding: 90px;
 }
 
 .project-visual img {
@@ -266,19 +257,25 @@ a:hover {
 }
 
 .project-slide-button {
-  background: rgba(64,56,56,0.5);
+  background: rgba(64,56,56,0.15);
   padding: 20px;
   cursor: pointer;
   transition: background 0.2s ease;
 
   &:hover {
-    background: rgba(64,56,56,0.7);
+    background: rgba(64,56,56,0.75);
   }
 }
 
 .project-slide-count {
-  background: rgba(64,56,56,0.5);
-  padding: 10px;
+  background: rgba(64,56,56,0.35);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+}
+
+.close {
+  cursor: pointer;
 }
 
 .project-section {
@@ -292,11 +289,16 @@ a:hover {
   line-height: 1.2;
   margin: 0 auto 24px auto;
   max-width: 700px;
+  text-align: center;
 }
 
 .section-content {
   margin: 0 auto;
   max-width: 700px;
+}
+
+ul {
+  padding-bottom: 20px
 }
 
 li {

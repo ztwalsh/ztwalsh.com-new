@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import FullScreenCarousel from "./FullScreenCarousel";
 
 interface ImageCarouselProps {
   images: string[];
   alt: string;
   className?: string;
+  captions?: string[];
 }
 
-export default function ImageCarousel({ images, alt, className = "" }: ImageCarouselProps) {
+export default function ImageCarousel({ images, alt, className = "", captions = [] }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
+  const [fullScreenIndex, setFullScreenIndex] = useState(0);
 
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => 
@@ -23,12 +27,36 @@ export default function ImageCarousel({ images, alt, className = "" }: ImageCaro
     );
   };
 
+  const handleImageClick = (index: number) => {
+    setFullScreenIndex(index);
+    setIsFullScreenOpen(true);
+  };
+
+  const closeFullScreen = () => {
+    setIsFullScreenOpen(false);
+  };
+
   // If only one image, render as single image
   if (images.length <= 1) {
     return (
-      <div className={`project-visual ${className}`}>
-        <img src={images[0]} alt={alt} />
-      </div>
+      <>
+        <div className={`project-visual ${className}`}>
+          <img 
+            src={images[0]} 
+            alt={alt} 
+            className="cursor-pointer hover:opacity-100 transition-opacity"
+            onClick={() => handleImageClick(0)}
+          />
+        </div>
+        <FullScreenCarousel
+          images={images}
+          alt={alt}
+          captions={captions}
+          initialIndex={0}
+          isOpen={isFullScreenOpen}
+          onClose={closeFullScreen}
+        />
+      </>
     );
   }
 
@@ -42,7 +70,12 @@ export default function ImageCarousel({ images, alt, className = "" }: ImageCaro
         >
           {images.map((image, index) => (
             <div key={index} className="w-full flex-shrink-0 project-visual-slides">
-              <img src={image} alt={`${alt} ${index + 1}`} className="w-full h-auto object-cover" />
+              <img 
+                src={image} 
+                alt={`${alt} ${index + 1}`} 
+                className="w-full h-auto object-cover cursor-pointer hover:opacity-100 transition-opacity"
+                onClick={() => handleImageClick(index)}
+              />
             </div>
           ))}
         </div>
@@ -72,7 +105,24 @@ export default function ImageCarousel({ images, alt, className = "" }: ImageCaro
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm z-10 project-slide-count">
           {currentIndex + 1} / {images.length}
         </div>
+        
+        {/* Caption */}
+        {captions.length > 0 && captions[currentIndex] && (
+          <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg text-sm z-10 max-w-md text-center">
+            {captions[currentIndex]}
+          </div>
+        )}
       </div>
+      
+      {/* Full screen carousel modal */}
+      <FullScreenCarousel
+        images={images}
+        alt={alt}
+        captions={captions}
+        initialIndex={fullScreenIndex}
+        isOpen={isFullScreenOpen}
+        onClose={closeFullScreen}
+      />
     </div>
   );
 }

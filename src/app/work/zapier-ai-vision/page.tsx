@@ -12,8 +12,27 @@ export default function ZapierAIVision() {
   
   const secondaryImages = [
     "/images/zapier-ai-orchestration/01_getting-started_member-home.png",
+    "/images/zapier-ai-orchestration/02_copilot-conversation.png",
+    "/images/zapier-ai-orchestration/03_getting-started_system-folder-view.png",
+    // Add more images here as needed
+  ];
+
+  const tertiaryImages = [
     "/images/zapier-ai-orchestration/01_getting-started_member-home.png",
-    "/images/zapier-ai-orchestration/01_getting-started_member-home.png",
+    "/images/zapier-ai-orchestration/02_copilot-conversation.png",
+    "/images/zapier-ai-orchestration/03_getting-started_system-folder-view.png",
+    "/images/zapier-ai-orchestration/04_workflow-default.png",
+    "/images/zapier-ai-orchestration/05_form-preview.png",
+    "/images/zapier-ai-orchestration/05.b_form-full-builder.png",
+    "/images/zapier-ai-orchestration/06_callable-workflow-preview.png",
+    "/images/zapier-ai-orchestration/07_callable-agent-preview.png",
+    "/images/zapier-ai-orchestration/07.b_callable-agent-full-builder.png",
+    "/images/zapier-ai-orchestration/07.b_callable-agent-full-builder.png",
+    "/images/zapier-ai-orchestration/08_callable-code-preview.png",
+    "/images/zapier-ai-orchestration/08.b_callable-code-full-builder.png",
+    "/images/zapier-ai-orchestration/09_table-preview.png",
+    "/images/zapier-ai-orchestration/09.b_table-full-builder.png",
+    "/images/zapier-ai-orchestration/10_callable-library-in-editor.png"
     // Add more images here as needed
   ];
 
@@ -51,24 +70,24 @@ export default function ZapierAIVision() {
         </div>
 
 
-        {/* Additional Content */}
-        <div className="project-section">
-          <div className="section-content">
-            <h3 className="section-heading">the approach</h3>
-            <p>
-            We decided to take a step back. Rather than incrementally improving existing products, we set aside current boundaries to envision the ultimate building experience for AI orchestration. I pulled together a cross functional group made up of two lead designers, two product directors, and a staff engineer. Over the course of the next three weeks, we worked with our founders and senior leaders across product and engineering to pull together existing ideas from across the company into a single view of our future building experience. Guiding our work was a set of principles:
-            </p>
-            <ul className="list-disc list-inside">
-              <li><strong>AI-first building</strong> / Assume a future where natural language configuration becomes the norm.</li>
-              <li><strong>Agent-forward design</strong> / Assume a future where people and AI agents are collaborators within a workforce.</li>
-              <li><strong>Break existing product constructs</strong> / Don’t be hindered by our existing product architecture, let the right approach emerge based the customer experience.</li>
-            </ul>
-          </div>
-        </div>
-
+        {/* Second Visual */}
+        <ImageCarousel images={secondaryImages} alt="Zapier AI Building Interface" className="gradient-purple-1" captions={[
+    "Main dashboard view showing key metrics",
+    "Detailed analytics page with user insights", 
+    "Settings panel for configuration options"
+  ]} />
+        
         <div className="project-section">
           <div className="section-content">
           <h3 className="section-heading">the vision</h3>
+          <p>We decided to take a step back. Rather than incrementally improving existing products, we set aside current boundaries to envision the ultimate building experience for AI orchestration. I pulled together a cross functional group made up of two lead designers, two product directors, and a staff engineer. Over the course of the next three weeks, we worked with our founders and senior leaders across product and engineering to pull together existing ideas from across the company into a single view of our future building experience. Guiding our work was a set of principles: 
+          </p>
+          <ul className="list-disc list-inside">
+            <li><strong>AI-first building</strong> / Assume a future where natural language configuration becomes the norm.</li>
+            <li><strong>Agent-forward design</strong> / Assume a future where people and AI agents are collaborators within a workforce.</li>
+            <li><strong>Break existing product constructs</strong> / Don’t be hindered by our existing product architecture, let the right approach emerge based the customer experience.</li>
+          </ul>
+
           <p>Zapier's unified builder vision positions automation as the foundational element that orchestrates triggers, deterministic logic, AI agents, and supporting tools into complete systems. AI becomes a primary means of building, testing, and troubleshooting—transforming natural language descriptions into working solutions and democratizing automation creation across technical skill levels.</p>
 
           <p>All platform components become composable: workflows can call AI agents and custom code, agents can trigger workflows, creating interconnected and reusable systems that technical builders can share with their teams. The visual interface supports both granular workflow construction and system-level visualization, letting users zoom between detailed editing and holistic documentation. Testing and troubleshooting work consistently across all automation types.</p>
@@ -77,12 +96,12 @@ export default function ZapierAIVision() {
           </div>
         </div>
 
-        {/* Second Visual */}
-        <ImageCarousel images={secondaryImages} alt="Zapier AI Building Interface" className="gradient-purple-1" />
+        {/* Third Visual */}
+        <ImageCarousel images={tertiaryImages} alt="Zapier AI Building Interface" className="gradient-purple-1" />
 
         <div className="project-section">
           <div className="section-content">
-            <h3 className="section-heading">the reality</h3>
+          <h3 className="section-heading">the reality</h3>
             <p>While our vision guides us, we were simply unable to tackle the complete vision at once. Based on our technical spikes, we also uncovered technical limitations in how we could architect a single builder experience for all of these different tools. We determined that we'd start with the most critical components that enabled using the products together and reducing the product collisions we had introduced. This boiled down to:</p>
             <ul className="list-disc list-inside">
               <li><strong>Agent steps in workflows</strong> / The first true integration point between deterministic and agentic automation</li>
