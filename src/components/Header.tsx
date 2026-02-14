@@ -28,9 +28,9 @@ export default function Header() {
       <div className="container flex items-center justify-between navigation">
         <div className="logo"><a href="/">ZW</a></div>
         <nav className="flex space-x-8">
-          <a href="/#work" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>work</a>
+          <a href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>home</a>
           <a href="/experiments" className={`nav-link ${pathname === '/experiments' ? 'active' : ''}`}>experiments</a>
-          <a href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>get in touch</a>
+          <a href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>contact</a>
         </nav>
       </div>
     </header>
