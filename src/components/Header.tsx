@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function Header() {
   const headerRef = useRef<HTMLElement | null>(null);
@@ -26,11 +27,11 @@ export default function Header() {
   return (
     <header ref={headerRef} className="site-header">
       <div className="container flex items-center justify-between navigation">
-        <div className="logo"><a href="/">ZW</a></div>
+        <div className="logo"><Link href="/">ZW</Link></div>
         <nav className="flex space-x-8">
-          <a href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>home</a>
-          <a href="/experiments" className={`nav-link ${pathname === '/experiments' ? 'active' : ''}`}>experiments</a>
-          <a href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>contact</a>
+          <Link href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>home</Link>
+          <Link href="/experiments" className={`nav-link ${pathname === '/experiments' ? 'active' : ''}`}>experiments</Link>
+          <Link href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>contact</Link>
         </nav>
       </div>
     </header>
