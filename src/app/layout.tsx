@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Inter } from "next/font/google";
+import { Inter, Inria_Serif } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
@@ -21,6 +21,14 @@ const cabinetGrotesk = localFont({
   display: "swap",
 });
 
+const inriaSerif = Inria_Serif({
+  subsets: ["latin"],
+  weight: ["300", "400", "700"],
+  style: ["italic"],
+  variable: "--font-inria",
+  display: "swap",
+});
+
 const inter = Inter({
   subsets: ["latin"],
   weight: ["200", "300", "700"],
@@ -29,7 +37,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Zachary Walsh - Head of Design",
+  title: "Zach Walsh: Product design lover and leader",
   description: "Design leader focused on experimentation, tinkering, and building at Zapier",
 };
 
@@ -54,7 +62,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${inter.variable} ${cabinetGrotesk.variable}`}>
+      <body className={`${inter.variable} ${cabinetGrotesk.variable} ${inriaSerif.variable}`}>
         {children}
       </body>
     </html>

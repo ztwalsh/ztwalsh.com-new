@@ -74,7 +74,6 @@ export default function Contact() {
           <div className="section-content">
             {status === "success" ? (
               <div className="form-success">
-                <h2 className="form-success-heading">message sent!</h2>
                 <p className="form-success-body">
                   Thanks for reaching out. I&apos;ll get back to you as soon as I
                   can.

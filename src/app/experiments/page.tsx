@@ -36,8 +36,7 @@ export default function Experiments() {
           <h1 className="page-title">experiments</h1>
           <p className="page-intro">
             A collection of design experiments, prototypes, and explorations
-            that push the boundaries of what&apos;s possible in digital
-            experiences.
+            pushing on applications of AI.
           </p>
         </div>
 

@@ -27,11 +27,11 @@ export default function Header() {
   return (
     <header ref={headerRef} className="site-header">
       <div className="container flex items-center justify-between navigation">
-        <div className="logo"><Link href="/">ZW</Link></div>
+        <div className="logo"><Link href="/">zw</Link></div>
         <nav className="flex space-x-8">
-          <Link href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>home</Link>
+          <Link href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>work</Link>
           <Link href="/experiments" className={`nav-link ${pathname === '/experiments' ? 'active' : ''}`}>experiments</Link>
-          <Link href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>contact</Link>
+          <Link href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>get in touch</Link>
         </nav>
       </div>
     </header>
