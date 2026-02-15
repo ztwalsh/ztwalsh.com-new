@@ -7,8 +7,8 @@ const experiments = [
     title: "Async design feedback",
     description:
       "Scales design by giving non-designers reliable, brand-specific design feedback on their vibe coded work.",
-    thumbnail: "/images/placeholder-experiment.png",
-    url: "#",
+    thumbnail: "/images/design-feedback.png",
+    url: "https://design-feedback-kappa.vercel.app/",
   },
   {
     title: "Conversational readme",
@@ -21,7 +21,7 @@ const experiments = [
     title: "Crew management",
     description:
       "Vibe coded solution for managing your racing boat crew and events. 10 years ago, this took months. This was a weekend.",
-    thumbnail: "/images/placeholder-experiment.png",
+    thumbnail: "/images/crew-management.png",
     url: "#",
   },
 ];
@@ -39,27 +39,32 @@ export default function Experiments() {
             pushing on applications of AI.
           </p>
         </div>
-
-        <div className="experiments-grid">
-          {experiments.map((experiment) => (
-            <a
-              key={experiment.title}
-              href={experiment.url}
-              className="experiment-card"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <div className="experiment-info">
-                <h2 className="experiment-title">{experiment.title}</h2>
-                <p className="experiment-description">
-                  {experiment.description}
-                </p>
-                <span className="experiment-link">visit project</span>
-              </div>
-            </a>
-          ))}
-        </div>
       </main>
+
+      <div className="experiments-grid">
+        {experiments.map((experiment) => (
+          <a
+            key={experiment.title}
+            href={experiment.url}
+            className="experiment-card"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src={experiment.thumbnail}
+              alt={experiment.title}
+              className="experiment-bg"
+            />
+            <div className="experiment-overlay">
+              <h2 className="experiment-title">{experiment.title}</h2>
+              <p className="experiment-description">
+                {experiment.description}
+              </p>
+              <span className="experiment-link">visit project</span>
+            </div>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

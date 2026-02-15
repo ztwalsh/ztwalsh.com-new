@@ -31,7 +31,7 @@ export default function Header() {
         <nav className="flex space-x-8">
           <Link href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>work</Link>
           <Link href="/experiments" className={`nav-link ${pathname === '/experiments' ? 'active' : ''}`}>experiments</Link>
-          <Link href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>get in touch</Link>
+          <Link href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>contact</Link>
         </nav>
       </div>
     </header>

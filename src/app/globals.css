@@ -388,79 +388,90 @@ strong {
 .experiments-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
-  padding-bottom: 80px;
+  gap: 2px;
 }
 
 .experiment-card {
-  display: flex;
-  flex-direction: column;
-  border-radius: 20px;
-  background: #3d5240;
-  border: none;
-  padding: 24px;
-  transition: transform 200ms ease, box-shadow 200ms ease;
-  text-decoration: none;
-  color: inherit;
-}
-
-.experiment-card:hover {
-  transform: translateY(-2px);
-  color: inherit;
-}
-
-.experiment-info {
-  display: flex;
-  flex-direction: column;
-  padding: 4px 4px 20px;
-}
-
-.experiment-title {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.3;
-  margin-bottom: 6px;
-  color: #F7F7EF;
-}
-
-.experiment-description {
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1.5;
-  color: #F7F7EF;
-  margin-bottom: 16px;
-  flex: 1;
-}
-
-.experiment-link {
-  font-size: 14px;
-  font-weight: 400;
-  color: #7dba6e;
-  align-self: flex-start;
-  transition: color 200ms ease;
-}
-
-.experiment-card:hover .experiment-link {
-  color: #a0d994;
-}
-
-.experiment-thumbnail {
-  aspect-ratio: 16 / 10;
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: #181e15;
-  border-radius: 12px;
+  text-decoration: none;
+  color: #F7F7EF;
+  background: #3d5240;
 }
 
-.experiment-thumbnail img {
+.experiment-bg {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
+.experiment-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.75);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.experiment-card:hover .experiment-overlay {
+  opacity: 1;
+}
+
+.experiment-title {
+  font-family: var(--font-inria), Georgia, serif;
+  font-size: 28px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  color: #F7F7EF;
+}
+
+.experiment-description {
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: #F7F7EF;
+  max-width: 600px;
+}
+
+.experiment-link {
+  font-size: 14px;
+  font-weight: 400;
+  color: #E5C862;
+  margin-top: 12px;
+}
+
 @media (max-width: 768px) {
+  .nav-link {
+    margin-left: 24px;
+  }
+
   .experiments-grid {
     grid-template-columns: 1fr;
-    gap: 24px;
+  }
+
+  .experiment-card {
+    aspect-ratio: 16 / 10;
+  }
+
+  .experiment-overlay {
+    padding: 24px;
+  }
+
+  .experiment-title {
+    font-size: 22px;
+  }
+
+  .experiment-description {
+    font-size: 14px;
   }
 }
