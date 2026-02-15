@@ -8,7 +8,7 @@ export default function Home() {
       <main className="container flex-1 flex items-center">
         <div className="content-hero">
           <h1 className="hero-statement">
-            i&apos;m <em className="hero-accent">zach walsh</em>. I{" "}
+            i&apos;m <em className="hero-accent">zach walsh</em>. i{" "}
             <em className="hero-accent">connect</em>{" "}
             people, <em className="hero-accent">simplify</em>{" "}
             complexity, and <em className="hero-accent">ship</em>{" "}
