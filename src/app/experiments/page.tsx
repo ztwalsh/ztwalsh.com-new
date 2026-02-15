@@ -14,15 +14,15 @@ const experiments = [
     title: "Conversational readme",
     description:
       "Get to know about working with me through chatting directly with my performance feedback, 360 feedback, and upward manager feedback. No secrets.",
-    thumbnail: "/images/placeholder-experiment.png",
-    url: "#",
+    thumbnail: "/images/readme.png",
+    url: "https://readme-seven.vercel.app/",
   },
   {
     title: "Crew management",
     description:
       "Vibe coded solution for managing your racing boat crew and events. 10 years ago, this took months. This was a weekend.",
     thumbnail: "/images/crew-management.png",
-    url: "#",
+    url: "https://crew-management-j7w5o7dg5-zachwalsh-zapiercoms-projects.vercel.app/login",
   },
 ];
 
