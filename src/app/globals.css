@@ -376,12 +376,12 @@ strong {
 }
 
 .contact-alt a {
-  color: #7dba6e;
+  color: #E5C862;
   transition: color 200ms ease;
 }
 
 .contact-alt a:hover {
-  color: #a0d994;
+  color: #f0da82;
 }
 
 /* Experiments Grid */
@@ -416,13 +416,12 @@ strong {
   flex-direction: column;
   justify-content: center;
   padding: 40px;
-  background: rgba(0, 0, 0, 0.75);
-  opacity: 0;
-  transition: opacity 300ms ease;
+  background: rgba(30, 42, 30, 0.875);
+  transition: background 300ms ease;
 }
 
 .experiment-card:hover .experiment-overlay {
-  opacity: 1;
+  background: rgba(30, 42, 30, 0.6);
 }
 
 .experiment-title {
