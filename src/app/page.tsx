@@ -11,14 +11,14 @@ const experiments = [
   {
     title: "Conversational readme",
     description:
-      "Get to know about working with me by chatting directly with my performance feedback, 360 feedback, and upward manager feedback. No secrets.",
+      "No secrets. Get to know about working with me by chatting directly with my performance feedback, 360 feedback, and upward manager feedback.",
     url: "https://readme-seven.vercel.app/",
   },
   {
-    title: "Crew management",
+    title: "AI wallpapers",
     description:
-      "Vibe coded solution for managing your racing boat crew and events. 10 years ago, this took months. This was a weekend.",
-    url: "https://crew-management-j7w5o7dg5-zachwalsh-zapiercoms-projects.vercel.app/login",
+      "My hobby collection AI wallpaper generated from MidJourney.",
+    url: "https://wallpaper-beige.vercel.app/",
   },
 ];
 
