@@ -1,10 +1,11 @@
 ---
-title: "Change order of experiments"
-status: todo
+title: Change order of experiments
+status: in-progress
 priority: 2
 scope:
-  - "src/app/page.tsx"
+  - src/app/page.tsx
 created: 2026-07-20
+locked_at: 20260720-065558
 ---
 
 ## What
