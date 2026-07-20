@@ -1,11 +1,12 @@
 ---
 title: Change order of experiments
-status: in-progress
+status: review
 priority: 2
 scope:
   - src/app/page.tsx
 created: 2026-07-20
 locked_at: 20260720-065558
+pr: https://github.com/ztwalsh/ztwalsh.com-new/pull/3
 ---
 
 ## What
