@@ -42,3 +42,4 @@ next-env.d.ts
 
 # ticket queue automation
 automation/logs/
+.claude/worktrees/
