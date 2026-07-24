@@ -1,11 +1,12 @@
 ---
 title: font swap
-status: in-progress
+status: review
 priority: 3
 created: 2026-07-20
 locked_at: 20260724-082339
 scope:
   - src/app/layout.tsx
+pr: https://github.com/ztwalsh/ztwalsh.com-new/pull/4
 ---
 
 ## What
