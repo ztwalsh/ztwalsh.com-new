@@ -67,7 +67,7 @@ export default function Contact() {
 
       <main className="container">
         <div className="page-hero">
-          <h1 className="page-title">Contact</h1>
+          <h1 className="page-title">contact</h1>
         </div>
 
         <div className="content-section">
