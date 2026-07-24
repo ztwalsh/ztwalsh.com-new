@@ -1,13 +1,13 @@
 ---
 title: font swap
-status: review
+status: done
 priority: 3
 created: 2026-07-20
 locked_at: 20260724-082339
 scope:
   - src/app/layout.tsx
 pr: https://github.com/ztwalsh/ztwalsh.com-new/pull/4
-note: PR closed without merging - needs attention
+note: PR #4 (Geist) closed unmerged - superseded by manual implementation in commit a1967e2 (Geist body font + Inria Serif logo, done directly in-session rather than via the queue)
 ---
 
 ## What
