@@ -7,6 +7,7 @@ locked_at: 20260724-082339
 scope:
   - src/app/layout.tsx
 pr: https://github.com/ztwalsh/ztwalsh.com-new/pull/4
+note: PR closed without merging - needs attention
 ---
 
 ## What
