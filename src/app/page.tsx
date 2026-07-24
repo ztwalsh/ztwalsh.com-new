@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Envelope, LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
+import Header from "../components/Header";
 
 const experiments = [
   {
@@ -31,6 +32,8 @@ const experiments = [
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
+      <Header />
+
       <main className="container">
         <div className="profile">
           <h1 className="profile-name">zach walsh</h1>

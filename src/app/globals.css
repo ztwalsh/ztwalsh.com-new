@@ -37,6 +37,34 @@ a {
   padding: 0 24px;
 }
 
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.navigation {
+  padding: 32px 24px 0;
+}
+
+.logo {
+  font-family: var(--font-inria), Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+}
+
+.logo a {
+  transition: color 200ms ease;
+}
+
+.logo a:hover {
+  color: var(--color-accent);
+}
+
 /* Profile */
 .profile {
   padding: 96px 0 56px;

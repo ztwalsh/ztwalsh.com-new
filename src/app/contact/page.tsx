@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Header from "../../components/Header";
 
 export default function Contact() {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
@@ -62,6 +63,8 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen">
+      <Header />
+
       <main className="container">
         <div className="page-hero">
           <h1 className="page-title">contact</h1>
