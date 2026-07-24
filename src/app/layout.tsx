@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Inria_Serif } from "next/font/google";
+import { Geist, Inria_Serif } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
@@ -11,7 +11,7 @@ const inriaSerif = Inria_Serif({
   display: "swap",
 });
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
   variable: "--font-inter",
@@ -45,7 +45,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${inter.variable} ${inriaSerif.variable}`}>
+      <body className={`${geist.variable} ${inriaSerif.variable}`}>
         {children}
       </body>
     </html>
