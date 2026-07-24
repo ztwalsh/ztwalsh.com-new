@@ -1,6 +1,6 @@
 ---
 title: Change order of experiments
-status: review
+status: done
 priority: 2
 scope:
   - src/app/page.tsx
