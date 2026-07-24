@@ -3,10 +3,10 @@ import Header from "../components/Header";
 
 const experiments = [
   {
-    title: "Async design feedback",
+    title: "move/think",
     description:
-      "Scales design by giving non-designers reliable, brand-specific design feedback on their vibe coded work.",
-    url: "https://design-feedback-kappa.vercel.app/",
+      "An iOS app that pairs movement with reflection, helping you think through what's on your mind while you walk.",
+    url: "https://apps.apple.com/us/app/move-think/id6770284427",
   },
   {
     title: "Conversational readme",
@@ -19,6 +19,12 @@ const experiments = [
     description:
       "My hobby collection AI wallpaper generated from MidJourney.",
     url: "https://wallpaper-beige.vercel.app/",
+  },
+  {
+    title: "Async design feedback",
+    description:
+      "Scales design by giving non-designers reliable, brand-specific design feedback on their vibe coded work.",
+    url: "https://design-feedback-kappa.vercel.app/",
   },
 ];
 
