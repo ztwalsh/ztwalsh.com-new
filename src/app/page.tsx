@@ -16,9 +16,9 @@ const experiments = [
     url: "https://readme-seven.vercel.app/",
   },
   {
-    title: "AI wallpapers",
+    title: "Wallypapers",
     description:
-      "My hobby collection AI wallpaper generated from MidJourney.",
+      "My hobby collection AI wallpaper generated from MidJourney available for download.",
     url: "https://wallpaper-beige.vercel.app/",
   },
   {
