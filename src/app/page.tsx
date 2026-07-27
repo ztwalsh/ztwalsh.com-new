@@ -10,23 +10,23 @@ const experiments = [
     url: "https://apps.apple.com/us/app/move-think/id6770284427",
   },
   {
-    title: "Conversational readme",
-    description:
-      "No secrets. Get to know about working with me by chatting directly with my performance feedback, 360 feedback, and upward manager feedback.",
-    url: "https://readme-seven.vercel.app/",
-  },
-  {
     title: "Wallypaper",
     description:
       "My hobby collection AI wallpaper generated from MidJourney available for download.",
     url: "https://wallypaper.design/",
   },
   {
+    title: "Conversational readme",
+    description:
+      "No secrets. Get to know about working with me by chatting directly with my performance feedback, 360 feedback, and upward manager feedback.",
+    url: "https://readme.ztwalsh.com/",
+  },
+  /*{
     title: "Async design feedback",
     description:
       "Scales design by giving non-designers reliable, brand-specific design feedback on their vibe coded work.",
     url: "https://design-feedback-kappa.vercel.app/",
-  },
+  },*/
 ];
 
 export default function Home() {
