@@ -16,10 +16,10 @@ const experiments = [
     url: "https://readme-seven.vercel.app/",
   },
   {
-    title: "Wallypapers",
+    title: "Wallypaper",
     description:
       "My hobby collection AI wallpaper generated from MidJourney available for download.",
-    url: "https://wallpaper-beige.vercel.app/",
+    url: "https://wallypaper.design/",
   },
   {
     title: "Async design feedback",
