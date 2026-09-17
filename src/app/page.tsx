@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { Envelope, LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Mail01Icon, Linkedin01Icon } from "@hugeicons/core-free-icons";
 import Header from "../components/Header";
 
 const experiments = [
+  {
+    title: "Harps",
+    description:
+      "A local-first push-to-talk dictation app for Mac. Hold a key, speak, and the text lands right at your cursor, transcribed entirely on-device.",
+    url: "https://getharps.app/",
+  },
   {
     title: "move/think",
     description:
@@ -48,7 +55,12 @@ export default function Home() {
               aria-label="Contact"
               className="profile-link"
             >
-              <Envelope size={26} weight="light" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={Mail01Icon}
+                size={26}
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
             </Link>
             <a
               href="https://www.linkedin.com/in/zacharywalsh/"
@@ -57,7 +69,12 @@ export default function Home() {
               aria-label="LinkedIn"
               className="profile-link"
             >
-              <LinkedinLogo size={26} weight="light" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={Linkedin01Icon}
+                size={26}
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
             </a>
           </div>
         </div>
