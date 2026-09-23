@@ -13,8 +13,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <style>
   @font-face {
-    font-family: "Geist Mono"; font-style: normal; font-weight: 100 900;
-    font-display: swap; src: url("./geist-mono.woff2") format("woff2");
+    font-family: "Geist"; font-style: normal; font-weight: 100 900;
+    font-display: swap; src: url("./geist.woff2") format("woff2");
   }
   /*
     Solid State — a code-art object with its controls exposed.
@@ -46,15 +46,15 @@
     --panel-ink: #e9e9ec;
     --panel-dim: rgba(233, 233, 236, 0.5);
     --panel-faint: rgba(233, 233, 236, 0.33);
-    --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --face: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; background: #000; }
   body {
     color: var(--panel-ink);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
+    font-family: var(--face);
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
     touch-action: none;
     user-select: none;
@@ -86,7 +86,7 @@
   }
   #panel input[type=range] { touch-action: none; }
   .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .head b { font-weight: 500; letter-spacing: 0.11em; }
+  .head b { font-weight: 500; letter-spacing: 0.005em; }
   .close {
     font: inherit; color: var(--panel-dim); background: none; border: 0; cursor: pointer;
     padding: 2px 4px; line-height: 1; font-size: 14px;
@@ -94,11 +94,11 @@
   .close:hover { color: var(--panel-ink); }
   .grp {
     margin-top: 13px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
-    color: var(--panel-faint); letter-spacing: 0.14em; font-size: 9.5px;
+    color: var(--panel-faint); letter-spacing: 0.13em; font-size: 10px;
   }
   .grp:first-of-type { border-top: 0; padding-top: 0; }
   .row { display: grid; grid-template-columns: 62px 1fr 34px; gap: 9px; align-items: center; margin-top: 7px; }
-  .row span { color: var(--panel-dim); letter-spacing: 0.04em; }
+  .row span { color: var(--panel-dim); letter-spacing: 0.005em; }
   .row output { text-align: right; color: var(--panel-ink); font-variant-numeric: tabular-nums; }
   input[type=range] {
     -webkit-appearance: none; appearance: none; width: 100%; height: 16px;
@@ -114,7 +114,7 @@
   input[type=range]:focus-visible { outline: 1px dashed var(--panel-ink); outline-offset: 3px; }
   .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-top: 8px; }
   .seg button {
-    font: inherit; letter-spacing: 0.05em; color: var(--panel-dim);
+    font: inherit; letter-spacing: 0.005em; color: var(--panel-dim);
     background: rgba(255,255,255,0.05); border: 1px solid transparent; border-radius: 5px;
     padding: 5px 0; cursor: pointer;
   }
@@ -136,7 +136,7 @@
   .pick input[type=color]::-webkit-color-swatch-wrapper { padding: 1px; }
   .pick input[type=color]::-webkit-color-swatch { border: 0; border-radius: 3px; }
   .btn {
-    font: inherit; letter-spacing: 0.06em; color: var(--panel-ink);
+    font: inherit; letter-spacing: 0.005em; color: var(--panel-ink);
     background: rgba(255,255,255,0.07); border: 1px solid var(--panel-line); border-radius: 6px;
     padding: 7px 10px; cursor: pointer; width: 100%;
   }
@@ -149,8 +149,8 @@
   .check input { accent-color: var(--panel-ink); width: 13px; height: 13px; }
   .foot a { color: var(--panel-dim); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.18); }
   .foot a:hover { color: var(--panel-ink); border-bottom-color: currentColor; }
-  .foot { margin-top: 11px; color: var(--panel-faint); line-height: 1.75; font-size: 9.5px; letter-spacing: 0.05em; }
-  #note { margin-top: 8px; color: var(--panel-dim); min-height: 13px; font-size: 9.5px; }
+  .foot { margin-top: 11px; color: var(--panel-faint); line-height: 1.8; font-size: 10px; letter-spacing: 0.005em; }
+  #note { margin-top: 8px; color: var(--panel-dim); min-height: 13px; font-size: 10px; }
   #fallback {
     position: fixed; inset: 0; display: none; place-items: center; text-align: center;
     padding: 24px; color: #9a9aa0; line-height: 1.7;
@@ -172,10 +172,10 @@
 <p class="sr-only" id="phase" aria-live="polite"></p>
 
 <div id="panel">
-  <div class="head"><b>SOLID STATE</b><button class="close" id="close" type="button" aria-label="Hide controls">&times;</button></div>
+  <div class="head"><b>Solid State</b><button class="close" id="close" type="button" aria-label="Hide controls">&times;</button></div>
   <div id="build"></div>
 </div>
-<button id="toggle" type="button" hidden>CONTROLS</button>
+<button id="toggle" type="button" hidden>Controls</button>
 
 <div id="fallback">This piece is drawn with WebGL2, which this browser does not offer.<br>Try a current Chrome, Safari, Firefox or Edge.</div>
 
@@ -206,15 +206,15 @@
   // Settings. Everything the panel touches lives here and is persisted.
   // ---------------------------------------------------------------------
   const PRESETS = {
-    MONO:   { ink: '#ffffff', bg: '#000000', scan: 0.35, bloom: 0.40 },
-    PAPER:  { ink: '#12120f', bg: '#f4f2ec', scan: 0.20, bloom: 0.12 },
-    AMBER:  { ink: '#ffb545', bg: '#140c02', scan: 0.42, bloom: 0.55 },
+    Mono:   { ink: '#ffffff', bg: '#000000', scan: 0.35, bloom: 0.40 },
+    Paper:  { ink: '#12120f', bg: '#f4f2ec', scan: 0.20, bloom: 0.12 },
+    Amber:  { ink: '#ffb545', bg: '#140c02', scan: 0.42, bloom: 0.55 },
     P1:     { ink: '#6dff9d', bg: '#04100a', scan: 0.42, bloom: 0.55 },
-    CYAN:   { ink: '#7ee4ff', bg: '#02111a', scan: 0.36, bloom: 0.50 },
-    ROSE:   { ink: '#ff8ec4', bg: '#16040f', scan: 0.36, bloom: 0.50 },
+    Cyan:   { ink: '#7ee4ff', bg: '#02111a', scan: 0.36, bloom: 0.50 },
+    Rose:   { ink: '#ff8ec4', bg: '#16040f', scan: 0.36, bloom: 0.50 },
   };
   const BASE = {
-    shape: 'CYCLE',        // CYCLE | SPHERE | CUBE | PYRAMID
+    shape: 'Cycle',        // Cycle | Sphere | Cube | Pyramid
     zoom: 0.62,
     dot: 1.00,
     density: 1.00,
@@ -227,7 +227,7 @@
     ink: '#ffffff',
     bg: '#000000',
     captions: true,
-    preset: 'MONO',
+    preset: 'Mono',
   };
   const S = Object.assign({}, BASE);
   let hadSaved = false;
@@ -235,8 +235,8 @@
     const raw = localStorage.getItem('solid-state');
     if (raw) { hadSaved = true; const o = JSON.parse(raw); for (const k in BASE) if (k in o) S[k] = o[k]; }
   } catch (e) {}
-  if (query.get('theme') === 'light') Object.assign(S, PRESETS.PAPER, { preset: 'PAPER' });
-  if (!hadSaved && reduceMotion()) { S.spin = 0; S.shape = 'SPHERE'; }
+  if (query.get('theme') === 'light') Object.assign(S, PRESETS.Paper, { preset: 'Paper' });
+  if (!hadSaved && reduceMotion()) { S.spin = 0; S.shape = 'Sphere'; }
   let saveTimer = 0;
   function persist() {
     clearTimeout(saveTimer);
@@ -247,7 +247,10 @@
   const ADAPTIVE = 0.3, SATURATION = 1.1, VIGNETTE = 0.35, FLICKER = 0.01, BLOOM_THRESHOLD = 0.5;
   const CAM_DIST = 3.4, FOV_DEG = 28;
   const HOLD = 2.4, MORPH = 3.2;
-  const SHAPES = ['SPHERE', 'CUBE', 'PYRAMID'];
+  const SHAPES = ['Sphere', 'Cube', 'Pyramid'];
+  // These names changed case once, so accept a returning visitor's old one.
+  S.shape = ['Cycle'].concat(SHAPES).find((n) => n.toLowerCase() === String(S.shape).toLowerCase()) || 'Cycle';
+  S.preset = matchPreset();
   const RING_BASE = 104, PER_BASE = 208;
 
   const hexToRgb = (h) => {
@@ -591,20 +594,20 @@
     c.clearRect(0, 0, W, H);
     if (!S.captions) { uploadOverlay(); return; }
     const k = hexToRgb(S.ink).map((v) => Math.round(v * 255)).join(',');
-    c.font = '500 11px "Geist Mono", ui-monospace, Menlo, Consolas, monospace';
+    c.font = '500 12px "Geist", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif';
     c.textBaseline = 'alphabetic';
-    if ('letterSpacing' in c) c.letterSpacing = '0.08em';
+    if ('letterSpacing' in c) c.letterSpacing = '0px';
     const pad = 20;
     const cs = getComputedStyle(document.documentElement);
     const safeTop = parseFloat(cs.paddingTop) || 0;
     const safeBottom = parseFloat(cs.paddingBottom) || 0;
     c.fillStyle = `rgba(${k},0.92)`;
-    c.fillText('SOLID STATE', pad, safeTop + pad + 9);
+    c.fillText('Solid State', pad, safeTop + pad + 9);
     c.fillStyle = `rgba(${k},0.42)`;
     c.textAlign = 'right';
     c.fillText(label, W - pad, safeTop + pad + 9);
     c.textAlign = 'left';
-    c.fillText(`${POINT_COUNT.toLocaleString('en-US')} PTS · DRAG TO TURN`, pad, H - safeBottom - pad);
+    c.fillText(`${POINT_COUNT.toLocaleString('en-US')} points · drag to turn`, pad, H - safeBottom - pad);
     uploadOverlay();
   }
   function uploadOverlay() {
@@ -849,25 +852,25 @@
   ).join('');
 
   $('build').innerHTML =
-    `<div class="grp">FORM</div>
+    `<div class="grp">Form</div>
      <div class="seg" id="shapes">` +
-    ['CYCLE'].concat(SHAPES).map((n) => `<button type="button" data-shape="${n}">${n}</button>`).join('') +
+    ['Cycle'].concat(SHAPES).map((n) => `<button type="button" data-shape="${n}">${n}</button>`).join('') +
     `</div>${rowsFor('form')}
-     <div class="grp">COLOUR</div>
+     <div class="grp">Colour</div>
      <div class="swatches" id="swatches">` +
     Object.keys(PRESETS).map((n) => `<button type="button" data-preset="${n}" title="${n}" aria-label="${n}" style="background:${PRESETS[n].bg};color:${PRESETS[n].ink}"></button>`).join('') +
     `</div>
      <div class="colors">
        <label class="pick"><input type="color" id="ink"><span>Ink</span></label>
        <label class="pick"><input type="color" id="bgc"><span>Ground</span></label>
-       <button class="btn side" id="swap" type="button">SWAP</button>
+       <button class="btn side" id="swap" type="button">Swap</button>
      </div>
-     <div class="grp">TUBE</div>${rowsFor('tube')}
-     <div class="grp">EXPORT</div>
+     <div class="grp">Tube</div>${rowsFor('tube')}
+     <div class="grp">Export</div>
      <label class="check"><input type="checkbox" id="caps"><span>Show captions on screen</span></label>
-     <button class="btn primary" id="save" type="button">SAVE PNG</button>
+     <button class="btn primary" id="save" type="button">Save .png</button>
      <div id="note" role="status"></div>
-     <div class="foot"><a id="home" href="/"></a><br>Drag to turn · Space pause<br>I swap · H hide panel</div>`;
+     <div class="foot"><a id="home" href="/"></a><br>Drag to turn · Space to pause<br>I to swap colours · H to hide this</div>`;
 
   if (HOME_URL) { $('home').href = HOME_URL; $('home').textContent = HOME_LABEL; }
   else { const h = $('home'); h.nextSibling && h.nextSibling.remove(); h.remove(); }

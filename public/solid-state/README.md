@@ -10,7 +10,7 @@ ships in the folder. Anything that can serve a static file can serve this.
 ```
 solid-state/
 ├── index.html         the piece, self-contained
-├── geist-mono.woff2   the one typeface it uses
+├── geist.woff2        the one typeface it uses
 ├── preview.png        1200×630 share image
 └── README.md          this file
 ```
