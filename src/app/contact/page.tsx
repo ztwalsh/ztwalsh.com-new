@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import Header from "../../components/Header";
+import { CrtRoot, InvertButton } from "../../components/Crt";
 
 export default function Contact() {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
@@ -62,120 +62,135 @@ export default function Contact() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
+    <CrtRoot>
+      <main className="wrap">
+        <header className="hero">
+          <h1>contact</h1>
+        </header>
 
-      <main className="container">
-        <div className="page-hero">
-          <h1 className="page-title">contact</h1>
-        </div>
-
-        <div className="content-section">
-          <div className="section-content">
-            {status === "success" ? (
-              <div className="form-success">
-                <p className="form-success-body">
-                  Thanks for reaching out. I&apos;ll get back to you as soon as I
-                  can.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="contact-form" noValidate>
-                {status === "error" && (
-                  <p className="form-error">{errorMessage}</p>
-                )}
-
-                {/* Honeypot */}
-                <div aria-hidden="true" style={{ position: "absolute", left: "-9999px" }}>
-                  <label htmlFor="website">Website</label>
-                  <input
-                    type="text"
-                    id="website"
-                    name="website"
-                    tabIndex={-1}
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="name">Full name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    maxLength={100}
-                    placeholder="Your name"
-                    className={missingFields.has("name") ? "field-error" : ""}
-                    onChange={() => {
-                      if (missingFields.has("name")) {
-                        setMissingFields((prev) => { const next = new Set(prev); next.delete("name"); return next; });
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="email">Email address</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    placeholder="you@example.com"
-                    className={missingFields.has("email") ? "field-error" : ""}
-                    onChange={() => {
-                      if (missingFields.has("email")) {
-                        setMissingFields((prev) => { const next = new Set(prev); next.delete("email"); return next; });
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="message">Message</label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    required
-                    rows={6}
-                    minLength={10}
-                    maxLength={5000}
-                    placeholder="What's on your mind?"
-                    className={missingFields.has("message") ? "field-error" : ""}
-                    onChange={() => {
-                      if (missingFields.has("message")) {
-                        setMissingFields((prev) => { const next = new Set(prev); next.delete("message"); return next; });
-                      }
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="form-submit"
-                  disabled={status === "sending"}
-                >
-                  {status === "sending" ? "Sending..." : "Send message"}
-                </button>
-              </form>
-            )}
-
-            <p className="contact-alt">
-              You can also reach me at{" "}
-              <a href="mailto:ztwalsh@gmail.com">ztwalsh@gmail.com</a> or on{" "}
-              <a
-                href="https://www.linkedin.com/in/zacharywalsh/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LinkedIn
-              </a>
-              .
+        {status === "success" ? (
+          <div className="success">
+            <p>
+              Thanks for reaching out. I&apos;ll get back to you as soon as I
+              can.
             </p>
           </div>
-        </div>
+        ) : (
+          <form onSubmit={handleSubmit} noValidate>
+            {status === "error" && <p className="error">{errorMessage}</p>}
+
+            {/* Honeypot */}
+            <div className="honeypot" aria-hidden="true">
+              <label htmlFor="website">Website</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="name">Full name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                maxLength={100}
+                placeholder="Your name"
+                autoComplete="name"
+                className={missingFields.has("name") ? "field-error" : ""}
+                onChange={() => {
+                  if (missingFields.has("name")) {
+                    setMissingFields((prev) => {
+                      const next = new Set(prev);
+                      next.delete("name");
+                      return next;
+                    });
+                  }
+                }}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="email">Email address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                placeholder="you@example.com"
+                autoComplete="email"
+                className={missingFields.has("email") ? "field-error" : ""}
+                onChange={() => {
+                  if (missingFields.has("email")) {
+                    setMissingFields((prev) => {
+                      const next = new Set(prev);
+                      next.delete("email");
+                      return next;
+                    });
+                  }
+                }}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="message">Message</label>
+              <textarea
+                id="message"
+                name="message"
+                required
+                rows={6}
+                minLength={10}
+                maxLength={5000}
+                placeholder="What's on your mind?"
+                className={missingFields.has("message") ? "field-error" : ""}
+                onChange={() => {
+                  if (missingFields.has("message")) {
+                    setMissingFields((prev) => {
+                      const next = new Set(prev);
+                      next.delete("message");
+                      return next;
+                    });
+                  }
+                }}
+              />
+            </div>
+
+            <button type="submit" className="submit" disabled={status === "sending"}>
+              {status === "sending" ? "Sending..." : "Send message"}
+            </button>
+          </form>
+        )}
+
+        <p className="alt">
+          You can also reach me at{" "}
+          <a href="mailto:ztwalsh@gmail.com">ztwalsh@gmail.com</a> or on{" "}
+          <a
+            href="https://www.linkedin.com/in/zacharywalsh/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            LinkedIn
+          </a>
+          .
+        </p>
+
+        <footer className="foot">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full reload keeps the CRT mount clean */}
+          <a href="/">home</a>
+          <a
+            href="https://www.linkedin.com/in/zacharywalsh/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            linkedin
+          </a>
+          <InvertButton />
+        </footer>
       </main>
-    </div>
+    </CrtRoot>
   );
 }

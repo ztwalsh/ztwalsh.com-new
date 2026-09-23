@@ -1,11 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #4F654F;
-  --color-text: #F7F7EF;
-  --color-muted: rgba(247, 247, 239, 0.55);
-  --color-faint: rgba(247, 247, 239, 0.35);
-  --color-accent: #E5C862;
+  --bg: #000;
+  --fg: #fff;
+  --muted: rgba(255, 255, 255, 0.62);
+  --faint: rgba(255, 255, 255, 0.36);
+  --line: rgba(255, 255, 255, 0.18);
+  --error: #ff8080;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --bg: #fff;
+  --fg: #000;
+  --muted: rgba(0, 0, 0, 0.8);
+  --faint: rgba(0, 0, 0, 0.55);
+  --line: rgba(0, 0, 0, 0.18);
+  --error: #c53030;
+  color-scheme: light;
 }
 
 * {
@@ -14,300 +26,292 @@
   box-sizing: border-box;
 }
 
+html,
 body {
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #000;
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 16px;
   line-height: 1.5;
-  color: var(--color-text);
-  background: var(--color-bg);
-  font-weight: 400;
+  color: var(--fg);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+#page {
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  /* Hidden until the CRT mount resolves, so we never flash the unshaded
+     DOM before the shader canvas (or the plain fallback) takes over. */
+  opacity: 0;
+}
+
+html.crt-ready #page {
+  opacity: 1;
 }
 
 a {
   color: inherit;
   text-decoration: none;
-  transition: color 200ms ease;
+}
+
+button.invert {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+ul {
+  list-style: none;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 /* Layout */
-.container {
+.wrap {
   max-width: 640px;
   margin: 0 auto;
   padding: 0 24px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Header */
-
-
-.navigation {
-  padding: 32px 24px 0;
-}
-
-.logo {
-  font-family: var(--font-inria), Georgia, serif;
-  font-size: 22px;
-  font-weight: 400;
-  font-style: italic;
-  letter-spacing: 0.02em;
-  color: var(--color-text);
-}
-
-.logo a {
-  transition: color 200ms ease;
-}
-
-.logo a:hover {
-  color: var(--color-accent);
-}
-
-/* Profile */
+/* Profile / home */
 .profile {
-  padding: 96px 0 56px;
+  padding: 112px 0 56px;
 }
 
-.profile-name {
+h1 {
   font-size: 56px;
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: var(--color-text);
-  margin-bottom: 4px;
+  line-height: 1.1;
+  margin-bottom: 8px;
 }
 
-.profile-bio {
+.bio {
   font-size: 24px;
-  font-weight: 400;
   line-height: 1.4;
   letter-spacing: -0.01em;
-  color: var(--color-accent);
+  color: var(--muted);
   max-width: 560px;
-  margin-bottom: 32px;
 }
 
-.profile-links {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.profile-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-faint);
-  transition: color 200ms ease;
-}
-
-.profile-link:hover {
-  color: var(--color-text);
-}
-
-/* Sections */
 .section {
-  padding: 32px 0 96px;
+  padding: 24px 0 72px;
 }
 
-.section-label {
+.label {
   font-size: 13px;
   font-weight: 400;
-  color: var(--color-muted);
+  color: var(--faint);
   margin-bottom: 20px;
 }
 
-/* Link list (experiments / projects style) */
-.link-list {
-  list-style: none;
+.list {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.link-list-link {
+.item a {
   display: block;
-  color: var(--color-text);
 }
 
-.link-title {
-  font-size: 16px;
+.title {
   font-weight: 700;
-  color: var(--color-text);
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
-  transition: color 200ms ease;
 }
 
-.link-arrow {
+.arrow {
   font-size: 13px;
-  color: var(--color-faint);
   font-weight: 400;
+  color: var(--faint);
   transition: color 200ms ease;
 }
 
-.link-description {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--color-muted);
+.desc {
+  color: var(--muted);
   margin-left: 8px;
   transition: color 200ms ease;
 }
 
-.link-list-link:hover .link-arrow {
-  color: var(--color-accent);
+.item a:hover .desc,
+.item a:focus-visible .desc {
+  color: var(--fg);
 }
 
-.link-list-link:hover .link-description {
-  color: var(--color-text);
+.item a:hover .arrow {
+  color: var(--fg);
+}
+
+.foot {
+  display: flex;
+  gap: 24px;
+  margin-top: auto;
+  padding: 64px 0 40px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.foot a:hover,
+.foot button:hover {
+  color: var(--fg);
+}
+
+.foot .invert {
+  margin-left: auto;
+  color: var(--faint);
 }
 
 /* Contact page */
-.page-hero {
-  padding: 96px 0 32px;
+.hero {
+  padding: 112px 0 32px;
 }
 
-.page-title {
-  font-size: 56px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-}
-
-.content-section {
-  padding-bottom: 96px;
-}
-
-.section-content {
-  max-width: 640px;
-}
-
-.contact-form {
+form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.form-field {
+.field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.form-field label {
+.field label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-muted);
+  color: var(--muted);
 }
 
-.form-field input,
-.form-field textarea {
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+.field input,
+.field textarea {
+  font: inherit;
   font-size: 16px;
-  font-weight: 400;
   line-height: 1.5;
-  color: var(--color-text);
-  background: rgba(247, 247, 239, 0.04);
-  border: 1px solid rgba(247, 247, 239, 0.15);
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 12px 14px;
   width: 100%;
-  transition: border-color 200ms ease, background 200ms ease;
+  transition: border-color 200ms ease;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.form-field input::placeholder,
-.form-field textarea::placeholder {
-  color: var(--color-faint);
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--faint);
 }
 
-.form-field input:focus,
-.form-field textarea:focus {
+.field input:focus,
+.field textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
-  background: rgba(247, 247, 239, 0.06);
+  border-color: var(--fg);
 }
 
-.form-field textarea {
+.field textarea {
   resize: vertical;
   min-height: 140px;
 }
 
-.form-field input.field-error,
-.form-field textarea.field-error {
-  border-color: #e89a9a;
+.field-error {
+  border-color: var(--error);
 }
 
-.form-submit {
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+.submit {
+  align-self: flex-start;
+  font: inherit;
   font-size: 15px;
   font-weight: 500;
-  color: var(--color-bg);
-  background: var(--color-accent);
-  border: none;
+  color: var(--bg);
+  background: var(--fg);
+  border: 0;
   border-radius: 999px;
   padding: 12px 22px;
   cursor: pointer;
   transition: opacity 200ms ease;
-  align-self: flex-start;
 }
 
-.form-submit:hover {
-  opacity: 0.9;
+.submit:hover {
+  opacity: 0.85;
 }
 
-.form-submit:disabled {
+.submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.form-error {
+.error {
   font-size: 14px;
-  color: #f1b3b3;
-  background: rgba(230, 83, 83, 0.08);
+  color: var(--error);
+  border: 1px solid var(--error);
   border-radius: 6px;
   padding: 10px 14px;
 }
 
-.form-success {
-  border: 1px solid rgba(247, 247, 239, 0.15);
+.success {
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 24px;
-}
-
-.form-success-body {
-  font-size: 16px;
   line-height: 1.5;
-  color: var(--color-text);
 }
 
-.contact-alt {
+.alt {
   margin-top: 32px;
   font-size: 14px;
-  color: var(--color-muted);
+  color: var(--muted);
 }
 
-.contact-alt a {
-  color: var(--color-accent);
+.alt a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.contact-alt a:hover {
-  opacity: 0.85;
+.alt a:hover {
+  color: var(--fg);
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
 }
 
 @media (max-width: 600px) {
   .profile {
-    padding: 64px 0 40px;
+    padding: 72px 0 40px;
   }
 
-  .link-description {
+  h1 {
+    font-size: 40px;
+  }
+
+  .bio {
+    font-size: 20px;
+  }
+
+  .desc {
     display: block;
-    margin-left: 0;
-    margin-top: 2px;
+    margin: 2px 0 0;
   }
 
-  .page-hero {
-    padding: 64px 0 24px;
-  }
-
-  .page-title {
-    font-size: 28px;
+  .hero {
+    padding: 72px 0 24px;
   }
 }

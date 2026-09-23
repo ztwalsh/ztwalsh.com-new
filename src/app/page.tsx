@@ -1,7 +1,4 @@
-import Link from "next/link";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Mail01Icon, Linkedin01Icon } from "@hugeicons/core-free-icons";
-import Header from "../components/Header";
+import { CrtRoot, InvertButton } from "../components/Crt";
 
 const experiments = [
   {
@@ -23,86 +20,64 @@ const experiments = [
     url: "https://wallypaper.design/",
   },
   {
+    title: "Solid State",
+    description:
+      "A pure-fun toy: a lattice of points morphing between sphere, cube, and pyramid through a CRT shader. Drag to spin it, retune it live, save a still.",
+    url: "/solid-state/index.html",
+  },
+  {
     title: "Conversational readme",
     description:
       "No secrets. Get to know about working with me by chatting directly with my performance feedback, 360 feedback, and upward manager feedback.",
     url: "https://readme.ztwalsh.com/",
   },
-  /*{
-    title: "Async design feedback",
-    description:
-      "Scales design by giving non-designers reliable, brand-specific design feedback on their vibe coded work.",
-    url: "https://design-feedback-kappa.vercel.app/",
-  },*/
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="container">
-        <div className="profile">
-          <h1 className="profile-name">zach walsh</h1>
-          <p className="profile-bio">
+    <CrtRoot>
+      <main className="wrap">
+        <header className="profile">
+          <h1>zach walsh</h1>
+          <p className="bio">
             I connect people, simplify complexity, and ship products that
             matter.
           </p>
+        </header>
 
-          <div className="profile-links">
-            <Link
-              href="/contact"
-              aria-label="Contact"
-              className="profile-link"
-            >
-              <HugeiconsIcon
-                icon={Mail01Icon}
-                size={26}
-                strokeWidth={1.5}
-                aria-hidden="true"
-              />
-            </Link>
-            <a
-              href="https://www.linkedin.com/in/zacharywalsh/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn"
-              className="profile-link"
-            >
-              <HugeiconsIcon
-                icon={Linkedin01Icon}
-                size={26}
-                strokeWidth={1.5}
-                aria-hidden="true"
-              />
-            </a>
-          </div>
-        </div>
-
-        <section className="section">
-          <h2 className="section-label">Experiments</h2>
-          <ul className="link-list">
+        <section className="section" aria-labelledby="exp">
+          <h2 id="exp" className="label">
+            Experiments
+          </h2>
+          <ul className="list">
             {experiments.map((e) => (
-              <li key={e.title} className="link-list-item">
-                <a
-                  href={e.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="link-list-link"
-                >
-                  <span className="link-title">
+              <li key={e.title} className="item">
+                <a href={e.url} target="_blank" rel="noopener noreferrer">
+                  <span className="title">
                     {e.title}
-                    <span className="link-arrow" aria-hidden="true">
+                    <span className="arrow" aria-hidden="true">
                       ↗
                     </span>
                   </span>
-                  <span className="link-description">{e.description}</span>
+                  <span className="desc">{e.description}</span>
                 </a>
               </li>
             ))}
           </ul>
         </section>
+
+        <footer className="foot">
+          <a href="/contact">contact</a>
+          <a
+            href="https://www.linkedin.com/in/zacharywalsh/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            linkedin
+          </a>
+          <InvertButton />
+        </footer>
       </main>
-    </div>
+    </CrtRoot>
   );
 }
