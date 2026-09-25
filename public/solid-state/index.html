@@ -359,18 +359,21 @@
       // just turns the solid into a cloud; keeping most of them put holds the
       // silhouette and reads as a spray thrown off it.
       float spark = 0.0;
-      if (uBurst > 0.001 && hash21(aData.zw * 43.0 + 7.0) < min(uBurst * 0.5, 0.75)) {
+      if (uBurst > 0.001 && hash21(aData.zw * 43.0 + 7.0) < uBurst * 0.5) {
         // Past 1 the slider is headroom: the share that leaves keeps climbing
         // to all of them at 2, each one is thrown much further, and the curve
         // flattens so the far tail fills in instead of trailing off.
-        // Past 1 the slider is headroom. More points leave, up to three in
-        // four, and they are thrown much further. A quarter always stays on
-        // the surface: with nothing left behind there is no burst, only a
-        // thinning cloud that reads as noise.
+        // Past 1 the slider is headroom, and the throw changes character.
+        // Up to 1 it is a spray: a share of the points thrown outward, the
+        // rest holding the surface. Past it every point goes, and the throw
+        // turns symmetric and short, in as well as out. Flinging them all a
+        // long way only thins the cloud until it reads as noise; displacing
+        // them all a little destroys the lattice while keeping the mass, so
+        // the solid loses its form without losing its presence.
         float over = clamp(uBurst - 1.0, 0.0, 1.0);
         float g = hash21(aData.zw * 91.0 + 13.0);
-        spark = pow(g, mix(2.0, 2.2, over));
-        radius *= 1.0 + spark * 1.5 * (1.0 + 2.5 * over);
+        spark = pow(g, 2.0);
+        radius *= 1.0 + mix(spark * 1.5, (g - 0.5) * 1.3, over);
       }
 
       vec3 p = uRot * (d * radius);

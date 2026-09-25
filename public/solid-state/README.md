@@ -76,11 +76,12 @@ lands anywhere else, or a crawler insists on an absolute URL, edit the
 | `H` | hide the panel and captions for a clean view |
 | Save .png | the shape and the ground only, no captions, no panel |
 
-**Burst** throws a growing share of the points off the surface along their own
-rays while the rest stay on it, so the solid keeps its silhouette and the rest
-reads as a spray. It runs to 2: past 1 more points leave and are thrown much
-further, but a quarter always stays put, because with nothing left behind there
-is no burst, only a thinning cloud. **Spin** also owns the ambient wander, so at zero the object
+**Burst** runs to 2 and changes character on the way. Up to 1 it is a spray: a
+growing share of the points is thrown outward along its own ray while the rest
+hold the surface, so the solid keeps its silhouette. Past 1 every point goes and
+the throw turns symmetric and short, inward as well as out, which destroys the
+lattice while keeping the mass. At 2 the form is gone and what is left is a dense
+cloud rather than a thinning one. **Spin** also owns the ambient wander, so at zero the object
 holds exactly the angle you drag it to, which is what you want before saving.
 
 ## Notes
