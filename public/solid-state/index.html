@@ -709,15 +709,48 @@
     return { from: seg, to: (seg + 1) % SHAPES.length, k, moving: k > 0.02 };
   }
 
-  // ---- pointer: drag to turn ----------------------------------------------------------
-  let drag = null;
+  // ---- pointer: one finger turns, two pinch the zoom ----------------------------------
+  // The page sets touch-action: none so the browser never pans or zooms itself,
+  // which means the pinch has to be read here and spent on the object instead.
+  const pointers = new Map();
+  let drag = null, pinch = null;
+
+  const spread = () => {
+    const [a, b] = Array.from(pointers.values());
+    return b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+  };
+  // Zoom is a control like any other, so the slider follows the gesture.
+  function setZoom(v) {
+    const input = $('s-zoom');
+    const lo = input ? parseFloat(input.min) : 0.25;
+    const hi = input ? parseFloat(input.max) : 1.5;
+    S.zoom = clamp(v, lo, hi);
+    if (input) { input.value = S.zoom; $('o-zoom').textContent = S.zoom.toFixed(2); }
+    persist();
+  }
+  const turnFrom = (q) => { drag = { x: q.x, y: q.y, t: performance.now() }; spinVel = 0; tiltVel = 0; };
+
   canvas.addEventListener('pointerdown', (e) => {
-    drag = { x: e.clientX, y: e.clientY, t: performance.now() };
-    spinVel = 0; tiltVel = 0;
-    canvas.classList.add('dragging');
-    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    if (pointers.size >= 2) {
+      drag = null;                                  // two fingers pinch, they do not turn
+      canvas.classList.remove('dragging');
+      pinch = { dist: spread(), zoom: S.zoom };
+    } else {
+      turnFrom({ x: e.clientX, y: e.clientY });
+      canvas.classList.add('dragging');
+    }
   });
+
   canvas.addEventListener('pointermove', (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch) {
+      const d = spread();
+      if (pinch.dist > 8 && d > 0) setZoom(pinch.zoom * (d / pinch.dist));
+      return;
+    }
     if (!drag) return;
     const now = performance.now();
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -729,9 +762,22 @@
     tiltVel = dy * k / dt;
     drag = { x: e.clientX, y: e.clientY, t: now };
   });
-  const endDrag = () => { drag = null; canvas.classList.remove('dragging'); };
-  canvas.addEventListener('pointerup', endDrag);
-  canvas.addEventListener('pointercancel', endDrag);
+
+  const liftPointer = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (pointers.size === 0) { drag = null; canvas.classList.remove('dragging'); }
+    else if (!drag) { turnFrom(Array.from(pointers.values())[0]); }   // the finger left over takes over, without a jump
+  };
+  canvas.addEventListener('pointerup', liftPointer);
+  canvas.addEventListener('pointercancel', liftPointer);
+
+  // A trackpad pinch arrives as a ctrl-wheel; a plain wheel has nothing else
+  // to do on a full-screen canvas, so it zooms too.
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    setZoom(S.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+  }, { passive: false });
 
   // ---- drawing ------------------------------------------------------------------------
   function drawScene() {
@@ -937,7 +983,7 @@
      <label class="check"><input type="checkbox" id="caps"><span>Show captions on screen</span></label>
      <button class="btn primary" id="save" type="button">Save .png</button>
      <div id="note" role="status"></div>
-     <div class="foot"><a id="home" href="/"></a><br>Drag to turn · Space to pause<br>I to swap colours · H to hide this</div>`;
+     <div class="foot"><a id="home" href="/"></a><br>Drag to turn · pinch or scroll to zoom<br>Space to pause · I to swap · H to hide</div>`;
 
   if (HOME_URL) { $('home').href = HOME_URL; $('home').textContent = HOME_LABEL; }
   else { const h = $('home'); h.nextSibling && h.nextSibling.remove(); h.remove(); }

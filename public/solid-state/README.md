@@ -69,6 +69,7 @@ lands anywhere else, or a crawler insists on an absolute URL, edit the
 | | |
 |---|---|
 | Drag or swipe | turn it; it keeps the momentum, and holds the angle |
+| Pinch or scroll | zoom, the same value the Zoom slider holds |
 | Panel | shape, zoom, dot size, density, uniformity, burst, spin, colour, tube |
 | `Space` | pause |
 | `I` | swap ink and ground, through a TV power cycle |
