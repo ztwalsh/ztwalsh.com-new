@@ -68,12 +68,17 @@ lands anywhere else, or a crawler insists on an absolute URL, edit the
 
 | | |
 |---|---|
-| Drag or swipe | turn it; it keeps its momentum |
-| Panel | shape, zoom, dot size, density, uniformity, spin, colour, tube |
+| Drag or swipe | turn it; it keeps the momentum, and holds the angle |
+| Panel | shape, zoom, dot size, density, uniformity, burst, spin, colour, tube |
 | `Space` | pause |
 | `I` | swap ink and ground, through a TV power cycle |
 | `H` | hide the panel and captions for a clean view |
-| Save PNG | the shape and the ground only, no captions, no panel |
+| Save .png | the shape and the ground only, no captions, no panel |
+
+**Burst** throws a growing share of the points off the surface along their own
+rays while the rest stay on it, so the solid keeps its silhouette and the rest
+reads as a spray. **Spin** also owns the ambient wander, so at zero the object
+holds exactly the angle you drag it to, which is what you want before saving.
 
 ## Notes
 

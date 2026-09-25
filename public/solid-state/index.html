@@ -234,6 +234,7 @@
     dot: 1.00,
     density: 1.00,
     uniform: 100,          // 100 = a perfect lattice, 0 = scattered
+    burst: 0,              // throws points off the surface along their own ray
     spin: 0.30,
     scan: 0.35,
     bloom: 0.40,
@@ -313,8 +314,11 @@
     uniform mat3 uRot;
     uniform vec4 uPlanes[${PYR_HI}];
     uniform int uFrom, uTo;
-    uniform float uK, uAspect, uScale, uBaseSize, uDpr, uCamD, uFocal, uJitter, uLatStep, uPhiStep;
+    uniform float uK, uAspect, uScale, uBaseSize, uDpr, uCamD, uFocal, uJitter, uLatStep, uPhiStep, uBurst;
     out float vAlpha;
+
+    // A third random per point, folded out of the two it already carries.
+    float hash21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
 
     // Nearest plane along the ray, plus how near the two nearest are to
     // agreeing, which is exactly what it means to sit on an edge or corner.
@@ -350,6 +354,17 @@
       float radius = mix(a.x, b.x, uK);
       float edge = mix(a.y, b.y, uK);
 
+      // Burst: a growing share of the points leave the surface along their own
+      // ray while the rest stay exactly on it. Displacing every point instead
+      // just turns the solid into a cloud; keeping most of them put holds the
+      // silhouette and reads as a spray thrown off it.
+      float spark = 0.0;
+      if (uBurst > 0.001 && hash21(aData.zw * 43.0 + 7.0) < uBurst * 0.5) {
+        float g = hash21(aData.zw * 91.0 + 13.0);
+        spark = g * g;                       // most land near, a few go far
+        radius *= 1.0 + spark * 1.5;
+      }
+
       vec3 p = uRot * (d * radius);
       float z = uCamD - p.z;
       vec2 ndc = p.xy * uFocal / z;
@@ -358,7 +373,7 @@
       gl_Position = vec4(ndc, 0.0, 1.0);
 
       float near = clamp(p.z / 1.5 * 0.5 + 0.5, 0.0, 1.0);
-      float size = uBaseSize * (0.72 + 0.55 * near) * (uCamD / z) * (1.0 + edge * 0.3);
+      float size = uBaseSize * (0.72 + 0.55 * near) * (uCamD / z) * (1.0 + edge * 0.3) * (1.0 - spark * uBurst * 0.4);
       gl_PointSize = size * uDpr;
       vAlpha = mix(0.22, 1.0, near * near) * (1.0 + edge * 0.85);
     }
@@ -509,7 +524,7 @@
 
   const pointProg = link(POINT_VERT, POINT_FRAG);
   const PU = uni(pointProg, ['uRot', 'uPlanes', 'uFrom', 'uTo', 'uK', 'uAspect', 'uScale', 'uBaseSize',
-    'uDpr', 'uCamD', 'uFocal', 'uJitter', 'uLatStep', 'uPhiStep', 'uInk']);
+    'uDpr', 'uCamD', 'uFocal', 'uJitter', 'uLatStep', 'uPhiStep', 'uBurst', 'uInk']);
   const fadeProg = link(QUAD_VERT, FADE_FRAG);
   const FU = uni(fadeProg, ['uColor']);
   const crtProg = link(QUAD_VERT, CRT_FRAG);
@@ -707,8 +722,11 @@
     const next = ph.moving ? `${SHAPES[ph.from]} → ${SHAPES[ph.to]}` : SHAPES[ph.from];
     if (next !== label) { label = next; phaseOut.textContent = label; drawOverlay(); }
 
-    const tilt = 0.30 + 0.10 * Math.sin(t * 0.21) + tiltDrag;
-    const prec = 0.16 * Math.sin(t * 0.13);
+    // The ambient wander belongs to the spin control, so Spin 0 holds a pose
+    // exactly where it was dragged.
+    const life = clamp(S.spin / 0.30, 0, 1);
+    const tilt = 0.30 + 0.10 * Math.sin(t * 0.21) * life + tiltDrag;
+    const prec = 0.16 * Math.sin(t * 0.13) * life;
     const rot = mul(rotZ(prec), mul(rotX(tilt), rotY(spin)));
     const aspect = W / H;
     const baseSize = clamp(2.4 * Math.min(W, H) / 700, 1.5, 3.2) * S.dot;
@@ -736,6 +754,7 @@
     gl.uniform1f(PU.uCamD, CAM_DIST);
     gl.uniform1f(PU.uFocal, 1 / Math.tan((FOV_DEG * PI / 180) / 2));
     gl.uniform1f(PU.uJitter, (1 - S.uniform / 100) * 1.7);
+    gl.uniform1f(PU.uBurst, S.burst);
     gl.uniform1f(PU.uLatStep, PI / RINGS);
     gl.uniform1f(PU.uPhiStep, 2 * PI / PER_RING);
     gl.uniform3f(PU.uInk, ink[0], ink[1], ink[2]);
@@ -786,8 +805,7 @@
       spin += (S.spin + spinVel) * dt;
       tiltDrag = clamp(tiltDrag + tiltVel * dt, -1.2, 1.2);
       const damp = Math.pow(0.15, dt);
-      spinVel *= damp; tiltVel *= damp;
-      tiltDrag *= Math.pow(0.6, dt);
+      spinVel *= damp; tiltVel *= damp;   // the flick decays, the angle does not
       drawScene();
     }
     drawTube(now, true);
@@ -871,6 +889,7 @@
     ['form', 'dot', 'Dot size', 0.3, 4, 0.05, (v) => v.toFixed(2)],
     ['form', 'density', 'Density', 0.25, 1.6, 0.05, (v) => v.toFixed(2)],
     ['form', 'uniform', 'Uniformity', 0, 100, 1, (v) => Math.round(v) + '%'],
+    ['form', 'burst', 'Burst', 0, 1, 0.01, (v) => v.toFixed(2)],
     ['form', 'spin', 'Spin', 0, 1.5, 0.01, (v) => v.toFixed(2)],
     ['tube', 'scan', 'Scanlines', 0, 1, 0.01, (v) => v.toFixed(2)],
     ['tube', 'bloom', 'Bloom', 0, 1.5, 0.01, (v) => v.toFixed(2)],
