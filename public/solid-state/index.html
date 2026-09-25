@@ -112,20 +112,20 @@
     color: var(--panel-faint); letter-spacing: 0.13em; font-size: 10px;
   }
   .grp:first-of-type { border-top: 0; padding-top: 0; }
-  .row { display: grid; grid-template-columns: 62px 1fr 34px; gap: 9px; align-items: center; margin-top: 7px; }
+  .row { display: grid; grid-template-columns: 62px 1fr 34px; gap: 9px; align-items: center; margin-top: 4px; }
   .row span { color: var(--panel-dim); letter-spacing: 0.005em; }
   .row output { text-align: right; color: var(--panel-ink); font-variant-numeric: tabular-nums; }
   input[type=range] {
-    -webkit-appearance: none; appearance: none; width: 100%; height: 16px;
+    -webkit-appearance: none; appearance: none; width: 100%; height: 22px;
     background: none; cursor: pointer;
   }
   input[type=range]::-webkit-slider-runnable-track { height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; }
   input[type=range]::-moz-range-track { height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; }
   input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%;
-    background: var(--panel-ink); margin-top: -4.5px; border: 0;
+    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--panel-ink); margin-top: -6.5px; border: 0;
   }
-  input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--panel-ink); border: 0; }
+  input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--panel-ink); border: 0; }
   input[type=range]:focus-visible { outline: 1px dashed var(--panel-ink); outline-offset: 3px; }
   .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-top: 8px; }
   .seg button {
@@ -532,17 +532,34 @@
     'yOffset', 'brightness', 'contrast', 'saturation', 'bloomIntensity', 'bloomThreshold', 'rgbShift',
     'adaptiveIntensity', 'vignetteStrength', 'curvature', 'flickerStrength', 'uPower', 'uEdge']);
 
+  // Repainting the caption layer re-uploads a full-viewport texture, and a
+  // density change rebuilds and re-uploads the whole point buffer. A slider
+  // fires an input event per pointer move, so doing either inline meant tens
+  // of megabytes of uploads per drag. Ask for the work instead, and do it at
+  // most once per frame.
+  let overlayDirty = false, latticeDirty = false, clearDirty = false;
+  const needOverlay = () => { overlayDirty = true; };
+  const needLattice = () => { latticeDirty = true; };
+  const needClear = () => { clearDirty = true; };
+  function flushPending() {
+    if (latticeDirty) { latticeDirty = false; buildLattice(); overlayDirty = true; }
+    if (clearDirty) { clearDirty = false; clearScene(); }
+    if (overlayDirty) { overlayDirty = false; drawOverlay(); }
+  }
+
   // ---- geometry: a lattice of directions, rebuilt when density changes -------
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
   const vbo = gl.createBuffer();
   const aData = gl.getAttribLocation(pointProg, 'aData');
   let RINGS = 0, PER_RING = 0, POINT_COUNT = 0;
+  const MAX_DENSITY = 1.6;
+  let arr = new Float32Array((Math.ceil(RING_BASE * MAX_DENSITY) + 2) * (Math.ceil(PER_BASE * MAX_DENSITY) + 2) * 4);
   function buildLattice() {
     RINGS = Math.max(8, Math.round(RING_BASE * S.density));
     PER_RING = Math.max(16, Math.round(PER_BASE * S.density));
     POINT_COUNT = RINGS * PER_RING;
-    const arr = new Float32Array(POINT_COUNT * 4);
+    if (POINT_COUNT * 4 > arr.length) arr = new Float32Array(POINT_COUNT * 4);
     let k = 0;
     for (let i = 0; i < RINGS; i++) {
       const lat = -PI / 2 + ((i + 0.5) / RINGS) * PI;
@@ -556,7 +573,7 @@
     }
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, arr.subarray(0, POINT_COUNT * 4), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(aData);
     gl.vertexAttribPointer(aData, 4, gl.FLOAT, false, 0, 0);
   }
@@ -598,8 +615,8 @@
     // otherwise the bright lattice behind it eats the label contrast.
     document.documentElement.style.setProperty('--panel',
       luma(bg) > 0.5 ? 'rgba(13, 13, 15, 0.74)' : 'rgba(13, 13, 15, 0.58)');
-    drawOverlay();
-    clearScene();
+    needOverlay();
+    needClear();
   }
 
   // ---- sizing ------------------------------------------------------------------
@@ -618,8 +635,8 @@
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sceneTex, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     targetReady = true;
-    drawOverlay();
-    clearScene();
+    needOverlay();
+    needClear();
   }
   function clearScene() {
     if (!targetReady) return;
@@ -720,7 +737,7 @@
   function drawScene() {
     const ph = phase(t);
     const next = ph.moving ? `${SHAPES[ph.from]} → ${SHAPES[ph.to]}` : SHAPES[ph.from];
-    if (next !== label) { label = next; phaseOut.textContent = label; drawOverlay(); }
+    if (next !== label) { label = next; phaseOut.textContent = label; needOverlay(); }
 
     // The ambient wander belongs to the spin control, so Spin 0 holds a pose
     // exactly where it was dragged.
@@ -800,6 +817,7 @@
     const now = ts / 1000;
     const dt = Math.min(0.05, last ? now - last : 0.016);
     last = now;
+    flushPending();
     if (!paused) {
       t += dt;
       spin += (S.spin + spinVel) * dt;
@@ -931,8 +949,8 @@
     input.addEventListener('input', () => {
       S[key] = parseFloat(input.value);
       out.textContent = fmt(S[key]);
-      if (key === 'density') { buildLattice(); drawOverlay(); }
-      if (key === 'trails') clearScene();
+      if (key === 'density') needLattice();
+      if (key === 'trails') needClear();
       persist();
     });
   });
@@ -943,7 +961,7 @@
     S.shape = b.dataset.shape; syncShapeUI(); persist();
     const ph = phase(t);
     label = ph.moving ? label : SHAPES[ph.from];
-    phaseOut.textContent = label; drawOverlay();
+    phaseOut.textContent = label; needOverlay();
   }));
   syncShapeUI();
 
@@ -970,7 +988,7 @@
   $('save').addEventListener('click', savePNG);
   const caps = $('caps');
   caps.checked = S.captions;
-  caps.addEventListener('change', () => { S.captions = caps.checked; drawOverlay(); persist(); });
+  caps.addEventListener('change', () => { S.captions = caps.checked; needOverlay(); persist(); });
 
   const panel = $('panel'), toggle = $('toggle');
   function setPanel(open) {
@@ -992,7 +1010,7 @@
       const show = panel.hidden;
       setPanel(show);
       S.captions = show; caps.checked = show;
-      drawOverlay(); persist();
+      needOverlay(); persist();
     }
     if (e.key === ' ') { e.preventDefault(); paused = !paused; }
   });
@@ -1002,7 +1020,7 @@
   applyColour();
   window.addEventListener('resize', resize, { passive: true });
   resize();
-  if (document.fonts) document.fonts.ready.then(drawOverlay);
+  if (document.fonts) document.fonts.ready.then(needOverlay);
   requestAnimationFrame(frame);
   (async function powerOn() {
     if (crtOff || reduceMotion()) return;
