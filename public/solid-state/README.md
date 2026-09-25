@@ -78,7 +78,9 @@ lands anywhere else, or a crawler insists on an absolute URL, edit the
 
 **Burst** throws a growing share of the points off the surface along their own
 rays while the rest stay on it, so the solid keeps its silhouette and the rest
-reads as a spray. **Spin** also owns the ambient wander, so at zero the object
+reads as a spray. It runs to 2: past 1 more points leave and are thrown much
+further, but a quarter always stays put, because with nothing left behind there
+is no burst, only a thinning cloud. **Spin** also owns the ambient wander, so at zero the object
 holds exactly the angle you drag it to, which is what you want before saving.
 
 ## Notes

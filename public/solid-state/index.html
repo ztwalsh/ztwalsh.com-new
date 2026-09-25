@@ -359,10 +359,18 @@
       // just turns the solid into a cloud; keeping most of them put holds the
       // silhouette and reads as a spray thrown off it.
       float spark = 0.0;
-      if (uBurst > 0.001 && hash21(aData.zw * 43.0 + 7.0) < uBurst * 0.5) {
+      if (uBurst > 0.001 && hash21(aData.zw * 43.0 + 7.0) < min(uBurst * 0.5, 0.75)) {
+        // Past 1 the slider is headroom: the share that leaves keeps climbing
+        // to all of them at 2, each one is thrown much further, and the curve
+        // flattens so the far tail fills in instead of trailing off.
+        // Past 1 the slider is headroom. More points leave, up to three in
+        // four, and they are thrown much further. A quarter always stays on
+        // the surface: with nothing left behind there is no burst, only a
+        // thinning cloud that reads as noise.
+        float over = clamp(uBurst - 1.0, 0.0, 1.0);
         float g = hash21(aData.zw * 91.0 + 13.0);
-        spark = g * g;                       // most land near, a few go far
-        radius *= 1.0 + spark * 1.5;
+        spark = pow(g, mix(2.0, 2.2, over));
+        radius *= 1.0 + spark * 1.5 * (1.0 + 2.5 * over);
       }
 
       vec3 p = uRot * (d * radius);
@@ -373,7 +381,7 @@
       gl_Position = vec4(ndc, 0.0, 1.0);
 
       float near = clamp(p.z / 1.5 * 0.5 + 0.5, 0.0, 1.0);
-      float size = uBaseSize * (0.72 + 0.55 * near) * (uCamD / z) * (1.0 + edge * 0.3) * (1.0 - spark * uBurst * 0.4);
+      float size = uBaseSize * (0.72 + 0.55 * near) * (uCamD / z) * (1.0 + edge * 0.3) * (1.0 - spark * min(uBurst, 1.0) * 0.4);
       gl_PointSize = size * uDpr;
       vAlpha = mix(0.22, 1.0, near * near) * (1.0 + edge * 0.85);
     }
@@ -953,7 +961,7 @@
     ['form', 'dot', 'Dot size', 0.3, 4, 0.05, (v) => v.toFixed(2)],
     ['form', 'density', 'Density', 0.25, 1.6, 0.05, (v) => v.toFixed(2)],
     ['form', 'uniform', 'Uniformity', 0, 100, 1, (v) => Math.round(v) + '%'],
-    ['form', 'burst', 'Burst', 0, 1, 0.01, (v) => v.toFixed(2)],
+    ['form', 'burst', 'Burst', 0, 2, 0.01, (v) => v.toFixed(2)],
     ['form', 'spin', 'Spin', 0, 1.5, 0.01, (v) => v.toFixed(2)],
     ['tube', 'scan', 'Scanlines', 0, 1, 0.01, (v) => v.toFixed(2)],
     ['tube', 'bloom', 'Bloom', 0, 1.5, 0.01, (v) => v.toFixed(2)],
