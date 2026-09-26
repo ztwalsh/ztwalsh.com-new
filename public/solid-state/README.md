@@ -4,8 +4,16 @@ A lattice of points cycling sphere → cube → square pyramid and back, drawn
 through a CRT shader. Drag to turn it, open the panel to retune it, save a PNG
 of whatever it is doing.
 
-Four files, no build step, no dependencies, and no outside requests: the font
-ships in the folder. Anything that can serve a static file can serve this.
+Four files, no build step and no dependencies: the font ships in the folder.
+Anything that can serve a static file can serve this.
+
+The one outside request is Google Analytics. Because this is a static file, a
+framework's own analytics never runs for it, so the tag is in the page itself.
+Near the top of `index.html`:
+
+```js
+window.ANALYTICS_ID = 'G-8H02CWQTGC';   // '' removes it entirely
+```
 
 ```
 solid-state/

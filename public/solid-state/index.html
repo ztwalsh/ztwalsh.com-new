@@ -11,6 +11,23 @@
 <meta property="og:description" content="A point lattice cycling sphere to cube to pyramid, drawn through a CRT.">
 <meta property="og:image" content="/solid-state/preview.png">
 <meta name="twitter:card" content="summary_large_image">
+<script>
+  /* Google Analytics, the same property the rest of the site reports to.
+     This page is a static file in public/, so the app's layout never runs
+     for it and it would otherwise go uncounted. Set the id to an empty
+     string to drop it, and the folder makes no outside requests at all. */
+  window.ANALYTICS_ID = 'G-8H02CWQTGC';
+  if (window.ANALYTICS_ID) {
+    var gaTag = document.createElement('script');
+    gaTag.async = true;
+    gaTag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.ANALYTICS_ID;
+    document.head.appendChild(gaTag);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', window.ANALYTICS_ID);
+  }
+</script>
 <style>
   @font-face {
     font-family: "Geist"; font-style: normal; font-weight: 100 900;
@@ -20,8 +37,9 @@
     Solid State — a code-art object with its controls exposed.
 
     A self-contained directory: this file, one font, one preview image. No
-    build step, no dependencies, no outside requests. Drop the folder onto
-    any static host and open it. See README.md.
+    build step and no dependencies. The one outside request is Google
+    Analytics, which the tag above switches off. Drop the folder onto any
+    static host and open it. See README.md.
 
     One shell of points. Every point keeps a fixed direction from the centre
     and only slides along it, so the lattice never tears: it is pushed out to
