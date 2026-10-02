@@ -26,6 +26,12 @@ const experiments = [
     url: "/solid-state/index.html",
   },
   {
+    title: "Galaxy Creator",
+    description:
+      "Build a galaxy and fly into it: pick spiral, barred, elliptical, ring or irregular, then tune its arms, stars, gas, dust and spin, and zoom from deep space into the core.",
+    url: "/galaxy-creator/index.html",
+  },
+  {
     title: "Conversational readme",
     description:
       "No secrets. Get to know about working with me by chatting directly with my performance feedback, 360 feedback, and upward manager feedback.",
