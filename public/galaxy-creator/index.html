@@ -314,6 +314,11 @@
   const COMP_STARS = 8000, COMP_HAZE = 2400;
   const FOV = 50 * PI / 180;
   const ROLL = 0.6;
+  // Where the galaxy's centre sits on screen, in clip units: a touch up and
+  // left of dead centre, so it reads balanced beside the panel. Orbiting
+  // still pivots on the core; the shift is in the lens, not the camera.
+  const LENS = [-0.07, 0.06];
+  const PITCH_MAX = 1.5607;
   const HOLD = 7, MORPH = 4, PICK_MORPH = 2.6;
   const DIST_FAR = 16, DIST_NEAR = 0.025;
   const zoomToDist = (z) => Math.exp(Math.log(DIST_FAR) + (Math.log(DIST_NEAR) - Math.log(DIST_FAR)) * z);
@@ -1028,7 +1033,11 @@
 
   // ---- motion state ---------------------------------------------------------------
   let gt = 37, last = 0, paused = false, clock = 0;
-  let yaw = 0.4, pitch = 0.3, yawVel = 0, pitchVel = 0;
+  const HOME_VIEW = { yaw: 0.4, pitch: 0.3, roll: ROLL };
+  let yaw = HOME_VIEW.yaw, pitch = HOME_VIEW.pitch, roll = HOME_VIEW.roll, yawVel = 0, pitchVel = 0;
+  const focus = [0, 0, 0];           // what the camera orbits; Blender-style pan moves it
+  let goal = null;                   // a view the camera is gliding to: {yaw, pitch, roll, target}
+  let lastView = null;
   let dist = DIST_FAR * 1.6;                                   // the opening shot swoops in from far out
   let mFrom = 0, mTo = 0, mK = 0, morphing = false, morphLen = PICK_MORPH, holdT = 0;
   {
@@ -1084,9 +1093,26 @@
     if (input) { input.value = S.zoom; $('o-zoom').textContent = fmtZoom(S.zoom); }
     persist();
   }
-  const turnFrom = (q) => { drag = { x: q.x, y: q.y, t: performance.now() }; yawVel = 0; pitchVel = 0; };
+  // Blender's mapping: a plain drag (left or middle button) orbits, Shift pans,
+  // Ctrl zooms. Alt is accepted alongside for trackpads, as in Blender's
+  // emulate-three-button mode: Alt orbit, Shift+Alt pan, Ctrl+Alt zoom.
+  const dragMode = (e) => (e.shiftKey ? 'pan' : (e.ctrlKey || e.metaKey) ? 'zoom' : 'orbit');
+  const turnFrom = (q, mode) => { drag = { x: q.x, y: q.y, t: performance.now(), mode: mode || 'orbit' }; yawVel = 0; pitchVel = 0; goal = null; };
 
+  // Move what the camera looks at across the screen, the way Blender's pan does:
+  // the point under the cursor stays under the cursor.
+  function panBy(dx, dy) {
+    if (!lastView) return;
+    const k = 2 * Math.tan(FOV / 2) * dist / H;
+    const V = lastView;
+    for (let i = 0; i < 3; i++) focus[i] += (-dx * V[i * 4] + dy * V[i * 4 + 1]) * k;
+    goal = null;
+  }
+
+  canvas.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });   // no autoscroll on middle click
+  canvas.addEventListener('contextmenu', (e) => { if (drag) e.preventDefault(); });
   canvas.addEventListener('pointerdown', (e) => {
+    if (e.button === 2) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     if (pointers.size >= 2) {
@@ -1094,7 +1120,7 @@
       canvas.classList.remove('dragging');
       pinch = { dist: spread(), zoom: S.zoom };
     } else {
-      turnFrom({ x: e.clientX, y: e.clientY });
+      turnFrom({ x: e.clientX, y: e.clientY }, dragMode(e));
       canvas.classList.add('dragging');
     }
   });
@@ -1109,26 +1135,81 @@
     if (!drag) return;
     const now = performance.now();
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    const k = TAU / Math.min(W, H) * 0.7;
-    yaw -= dx * k;
-    pitch = clamp(pitch + dy * k, -1.45, 1.45);
-    const dt = Math.max(1, now - drag.t) / 1000;
-    yawVel = -dx * k / dt;
-    pitchVel = dy * k / dt;
-    drag = { x: e.clientX, y: e.clientY, t: now };
+    if (drag.mode === 'pan') {
+      panBy(dx, dy);
+    } else if (drag.mode === 'zoom') {
+      setZoom(S.zoom - dy * 0.003);                                 // drag up to zoom in, as in Blender
+    } else {
+      const k = TAU / Math.min(W, H) * 0.7;
+      yaw -= dx * k;
+      pitch = clamp(pitch + dy * k, -PITCH_MAX, PITCH_MAX);
+      const dt = Math.max(1, now - drag.t) / 1000;
+      yawVel = -dx * k / dt;
+      pitchVel = dy * k / dt;
+    }
+    drag = { x: e.clientX, y: e.clientY, t: now, mode: drag.mode };
   });
   const liftPointer = (e) => {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinch = null;
     if (pointers.size === 0) { drag = null; canvas.classList.remove('dragging'); }
-    else if (!drag) { turnFrom(Array.from(pointers.values())[0]); }
+    else if (!drag) { turnFrom(Array.from(pointers.values())[0], 'orbit'); }
   };
   canvas.addEventListener('pointerup', liftPointer);
   canvas.addEventListener('pointercancel', liftPointer);
+  // Wheel zooms; Shift+wheel pans up and down, as in Blender. A trackpad
+  // pinch arrives as Ctrl+wheel and zooms too.
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    setZoom(S.zoom - e.deltaY * (e.ctrlKey ? 0.006 : 0.0007));
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? H : 1;
+    if (e.shiftKey && !e.ctrlKey) {
+      // Some browsers turn Shift+wheel into a horizontal scroll; take whichever axis moved.
+      const v = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
+      panBy(0, -v * 0.5);
+      return;
+    }
+    setZoom(S.zoom - e.deltaY * unit * (e.ctrlKey ? 0.006 : 0.0007));
   }, { passive: false });
+
+  // ---- Blender's numpad views (top-row digits work too, as with Emulate Numpad) ----
+  const STEP_ANGLE = 15 * PI / 180;
+  function viewTo(v) {
+    goal = Object.assign({ yaw, pitch, roll, target: focus.slice() }, v);
+    yawVel = 0; pitchVel = 0;
+  }
+  function homeView() {
+    viewTo({ yaw: HOME_VIEW.yaw, pitch: HOME_VIEW.pitch, roll: HOME_VIEW.roll, target: [0, 0, 0] });
+    setZoom(BASE.zoom);
+  }
+  function viewKey(e) {
+    const m = /^(?:Numpad|Digit)([0-9])$/.exec(e.code);
+    const n = m ? +m[1] : null;
+    const ctrl = e.ctrlKey;
+    // Blender's front view looks along its +Y; here the disk lies in x–z, so
+    // front and side views are edge-on and top looks straight down on the disk.
+    if (n === 1) { viewTo({ yaw: ctrl ? PI : 0, pitch: 0, roll: 0 }); return true; }
+    if (n === 3) { viewTo({ yaw: ctrl ? -PI / 2 : PI / 2, pitch: 0, roll: 0 }); return true; }
+    if (n === 7) { viewTo({ yaw: 0, pitch: ctrl ? -PITCH_MAX : PITCH_MAX, roll: 0 }); return true; }
+    if (n === 9) { viewTo({ yaw: yaw + PI, pitch: -pitch }); return true; }
+    if (n === 0 || n === 5) { homeView(); return true; }
+    if (n === 2 || n === 4 || n === 6 || n === 8) {
+      if (ctrl) {                                                    // Ctrl+2/4/6/8 pans
+        const s = Math.min(W, H) * 0.08;
+        panBy(n === 4 ? -s : n === 6 ? s : 0, n === 8 ? -s : n === 2 ? s : 0);
+      } else {                                                       // 2/4/6/8 orbit by 15°
+        const g = goal || { yaw, pitch };
+        viewTo({
+          yaw: g.yaw + (n === 4 ? STEP_ANGLE : n === 6 ? -STEP_ANGLE : 0),
+          pitch: clamp(g.pitch + (n === 8 ? -STEP_ANGLE : n === 2 ? STEP_ANGLE : 0), -PITCH_MAX, PITCH_MAX),
+        });
+      }
+      return true;
+    }
+    if (e.code === 'NumpadAdd' || e.key === '+' || e.key === '=') { setZoom(S.zoom + 0.04); return true; }
+    if (e.code === 'NumpadSubtract' || e.key === '-' || e.key === '_') { setZoom(S.zoom - 0.04); return true; }
+    if (e.code === 'NumpadDecimal' || e.key === 'Home' || (e.shiftKey && e.key.toLowerCase() === 'c')) { homeView(); return true; }
+    return false;
+  }
 
   // ---- drawing ------------------------------------------------------------------------
   let col = {};
@@ -1169,8 +1250,11 @@
   function render(now) {
     const cw = canvas.width, ch = canvas.height;
     const eye = [dist * Math.cos(pitch) * Math.sin(yaw), dist * Math.sin(pitch), dist * Math.cos(pitch) * Math.cos(yaw)];
-    const view = rollView(lookAt(eye, [0, 0, 0], [0, 1, 0]), ROLL);
+    for (let i = 0; i < 3; i++) eye[i] += focus[i];
+    const view = rollView(lookAt(eye, focus, [0, 1, 0]), roll);
     const proj = perspective(FOV, W / H, Math.max(1e-4, dist * 0.002), 200);
+    proj[8] -= LENS[0]; proj[9] -= LENS[1];
+    lastView = view;
     const focalPx = (H / 2) / Math.tan(FOV / 2);
     const gasK = typeMix(GAS_BY_TYPE), dustK = typeMix(DUST_BY_TYPE);
     gl.disable(gl.DEPTH_TEST);
@@ -1321,9 +1405,9 @@
     clock += dt;
     if (!paused) {
       gt += S.spin * 0.16 * dt;
-      if (!drag) yaw += S.orbit * 0.25 * dt;
+      if (!drag && !goal) yaw += S.orbit * 0.25 * dt;
       yaw += yawVel * dt;
-      pitch = clamp(pitch + pitchVel * dt, -1.45, 1.45);
+      pitch = clamp(pitch + pitchVel * dt, -PITCH_MAX, PITCH_MAX);
       const damp = Math.pow(0.12, dt);
       yawVel *= damp; pitchVel *= damp;
       if (morphing) {
@@ -1333,6 +1417,15 @@
         holdT += dt;
         if (holdT > HOLD) morphTo((mTo + 1) % TYPES.length, MORPH);
       }
+    }
+    if (goal) {                                                      // glide to a picked view
+      const k = 1 - Math.exp(-dt * (reduceMotion() ? 60 : 7));
+      const dYaw = Math.atan2(Math.sin(goal.yaw - yaw), Math.cos(goal.yaw - yaw));
+      yaw += dYaw * k;
+      pitch += (goal.pitch - pitch) * k;
+      roll += (goal.roll - roll) * k;
+      for (let i = 0; i < 3; i++) focus[i] += (goal.target[i] - focus[i]) * k;
+      if (Math.abs(dYaw) + Math.abs(goal.pitch - pitch) + Math.abs(goal.roll - roll) < 1e-3) goal = null;
     }
     // Zoom glides in log space, so the long trip in from the edge feels even.
     const want = zoomToDist(S.zoom);
@@ -1450,7 +1543,7 @@
      <label class="check"><input type="checkbox" id="caps"><span>Show captions on screen</span></label>
      <button class="btn primary" id="save" type="button">Save .png</button>
      <div id="note" role="status"></div>
-     <div class="foot"><a id="home" href="/"></a><br>Drag to orbit · pinch or scroll to zoom<br>Space to pause · R new galaxy · H to hide</div>`;
+     <div class="foot"><a id="home" href="/"></a><br>Drag or middle-drag to orbit · Shift+drag to pan<br>Ctrl+drag, scroll or pinch to zoom<br>1 3 7 front, side, top · 2 4 6 8 turn · Ctrl flips<br>Home or 0 resets the view<br>Space to pause · R new galaxy · H to hide</div>`;
 
   if (HOME_URL) { $('home').href = HOME_URL; $('home').textContent = HOME_LABEL; }
   else { const h = $('home'); h.nextSibling && h.nextSibling.remove(); h.remove(); }
@@ -1552,9 +1645,11 @@
   setPanel(window.innerWidth > 560 && !query.has('clean'));
 
   document.addEventListener('keydown', (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.metaKey || e.altKey) return;
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === 'INPUT' && e.key === ' ') return;
+    if (viewKey(e)) { e.preventDefault(); return; }
+    if (e.ctrlKey) return;
     const k = e.key.toLowerCase();
     if (k === 'r') reseed();
     if (k === 'h') {

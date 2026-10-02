@@ -49,6 +49,25 @@ works too in most browsers.
 | `H` | hide the panel and captions for a clean view |
 | Save .png | the galaxy only, no captions, no panel |
 
+**Blender-style navigation.** If your hands know Blender, they know this:
+
+| | |
+|---|---|
+| Middle-drag (or left-drag) | orbit |
+| Shift + drag | pan |
+| Ctrl + drag | zoom (drag up to go in) |
+| Scroll / Shift + scroll | zoom / pan up and down |
+| Alt + drag, Shift+Alt, Ctrl+Alt | the same three, for trackpads (Emulate 3 Button Mouse) |
+| `1` `3` `7` | front, right, top; with Ctrl, back, left, bottom |
+| `2` `4` `6` `8` | orbit down, left, right, up by 15° (Ctrl pans instead) |
+| `9` | the opposite side |
+| `+` `-` | zoom |
+| `Home`, `0`, `.` or Shift+C | back to the opening view |
+
+The number keys work on the numpad and on the top row, like Blender's Emulate
+Numpad. Front and side views are edge-on, since the disk lies flat the way
+Blender's ground plane does.
+
 **Types.** Spiral, Barred spiral, Elliptical (with globular clusters and a
 Centaurus A style dust lane), Ring (Hoag's object), and Irregular (a Magellanic
 cloud). **Cycle** morphs through all five: every star keeps its identity and
