@@ -294,6 +294,14 @@
   @keyframes kit-spin { to { transform: rotate(360deg); } }
   @keyframes kit-draw { to { stroke-dashoffset: 0; } }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  /* A button that fills as it works (recording a loop) */
+  .btn.busy { position: relative; overflow: hidden; }
+  .btn.busy > :not(.bar) { position: relative; }
+  .btn .bar {
+    position: absolute; inset: 0; background: var(--ink); opacity: 0.12;
+    transform-origin: left center; transform: scaleX(var(--p, 0)); transition: transform 0.25s linear;
+  }
+  .btn span { font-variant-numeric: tabular-nums; }
 
   /* Colour — the one place hue is allowed */
   .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 0 2px; }
@@ -461,6 +469,10 @@
   ICON.sun = svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>');
   ICON.camera = svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.4-2h5l1.4 2h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/><circle cx="12" cy="12.5" r="3.4"/>');
   ICON.create = svg('<path d="M12 5v14M5 12h14"/>');
+  ICON.share = svg('<path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M8.5 10.5H7A2.5 2.5 0 0 0 4.5 13v4.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V13a2.5 2.5 0 0 0-2.5-2.5h-1.5"/>');
+  ICON.link = svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>');
+  ICON.record = svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>');
+  ICON.stop = svg('<rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/>');
   ICON.settings = svg('<path class="fill" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="currentColor" fill-opacity=".14" stroke="none"/><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4Z"/>');
   // Create galaxy leads the rail; Settings sits with the actions at the bottom.
   const CATS = [
@@ -793,9 +805,104 @@
     return wrap;
   }
 
+  // A small segmented choice, with the stretching pill.
+  function choice(label, opts, get, set) {
+    const seg = document.createElement('div');
+    seg.className = 'seg'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', label);
+    seg.innerHTML = opts.map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
+    const btns = () => Array.from(seg.querySelectorAll('button'));
+    const pill = pillTrack(seg, btns, (b) => b.dataset.v === String(get()));
+    const sync = (a) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === String(get())))); pill.place(a); };
+    btns().forEach((b) => b.addEventListener('click', () => { set(b.dataset.v); sync(true); }));
+    seg._place = () => sync(false);
+    requestAnimationFrame(() => sync(false));
+    return seg;
+  }
+  const label = (t) => { const l = document.createElement('div'); l.className = 'ctl-label'; l.textContent = t; return l; };
+  const button = (icon, text, cls) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn' + (cls ? ' ' + cls : '');
+    b.innerHTML = `${ICON[icon]}<span></span>`; b.lastChild.textContent = text;
+    return b;
+  };
+  const setButton = (b, icon, text) => { b.innerHTML = `${ICON[icon]}<span></span>`; b.lastChild.textContent = text; };
+
+  // Share: a link to exactly this galaxy, a still far bigger than the screen, and a loop.
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+    const t = document.createElement('textarea');
+    t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.append(t); t.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    t.remove();
+    return ok;
+  }
+  async function copyLink(G) {
+    if (await copyText(G.link())) toast('Link copied', 'tick');
+    else toast('Could not copy the link');
+  }
+  const pref = (k, v) => { try { if (v === undefined) return localStorage.getItem('galaxy-share-' + k); localStorage.setItem('galaxy-share-' + k, v); } catch (e) {} return null; };
+  function shareControls(G) {
+    const wrap = document.createElement('div'); wrap.className = 'ctl';
+    const link = button('link', 'Copy link', 'primary');
+    link.addEventListener('click', () => copyLink(G));
+
+    // Stills: the long edge in pixels, framed exactly as on screen.
+    const EDGES = [['3840', '4K'], ['6144', '6K'], ['7680', '8K']].filter(([v]) => +v <= (G.maxEdge || 16384));
+    let edge = EDGES.some(([v]) => v === pref('edge')) ? pref('edge') : EDGES[0][0];
+    const image = button('save', 'Save image');
+    let rendering = false;
+    image.addEventListener('click', async () => {
+      if (rendering) return;
+      rendering = true;
+      setButton(image, 'spin', 'Rendering');
+      try {
+        flash();
+        const { blob, w, h } = await G.exportImage(+edge);
+        await download(blob, `galaxy-${String(G.state.type).toLowerCase()}-${G.state.seed}-${w}x${h}.png`);
+        toast(`Saved ${w} × ${h}`, 'tick');
+      } catch (e) {
+        if (!(e && e.code === 'declined')) toast(e && e.code === 'size' ? 'Too big for this device' : 'Could not save the image');
+      }
+      setButton(image, 'save', 'Save image');
+      rendering = false;
+    });
+
+    // Loops: one full turn of the camera, in 10, 20 or 30 seconds.
+    let secs = ['10', '20', '30'].includes(pref('loop')) ? pref('loop') : '20';
+    const loop = button('record', 'Record loop');
+    let recording = false;
+    loop.addEventListener('click', async () => {
+      if (recording) { G.cancelLoop(); return; }
+      recording = true;
+      loop.classList.add('busy');
+      loop.innerHTML = '<i class="bar"></i>' + ICON.stop + '<span>Recording</span>';
+      const span = loop.lastChild;
+      try {
+        const { blob, ext } = await G.recordLoop(+secs, (k) => { loop.style.setProperty('--p', k); span.textContent = `Recording ${Math.floor(k * 100)}%`; });
+        await download(blob, `galaxy-${String(G.state.type).toLowerCase()}-${G.state.seed}-loop-${secs}s.${ext}`);
+        toast('Loop saved', 'tick');
+      } catch (e) {
+        const why = { cancelled: 'Recording stopped', hidden: 'Stopped: the tab was hidden', unsupported: 'This browser cannot record video', declined: '' }[e && e.code];
+        if (why !== '') toast(why || 'Could not save the loop');
+      }
+      loop.classList.remove('busy'); loop.style.removeProperty('--p');
+      setButton(loop, 'record', 'Record loop');
+      recording = false;
+    });
+    const loops = G.canLoop && G.canLoop();
+
+    wrap.append(link,
+      label('Image'), choice('Image size', EDGES, () => edge, (v) => { edge = v; pref('edge', v); }), image,
+      ...(loops ? [label('Loop · one full turn'), choice('Loop length', [['10', '10 s'], ['20', '20 s'], ['30', '30 s']], () => secs, (v) => { secs = v; pref('loop', v); }), loop] : []));
+    return wrap;
+  }
+
   // Settings: appearance, captions, and every key command, one per line.
   const KEYS = [
     ['Snap an image', ['S']],
+    ['Copy share link', ['L']],
     ['Galaxy only', ['⌘', '.']],
     ['Hide tools', ['H']],
     ['Pause', ['Space']],
@@ -810,7 +917,6 @@
   ];
   function settingsControls(G) {
     const wrap = document.createElement('div'); wrap.className = 'ctl';
-    const label = (t) => { const l = document.createElement('div'); l.className = 'ctl-label'; l.textContent = t; return l; };
     const seg = document.createElement('div');
     seg.className = 'seg'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Appearance');
     seg.innerHTML = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
@@ -837,6 +943,7 @@
     if (id === 'colour') add(colourControls(G));
     if (id === 'create') add(createControls(G));
     if (id === 'settings') add(settingsControls(G));
+    if (id === 'share') add(shareControls(G));
     return box;
   }
 
@@ -851,6 +958,7 @@
       const k = (e.key || '').toLowerCase();
       if (handlers && handlers.key && handlers.key(e) === true) return;
       if (k === 's' && !e.ctrlKey && handlers && handlers.snap) { handlers.snap(); return; }
+      if (k === 'l' && !e.ctrlKey) { copyLink(G); return; }
       if (k === 'h' && handlers && handlers.hide) { handlers.hide(); return; }
       if (k === 'escape' && handlers && handlers.escape) { handlers.escape(); return; }
       if (e.key === ' ') { const p = G.pause(); toast(p ? 'Paused' : 'Playing', p ? 'pause' : 'play'); return; }
@@ -883,7 +991,7 @@
     document.body.append(b);
   }
 
-  window.Kit = { ICON, CATS, EASE, still, clamp, theme, setTheme, flash, download, shoot, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
+  window.Kit = { ICON, CATS, EASE, still, clamp, theme, setTheme, flash, download, shoot, copyLink, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
 })();
 </script>
 <script>
@@ -956,10 +1064,39 @@
     if (raw) { hadSaved = true; const o = JSON.parse(raw); for (const k in BASE) if (k in o && typeof o[k] === typeof BASE[k]) S[k] = o[k]; }
   } catch (e) {}
   if (query.has('seed')) S.seed = parseInt(query.get('seed'), 10) || S.seed;
+  // A share link (#g=…) carries every setting and the camera. It wins over what
+  // this browser saved, and only becomes this visitor's own once they change it.
+  const LINK_KEYS = ['arms', 'twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'orbit', 'zoom', 'bright', 'bloom', 'sat'];
+  const LINK_TYPES = ['Spiral', 'Barred', 'Elliptical', 'Ring', 'Irregular', 'Cycle'];
+  const linkScale = (k) => (k === 'zoom' ? 1000 : 100);
+  let shared = null;
+  (function readLink() {
+    const m = /(?:^#|&)g=([^&]+)/.exec(location.hash);
+    if (!m) return;
+    const f = decodeURIComponent(m[1]).split('.');
+    if (f[0] !== '1' || f.length !== 26) return;
+    const n = (i) => { const v = parseFloat(f[i]); return isFinite(v) ? v : null; };
+    const t = LINK_TYPES[n(1)];
+    if (t) S.type = t;
+    LINK_KEYS.forEach((k, i) => { const v = n(2 + i); if (v !== null) S[k] = v / linkScale(k); });
+    const flags = n(16) | 0;
+    S.spikes = !!(flags & 1); S.companions = !!(flags & 2);
+    const c = f[17];
+    const preset = Object.keys(PRESETS).find((p) => p.toLowerCase() === c);
+    if (preset) Object.assign(S, PRESETS[preset], { preset });
+    else {
+      const hex = c.split('_');
+      if (hex.length === 4 && hex.every((h) => /^[0-9a-f]{6}$/i.test(h))) [S.old, S.young, S.gasA, S.gasB] = hex.map((h) => '#' + h.toLowerCase());
+    }
+    if (n(18) > 0) S.seed = Math.round(n(18));
+    const v = [19, 20, 21, 22, 23, 24, 25].map((i) => n(i) === null ? 0 : n(i));
+    shared = { yaw: v[0] / 1000, pitch: v[1] / 1000, roll: v[2] / 1000, focus: [v[3] / 1000, v[4] / 1000, v[5] / 1000], gt: v[6] / 100 };
+  })();
   if (!hadSaved && reduceMotion()) { S.spin = 0; S.orbit = 0; }
   if (S.type !== 'Cycle' && TYPES.indexOf(S.type) < 0) S.type = 'Spiral';
   let saveTimer = 0;
   function persist() {
+    if (shared && location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { try { localStorage.setItem('galaxy-creator', JSON.stringify(S)); } catch (e) {} }, 250);
   }
@@ -1652,14 +1789,15 @@
 
   // ---- render targets -----------------------------------------------------------
   const FMT = HDR ? { internal: gl.RGBA16F, type: gl.HALF_FLOAT } : { internal: gl.RGBA8, type: gl.UNSIGNED_BYTE };
-  function target(w, h) {
+  function target(w, h, fmt) {
+    fmt = fmt || FMT;
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texImage2D(gl.TEXTURE_2D, 0, FMT.internal, w, h, 0, gl.RGBA, FMT.type, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, fmt.internal, w, h, 0, gl.RGBA, fmt.type, null);
     const fbo = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
@@ -1695,6 +1833,12 @@
   let goal = null;                   // a view the camera is gliding to: {yaw, pitch, roll, target}
   let lastView = null;
   let dist = DIST_FAR * 1.6;                                   // the opening shot swoops in from far out
+  if (shared) {                                                // a shared view settles in, no long swoop
+    yaw = shared.yaw; pitch = clamp(shared.pitch, -PITCH_MAX, PITCH_MAX); roll = shared.roll;
+    for (let i = 0; i < 3; i++) focus[i] = clamp(shared.focus[i], -20, 20);
+    gt = shared.gt;
+    dist = zoomToDist(clamp(S.zoom, 0, 1)) * 1.3;
+  }
   let mFrom = 0, mTo = 0, mK = 0, morphing = false, morphLen = PICK_MORPH, holdT = 0;
   {
     const i = TYPES.indexOf(S.type);
@@ -1898,8 +2042,10 @@
   const DUST_BY_TYPE = [1, 1, 0.35, 0.6, 0.3];
   const starCount = () => Math.max(1000, Math.round(MAX_STARS * S.stars * S.stars));
 
-  function render(now) {
-    const cw = canvas.width, ch = canvas.height;
+  // o, when given, renders off screen: { rt, fbo, w, h, dpr, mip } (see exportImage).
+  function render(now, o) {
+    const R = o ? o.rt : RT, px = o ? o.dpr : dpr;
+    const cw = o ? o.w : canvas.width, ch = o ? o.h : canvas.height;
     const eye = [dist * Math.cos(pitch) * Math.sin(yaw), dist * Math.sin(pitch), dist * Math.cos(pitch) * Math.cos(yaw)];
     for (let i = 0; i < 3; i++) eye[i] += focus[i];
     const view = rollView(lookAt(eye, focus, [0, 1, 0]), roll);
@@ -1911,8 +2057,8 @@
     gl.disable(gl.DEPTH_TEST);
 
     // Glow: unresolved starlight and the emission nebulae, at half size.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, RT.glow.fbo);
-    gl.viewport(0, 0, RT.glow.w, RT.glow.h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, R.glow.fbo);
+    gl.viewport(0, 0, R.glow.w, R.glow.h);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.enable(gl.BLEND);
@@ -1940,7 +2086,7 @@
     }
 
     // Dust: a transmittance layer, cleared to clear glass and multiplied down.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, RT.dust.fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, R.dust.fbo);
     gl.clearColor(1, 1, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     const dustN = Math.round(DUST_N * clamp(S.dust, 0, 1) * Math.min(1, dustK));
@@ -1953,7 +2099,7 @@
     }
 
     // Stars, the sky behind them, and the spikes, at full size.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, RT.stars.fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, R.stars.fbo);
     gl.viewport(0, 0, cw, ch);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -1961,7 +2107,7 @@
     gl.useProgram(bgProg);
     gl.uniformMatrix4fv(BU.uView, false, view);
     gl.uniformMatrix4fv(BU.uProj, false, proj);
-    gl.uniform1f(BU.uDpr, dpr);
+    gl.uniform1f(BU.uDpr, px);
     gl.uniform1f(BU.uGain, 1.4);
     gl.bindVertexArray(bgGeo.vao);
     gl.drawArrays(gl.POINTS, 0, bgGeo.n);
@@ -1972,7 +2118,7 @@
     galaxyUniforms(SU, 0, view, proj);
     gl.uniform1f(SU.uFocalPx, focalPx);
     gl.uniform1f(SU.uSize, S.size);
-    gl.uniform1f(SU.uDpr, dpr);
+    gl.uniform1f(SU.uDpr, px);
     gl.uniform1f(SU.uGain, gain);
     gl.bindVertexArray(starGeo.vao);
     gl.drawArrays(gl.POINTS, 0, count);
@@ -1987,7 +2133,7 @@
       galaxyUniforms(KU, 0, view, proj);
       gl.uniform1f(KU.uGain, gain);
       gl.uniform1f(KU.uCount, count);
-      gl.uniform1f(KU.uDpr, dpr);
+      gl.uniform1f(KU.uDpr, px);
       gl.uniform2f(KU.uRes, cw, ch);
       gl.bindVertexArray(heroGeo.vao);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, heroCount);
@@ -1996,16 +2142,19 @@
 
     // Composite, then bloom down and back up.
     gl.bindVertexArray(quadVao);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, RT.comp.fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, R.comp.fbo);
     gl.useProgram(compProg);
-    bindTex(0, RT.stars.tex, MU.uStars);
-    bindTex(1, RT.glow.tex, MU.uGlow);
-    bindTex(2, RT.dust.tex, MU.uDust);
+    bindTex(0, R.stars.tex, MU.uStars);
+    bindTex(1, R.glow.tex, MU.uGlow);
+    bindTex(2, R.dust.tex, MU.uDust);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     gl.useProgram(downProg);
-    let src = RT.comp;
-    RT.mips.forEach((m, i) => {
+    // Off screen, the chain starts finer and the glow is read from the level that
+    // matches the screen's first one, so the bloom keeps its size at any resolution.
+    const m0 = o ? o.mip : 0;
+    let src = R.comp;
+    R.mips.forEach((m, i) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, m.fbo);
       gl.viewport(0, 0, m.w, m.h);
       bindTex(0, src.tex, DU.uSrc);
@@ -2017,8 +2166,8 @@
     gl.useProgram(upProg);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
-    for (let i = RT.mips.length - 1; i > 0; i--) {
-      const from = RT.mips[i], to = RT.mips[i - 1];
+    for (let i = R.mips.length - 1; i > m0; i--) {
+      const from = R.mips[i], to = R.mips[i - 1];
       gl.bindFramebuffer(gl.FRAMEBUFFER, to.fbo);
       gl.viewport(0, 0, to.w, to.h);
       bindTex(0, from.tex, UU.uSrc);
@@ -2028,11 +2177,11 @@
     }
     gl.disable(gl.BLEND);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, o ? o.fbo : null);
     gl.viewport(0, 0, cw, ch);
     gl.useProgram(finalProg);
-    bindTex(0, RT.comp.tex, FU.uScene);
-    bindTex(1, RT.mips[0].tex, FU.uBloom);
+    bindTex(0, R.comp.tex, FU.uScene);
+    bindTex(1, R.mips[m0].tex, FU.uBloom);
     // The eye adapts: deep inside, where everything is bright, stop down.
     const adapt = dist < 3.4 ? Math.pow(dist / 3.4, 0.55) : 1;
     gl.uniform1f(FU.uExposure, 0.7 * S.bright * S.bright * Math.max(adapt, 0.12));
@@ -2054,6 +2203,7 @@
     const dt = Math.min(0.05, last ? now - last : 0.016);
     last = now;
     clock += dt;
+    if (rec && recFrame(now)) { requestAnimationFrame(frame); return; }
     if (!paused) {
       gt += S.spin * 0.16 * dt;
       if (!drag && !goal) yaw += S.orbit * 0.25 * dt;
@@ -2118,6 +2268,146 @@
     }
     o.putImageData(img, 0, 0);
     return new Promise((res) => out.toBlob(res, 'image/png'));
+  }
+
+  // ---- high-resolution stills --------------------------------------------------------------
+  // The frame on screen, framed exactly the same, rendered off screen with its long
+  // edge at 4K, 6K or 8K. Stars, spikes and glow all scale with it, so it looks the
+  // same, only sharper. The screen's own buffers are let go meanwhile to make room.
+  const MAX_EDGE = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), ...gl.getParameter(gl.MAX_VIEWPORT_DIMS));
+  const RGBA8 = { internal: gl.RGBA8, type: gl.UNSIGNED_BYTE };
+  const freeSet = (rt) => { if (rt) { ['stars', 'glow', 'dust', 'comp', 'out'].forEach((k) => freeTarget(rt[k])); rt.mips.forEach(freeTarget); } };
+  function offscreen(edge, screenW, screenLevels) {
+    const k = Math.min(edge, MAX_EDGE) / Math.max(W, H);
+    const w = Math.round(W * k), h = Math.round(H * k);
+    const hw = w >> 1, hh = h >> 1;
+    // The bloom chain starts at this size's half and runs on until it is as coarse as the screen's.
+    const mip = Math.max(0, Math.round(Math.log2(w / screenW)));
+    const mips = [];
+    let mw = hw, mh = hh;
+    for (let i = 0; i < mip + screenLevels && mw > 2 && mh > 2; i++) { mips.push(target(mw, mh)); mw = mw >> 1; mh = mh >> 1; }
+    const rt = { stars: target(w, h), glow: target(hw, hh), dust: target(hw, hh), comp: target(w, h), out: target(w, h, RGBA8), mips };
+    const ok = gl.getError() === gl.NO_ERROR && [rt.stars, rt.comp, rt.out].every((t) => {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo);
+      return gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    });
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (!ok) { freeSet(rt); return null; }
+    return { rt, fbo: rt.out.fbo, w, h, dpr: k, mip: Math.min(mip, mips.length - 1) };
+  }
+  async function exportImage(edge) {
+    await new Promise((r) => setTimeout(r, 40));                 // let the button show it is working
+    const screenW = canvas.width, screenLevels = RT.mips.length;
+    freeSet(RT); RT = null;
+    gl.getError();
+    let o = null;
+    for (const e of [edge, 6144, 3840, 2560].filter((x) => x <= edge)) { o = offscreen(e, screenW, screenLevels); if (o) break; }
+    let px = null;
+    if (o) {
+      render(performance.now() / 1000, o);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, o.fbo);
+      px = new Uint8ClampedArray(o.w * o.h * 4);
+      gl.readPixels(0, 0, o.w, o.h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      freeSet(o.rt);
+    }
+    resize();                                                    // the screen's buffers come back
+    if (!px) throw Object.assign(new Error('too big'), { code: 'size' });
+    const row = o.w * 4, tmp = new Uint8ClampedArray(row);       // GL rows run bottom up
+    for (let y = 0, z = o.h - 1; y < z; y++, z--) {
+      const a = y * row, b = z * row;
+      tmp.set(px.subarray(a, a + row)); px.copyWithin(a, b, b + row); px.set(tmp, b);
+    }
+    const out = document.createElement('canvas');
+    out.width = o.w; out.height = o.h;
+    out.getContext('2d').putImageData(new ImageData(px, o.w, o.h), 0, 0);
+    const blob = await new Promise((res) => out.toBlob(res, 'image/png'));
+    out.width = out.height = 0;
+    if (!blob) throw new Error('could not encode');
+    return { blob, w: o.w, h: o.h };
+  }
+
+  // ---- loops -------------------------------------------------------------------------------
+  // One full turn of the camera around the galaxy, recorded live from the canvas.
+  // The camera comes back to where it began on its own; the stars' own orbits do
+  // not, so the last stretch cross-fades into the first and the turn plays forever.
+  let rec = null;
+  const LOOP_TYPES = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  const loopType = () => (window.MediaRecorder && HTMLCanvasElement.prototype.captureStream ? LOOP_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) || '' : '');
+  function recordLoop(seconds, onProgress) {
+    const type = loopType();
+    if (!type) return Promise.reject(Object.assign(new Error('unsupported'), { code: 'unsupported' }));
+    if (rec) rec.cancel();
+    // At most 1920 on the long edge, and even sizes, which video encoders insist on.
+    const k = Math.min(1, 1920 / Math.max(canvas.width, canvas.height));
+    const even = (v) => Math.max(2, Math.round(v * k / 2) * 2);
+    const rc = document.createElement('canvas');
+    rc.width = even(canvas.width); rc.height = even(canvas.height);
+    const ctx = rc.getContext('2d');
+    const stream = rc.captureStream(60);
+    const mr = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: Math.round(rc.width * rc.height * 60 * 0.14) });
+    const chunks = [];
+    mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    return new Promise((resolve, reject) => {
+      const stop = (err) => {
+        if (!rec || rec.mr !== mr) return;
+        rec = null;
+        document.removeEventListener('visibilitychange', onHide);
+        mr.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(chunks, { type: type.split(';')[0] });
+          if (err) reject(err);
+          else if (!blob.size) reject(Object.assign(new Error('empty'), { code: 'empty' }));
+          else resolve({ blob, ext: type.indexOf('mp4') >= 0 ? 'mp4' : 'webm' });
+        };
+        if (mr.state !== 'inactive') mr.stop(); else mr.onstop();
+      };
+      // Hidden tabs stop drawing, which would leave a hole in the loop.
+      const onHide = () => { if (document.hidden) stop(Object.assign(new Error('hidden'), { code: 'hidden' })); };
+      document.addEventListener('visibilitychange', onHide);
+      rec = {
+        mr, ctx, rc, T: seconds, F: Math.min(1.5, seconds * 0.15), t0: 0, onProgress,
+        yaw, pitch, roll, focus: focus.slice(), dist: zoomToDist(S.zoom), gt, rate: S.spin * 0.16,
+        stop, cancel: () => stop(Object.assign(new Error('cancelled'), { code: 'cancelled' })),
+      };
+    });
+  }
+  // One recorded frame: called from frame() in place of the usual motion.
+  function recFrame(now) {
+    const r = rec;
+    if (!r.t0) { r.t0 = now; r.mr.start(1000); }
+    const t = now - r.t0;
+    if (t >= r.T) { r.stop(); return false; }
+    pitch = r.pitch; roll = r.roll; dist = r.dist;
+    for (let i = 0; i < 3; i++) focus[i] = r.focus[i];
+    yaw = r.yaw + TAU * t / r.T;
+    const fade = t > r.T - r.F ? smoother((t - (r.T - r.F)) / r.F) : 0;
+    r.ctx.globalAlpha = 1;
+    if (fade > 0) {                                              // the start, coming round again
+      gt = r.gt + r.rate * (t - r.T);
+      render(now);
+      r.ctx.drawImage(canvas, 0, 0, r.rc.width, r.rc.height);
+      r.ctx.globalAlpha = 1 - fade;
+    }
+    gt = r.gt + r.rate * t;                                      // drawn last, so it is what the screen shows
+    render(now);
+    r.ctx.drawImage(canvas, 0, 0, r.rc.width, r.rc.height);
+    if (r.onProgress) r.onProgress(t / r.T);
+    return true;
+  }
+
+  // ---- share links -------------------------------------------------------------------------
+  function shareLink() {
+    const f = ['1', LINK_TYPES.indexOf(S.type)];
+    LINK_KEYS.forEach((k) => f.push(Math.round(S[k] * linkScale(k))));
+    f.push((S.spikes ? 1 : 0) | (S.companions ? 2 : 0));
+    const p = matchPreset();
+    f.push(p ? p.toLowerCase() : [S.old, S.young, S.gasA, S.gasB].map((h) => h.slice(1)).join('_'));
+    f.push(S.seed);
+    const wrap = Math.atan2(Math.sin(yaw), Math.cos(yaw));
+    [wrap, pitch, roll, focus[0], focus[1], focus[2]].forEach((v) => f.push(Math.round(v * 1000)));
+    f.push(Math.round(gt * 100));
+    return location.origin + location.pathname + '#g=' + f.join('.');
   }
 
   // ---- state: everything the toolbar (or an embedding page) can change ---------------------
@@ -2212,6 +2502,12 @@
     surprise() { surprise(); persist(); },
     save: () => grabPNG(),
     snap: () => grabPNG(),               // a PNG blob of the galaxy alone
+    exportImage,                         // (edge) → { blob, w, h }: the same frame at 4K, 6K or 8K
+    maxEdge: MAX_EDGE,
+    recordLoop,                          // (seconds, onProgress) → { blob, ext }: one seamless turn
+    cancelLoop: () => { if (rec) rec.cancel(); },
+    canLoop: () => !!loopType(),
+    link: shareLink,                     // a URL that opens exactly this galaxy, camera and all
     view(e) { return viewKey({ code: e.code || '', key: e.key || '', ctrlKey: !!e.ctrlKey, shiftKey: !!e.shiftKey }); },
     pause(v) { paused = v === undefined ? !paused : v; return paused; },
   };
@@ -2226,6 +2522,9 @@
   }
 
   // ---- go --------------------------------------------------------------------------------
+  if (shared) SLIDERS.forEach((d) => { const v = +S[d[1]]; S[d[1]] = clamp(isFinite(v) ? v : BASE[d[1]], d[3], d[4]); });
+  // A GPU that runs out of room (a very large still, say) drops the context; start afresh.
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setTimeout(() => location.reload(), 600); });
   S.preset = matchPreset();
   applyColour();
   applyCaptions();
@@ -2245,13 +2544,15 @@
   const $ = (id) => document.getElementById(id);
   $('show').innerHTML = ICON.show + '<span>Show tools</span>';
 
-  // Cards: the six categories, then Settings below the camera. Camera and hide are actions.
-  const ALL = CATS.concat([{ id: 'settings', label: 'Settings', hint: 'Appearance and keys' }]);
+  // Cards: the six categories, then Share and Settings below the camera. Camera and hide are actions.
+  const SHARE = { id: 'share', label: 'Share', hint: 'A link, a big still, a loop' };
+  const SETTINGS = { id: 'settings', label: 'Settings', hint: 'Appearance and keys' };
+  const ALL = CATS.concat([SHARE, SETTINGS]);
   const tab = (c) => `<button class="ib" role="tab" data-cat="${c.id}" data-tip aria-label="${c.label}" aria-selected="false" type="button">${ICON[c.id]}</button>`;
   const cats = $('cats');
   cats.innerHTML = CATS.map(tab).join('') + '<hr>' +
     `<button class="ib" id="b-snap" data-tip aria-label="Snap image (S)" type="button">${ICON.camera}</button>` +
-    tab(ALL[ALL.length - 1]) +
+    tab(SHARE) + tab(SETTINGS) +
     `<button class="ib" id="b-hide" data-tip aria-label="Hide tools (H)" type="button">${ICON.hide}</button>`;
   const btns = () => Array.from(cats.querySelectorAll('[data-cat]'));
   let open = null;

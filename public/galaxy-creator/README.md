@@ -2,7 +2,9 @@
 
 A three-dimensional galaxy you build from a panel: pick its type, set its arms,
 stars, gas, dust and spin, then fly from the edge of the universe into its core.
-Drag to orbit it, scroll or pinch to zoom, and save a PNG of whatever it is doing.
+Drag to orbit it, scroll or pinch to zoom, snap a PNG of whatever it is doing, and
+share it: a link that opens exactly this galaxy, a still at up to 8K, or a looping
+video of one full turn.
 
 It is built the way [Solid State](https://ztwalsh.com/solid-state/) is: one HTML
 file and one font, with no build step and no dependencies. Anything that can
@@ -43,8 +45,10 @@ works too in most browsers.
 |---|---|
 | Drag or swipe | orbit the camera; it keeps its momentum |
 | Pinch or scroll | zoom |
-| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Settings and hide. Each opens its controls in a card beside the rail |
+| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Share, Settings and hide. Each opens its controls in a card beside the rail |
 | Camera, or `S` | snap the galaxy alone to a PNG (numbered, so rapid snaps never overwrite) |
+| Share | copy a link to this exact galaxy, camera included; save a 4K, 6K or 8K still; record a 10, 20 or 30 second loop |
+| `L` | copy the share link |
 | `⌘` `.` (Ctrl `.`) | everything off the screen but the galaxy; again, or `Esc`, to bring it back |
 | `Space` | pause |
 | `R` | new seed: the same settings, a different galaxy |
@@ -81,6 +85,23 @@ steep tilt, turned onto the diagonal, with a gold core, a blue rim, dark-brown
 dust filaments and small pink star-forming knots.
 
 **Surprise me** rolls the type, the shape, the gas, the palette and the seed.
+
+**Share.** The link carries every setting, the palette, the seed and the camera
+in the address's `#g=` part, so it needs no server. Opening one shows that
+galaxy without touching the visitor's own; it becomes theirs, and leaves the
+address bar, the moment they change something.
+
+Stills keep the screen's framing and render off screen with the long edge at
+3840, 6144 or 7680 pixels. Stars, spikes and bloom scale with the size, so the
+picture matches the screen, only sharper. The screen's buffers are freed while
+it renders; if the GPU still cannot fit the size, it steps down to the next
+one. They are PNGs, and an 8K one can run to 50 MB or more.
+
+Loops record one full turn of the camera live from the canvas, at most 1920
+pixels on the long edge, as MP4 where the browser can (WebM otherwise). The
+camera ends where it began, but the stars' orbits do not, so the last stretch
+cross-fades into the first and the video plays as one endless turn. Keep the
+tab in front while it records.
 
 ## How it works
 
@@ -129,6 +150,7 @@ URL options:
 
 - `?seed=1234` grows a specific galaxy.
 - `?clean` opens on the galaxy alone (the ⌘. view).
+- `#g=…` is a share link: every setting and the camera (see Share above).
 
 ## Notes
 
