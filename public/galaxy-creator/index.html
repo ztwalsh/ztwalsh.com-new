@@ -118,7 +118,7 @@
     --r-inset: calc(var(--r-card) - var(--rail-pad));
     --r-md: 14px;
     --r-sm: 10px;
-    --card-pad: 16px;
+    --card-pad: 20px;
     --hit: 40px;
     --on-ink: #ffffff;          /* text and knobs that sit on --ink */
     --seg-pill: #ffffff;
@@ -209,11 +209,17 @@
   }
 
   /* Inside a card, controls are concentric with its corners: card radius minus card padding. */
-  .card.concentric { --r-md: calc(var(--r-card) - var(--card-pad)); --r-sm: calc(var(--r-card) - var(--card-pad)); padding: var(--card-pad); }
+  .card.concentric {
+    /* 20px around the content, and a card radius of padding + 10 so the controls'
+       10px corners stay concentric with the card's. */
+    --r-md: 10px; --r-sm: 10px;
+    border-radius: calc(var(--card-pad) + 10px); padding: var(--card-pad);
+  }
+  .card.concentric .ctl { gap: 12px; }
 
   /* Section title inside a card */
-  .ctl-title { display: flex; align-items: baseline; justify-content: space-between; padding: 2px 4px 10px; }
-  .ctl-title b { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .ctl-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 0 16px; }
+  .ctl-title b { font-size: 20px; line-height: 24px; font-weight: 600; letter-spacing: -0.02em; }
   .ctl-title span { font-size: 11px; color: var(--ink-3); }
   .ctl { display: grid; gap: 6px; }
 
@@ -256,7 +262,7 @@
   /* Switch */
   .sw {
     display: flex; align-items: center; justify-content: space-between; width: 100%;
-    border: 0; background: none; cursor: pointer; padding: 8px 4px 8px 6px; border-radius: var(--r-sm);
+    border: 0; background: none; cursor: pointer; padding: 8px 6px 8px 12px; border-radius: var(--r-sm);
     color: var(--ink-2); font-weight: 500; transition: background 0.2s, color 0.2s;
   }
   .sw:hover { background: var(--chrome-2); color: var(--ink); }
@@ -290,7 +296,7 @@
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
   /* Colour — the one place hue is allowed */
-  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 4px 2px; }
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 0 2px; }
   .swatches button {
     aspect-ratio: 1; border: 0; border-radius: 50%; cursor: pointer; padding: 0;
     box-shadow: 0 0 0 0 #fff, 0 0 0 0 var(--ink);
@@ -300,12 +306,18 @@
   .swatches button:active { transform: scale(0.9); transition-duration: 0.1s; }
   .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--chrome), 0 0 0 3.5px var(--ink); }
   .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
-  .pick { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 500; cursor: pointer; }
+  .pick { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 500; cursor: pointer; }
   .pick:hover { background: var(--chrome-2); color: var(--ink); }
   .pick input { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border: 0; border-radius: 50%; padding: 0; background: none; cursor: pointer; flex: none; }
   .pick input::-webkit-color-swatch-wrapper { padding: 0; }
   .pick input::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
   .pick input::-moz-color-swatch { border: 0; border-radius: 50%; }
+
+  /* Settings: small section labels and one key command per line */
+  .ctl-label { padding: 4px 12px 0; color: var(--ink-3); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+  .keys { display: grid; gap: 2px; }
+  .key { display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 0 6px 0 12px; color: var(--ink-2); font-weight: 500; }
+  .key kbd + kbd { margin-left: 4px; }
 
   /* Small stat line (rolling numbers) */
   .stat { display: flex; justify-content: space-between; padding: 6px 4px 2px; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
@@ -351,14 +363,14 @@
   body.tools-off #rail { transform: translate(-120px, -50%); opacity: 0; filter: blur(6px); pointer-events: none; transition-timing-function: var(--ease-exit); transition-duration: 0.2s; }
 
   #fly {
-    position: fixed; z-index: 9; left: 88px; width: 288px;
+    position: fixed; z-index: 9; left: 88px; width: 304px; max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: none;
     transform-origin: left center; overflow: hidden;
   }
   #fly .body { will-change: transform; }
-  #fly, #show, #keys, .backbar { transition: opacity var(--t-smooth) var(--spring-smooth), filter var(--t-smooth) var(--spring-smooth); }
+  #fly, #show, .backbar { transition: opacity var(--t-smooth) var(--spring-smooth), filter var(--t-smooth) var(--spring-smooth); }
 
   /* ⌘. — nothing on screen but the galaxy. Leaving is quick, coming back is soft. */
-  body.bare #rail, body.bare #fly, body.bare #show, body.bare #keys, body.bare .backbar, body.bare #toast, body.bare .tip {
+  body.bare #rail, body.bare #fly, body.bare #show, body.bare .backbar, body.bare #toast, body.bare .tip {
     opacity: 0 !important; filter: blur(6px); pointer-events: none !important;
     transition: opacity 0.18s var(--ease-exit), filter 0.18s var(--ease-exit) !important;
   }
@@ -375,16 +387,10 @@
   #show svg { width: 18px; height: 18px; }
   #show:active { transform: scale(0.95); }
 
-  #keys {
-    position: fixed; z-index: 12; left: 88px; bottom: 16px; width: 288px;
-    line-height: 2; color: var(--ink-2); font-size: 12px;
-  }
-  #keys b { color: var(--ink); font-weight: 600; display: block; margin-bottom: 4px; font-size: 13px; }
-
   /* Captions belong to the chrome too: ⌘. takes them away, and the bottom-left one
      makes room for the Show tools pill. */
   body.bare .cap { opacity: 0; }
-  body.tools-off #cap-info { opacity: 0; }
+  body.tools-off #cap-info, body:has(#fly:not([hidden])) #cap-info { opacity: 0; }
   #fallback {
     position: fixed; inset: 0; display: none; place-items: center; text-align: center;
     padding: 24px; color: #9a9aa0; line-height: 1.7;
@@ -406,29 +412,14 @@
 <div class="cap" id="cap-type"></div>
 
 <nav id="rail" class="card" aria-label="Tools">
+  <!-- One group so the active pill can travel from the categories down to Settings. -->
   <div class="group" id="cats" role="tablist" aria-orientation="vertical"></div>
-  <hr>
-  <div class="group">
-    <button class="ib" id="b-snap" data-tip aria-label="Snap image (S)" type="button"></button>
-    <button class="ib" id="b-theme" data-tip aria-label="Dark mode" type="button"></button>
-    <button class="ib" id="b-keys" data-tip aria-label="Shortcuts" type="button"></button>
-    <button class="ib" id="b-hide" data-tip aria-label="Hide tools (H)" type="button"></button>
-  </div>
 </nav>
 
 <section id="fly" class="card concentric" role="tabpanel" hidden>
   <div class="ctl-title"><b></b><span></span></div>
   <div class="body"></div>
 </section>
-
-<div id="keys" class="card concentric" hidden>
-  <b>Shortcuts</b>
-  Drag orbit · <kbd>Shift</kbd> drag pan · scroll zoom<br>
-  <kbd>1</kbd> <kbd>3</kbd> <kbd>7</kbd> front, side, top · <kbd>Home</kbd> reset<br>
-  <kbd>Space</kbd> pause · <kbd>R</kbd> new seed · <kbd>H</kbd> hide tools<br>
-  <kbd>S</kbd> snap an image · <kbd>⌘</kbd> <kbd>.</kbd> galaxy only<br>
-  <kbd>Esc</kbd> close the open tool
-</div>
 
 <button id="show" type="button" hidden></button>
 
@@ -469,13 +460,16 @@
   ICON.moon = svg('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/>');
   ICON.sun = svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>');
   ICON.camera = svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.4-2h5l1.4 2h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/><circle cx="12" cy="12.5" r="3.4"/>');
+  ICON.create = svg('<path d="M12 5v14M5 12h14"/>');
+  ICON.settings = svg('<path class="fill" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="currentColor" fill-opacity=".14" stroke="none"/><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4Z"/>');
+  // Create galaxy leads the rail; Settings sits with the actions at the bottom.
   const CATS = [
+    { id: 'create', label: 'Create galaxy', hint: 'A new one, or a surprise' },
     { id: 'galaxy', label: 'Galaxy', hint: 'Type and shape' },
     { id: 'matter', label: 'Stars & gas', hint: 'What it is made of' },
     { id: 'motion', label: 'Motion', hint: 'Spin, drift, zoom' },
     { id: 'light', label: 'Light', hint: 'Exposure and lens' },
     { id: 'colour', label: 'Colour', hint: 'Palettes and inks' },
-    { id: 'create', label: 'Create', hint: 'Seeds and export' },
   ];
 
   // ---- motion helpers -----------------------------------------------------------------
@@ -622,19 +616,24 @@
     });
   }
 
-  // ---- theme: light by the reference, dark on request; remembered per viewer --------------
+  // ---- theme: Light, Dark or System; dark by default; remembered per viewer ----------------
   const THEME_KEY = 'galaxy-creator-theme';
-  function theme() {
-    try { const t = localStorage.getItem(THEME_KEY); if (t === 'light' || t === 'dark') return t; } catch (e) {}
-    return 'dark';                                   // dark is the default; light is one click away
+  const systemDark = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  function theme() {                                 // the choice: 'light' | 'dark' | 'system'
+    try { const t = localStorage.getItem(THEME_KEY); if (t === 'light' || t === 'dark' || t === 'system') return t; } catch (e) {}
+    return 'dark';
   }
+  const resolve = (t) => (t === 'system' ? (systemDark && systemDark.matches ? 'dark' : 'light') : t);
   function setTheme(t) {
     try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
-    const go = () => { document.documentElement.dataset.theme = t; };
+    const next = resolve(t);
+    if (document.documentElement.dataset.theme === next) return;
+    const go = () => { document.documentElement.dataset.theme = next; };
     // The whole chrome cross-fades between themes rather than snapping.
     if (document.startViewTransition && !still()) document.startViewTransition(go); else go();
   }
-  document.documentElement.dataset.theme = theme();
+  document.documentElement.dataset.theme = resolve(theme());
+  if (systemDark && systemDark.addEventListener) systemDark.addEventListener('change', () => { if (theme() === 'system') setTheme('system'); });
 
   // ---- snapping: grab the galaxy alone and hand it to the viewer ---------------------------
   function flash() {
@@ -782,32 +781,48 @@
     return wrap;
   }
 
-  const SAVE_IDLE = ICON.save + '<span>Save .png</span>';
   function createControls(G) {
-    const wrap = document.createElement('div'); wrap.className = 'ctl';
-    wrap.innerHTML = `<div class="pair"><button class="btn" data-a="seed" type="button">${ICON.seed}<span>New seed</span></button><button class="btn" data-a="surprise" type="button">${ICON.dice}<span>Surprise</span></button></div>
-      <button class="btn primary" data-a="save" type="button"><span style="display:flex;align-items:center;gap:7px">${SAVE_IDLE}</span></button>
-      <div class="stat"><span>Seed <b class="k-seed"></b></span><span><b class="k-stars"></b> stars</span></div>`;
+    const wrap = document.createElement('div'); wrap.className = 'pair';
+    wrap.innerHTML = `<button class="btn" data-a="seed" type="button">${ICON.seed}<span>New seed</span></button><button class="btn" data-a="surprise" type="button">${ICON.dice}<span>Surprise</span></button>`;
     const twirl = (b) => { const ic = b.querySelector('svg'); if (ic && !still()) ic.animate([{ transform: 'rotate(0deg) scale(0.8)' }, { transform: 'rotate(360deg) scale(1)' }], { duration: 600, easing: EASE.pop }); };
-    const seedEl = wrap.querySelector('.k-seed'), starsEl = wrap.querySelector('.k-stars');
-    const stat = () => {
-      rollText(seedEl, '#' + G.state.seed);
-      rollText(starsEl, Math.round((G.state.stars * G.state.stars) * (navigator.maxTouchPoints > 0 ? 160000 : 420000)).toLocaleString('en-US'));
-    };
     wrap.querySelector('[data-a=seed]').addEventListener('click', (e) => { twirl(e.currentTarget); G.reseed(); refresh(G); toast('Seed #' + G.state.seed, 'seed'); });
     wrap.querySelector('[data-a=surprise]').addEventListener('click', (e) => {
       twirl(e.currentTarget); G.surprise(); refresh(G);
       toast(`${G.typeNames[Math.max(0, G.types.indexOf(G.state.type))]} · ${G.state.preset}`, 'dice');
     });
-    const saveBtn = wrap.querySelector('[data-a=save]'), face = saveBtn.firstElementChild;
-    saveBtn.addEventListener('click', async () => {
-      if (saveBtn.disabled) return;
-      saveBtn.disabled = true;
-      swapHTML(face, ICON.spin + '<span>Rendering</span>');
-      try { await shoot(G); swapHTML(face, ICON.tick + '<span>Saved</span>'); } catch (e) { swapHTML(face, e && e.code === 'declined' ? SAVE_IDLE : '<span>Could not save</span>'); }
-      setTimeout(() => { swapHTML(face, SAVE_IDLE); saveBtn.disabled = false; }, 1600);
-    });
-    stat(); views.add(stat);
+    return wrap;
+  }
+
+  // Settings: appearance, captions, and every key command, one per line.
+  const KEYS = [
+    ['Snap an image', ['S']],
+    ['Galaxy only', ['⌘', '.']],
+    ['Hide tools', ['H']],
+    ['Pause', ['Space']],
+    ['New seed', ['R']],
+    ['Front, side, top', ['1', '3', '7']],
+    ['Turn 15°', ['2', '4', '6', '8']],
+    ['Reset view', ['Home']],
+    ['Orbit', ['Drag']],
+    ['Pan', ['Shift', 'Drag']],
+    ['Zoom', ['Scroll']],
+    ['Close a tool', ['Esc']],
+  ];
+  function settingsControls(G) {
+    const wrap = document.createElement('div'); wrap.className = 'ctl';
+    const label = (t) => { const l = document.createElement('div'); l.className = 'ctl-label'; l.textContent = t; return l; };
+    const seg = document.createElement('div');
+    seg.className = 'seg'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Appearance');
+    seg.innerHTML = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
+    const btns = () => Array.from(seg.querySelectorAll('button'));
+    const pill = pillTrack(seg, btns, (b) => b.dataset.v === theme());
+    const sync = (a) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === theme()))); pill.place(a); };
+    btns().forEach((b) => b.addEventListener('click', () => { setTheme(b.dataset.v); sync(true); }));
+    seg._place = () => sync(false);
+    requestAnimationFrame(() => sync(false));
+    const keys = document.createElement('div'); keys.className = 'keys';
+    keys.innerHTML = KEYS.map(([what, ks]) => `<div class="key"><span>${what}</span><span>${ks.map((k) => `<kbd>${k}</kbd>`).join('')}</span></div>`).join('');
+    wrap.append(label('Appearance'), seg, switchEl(G, 'caps', 'Captions on screen'), label('Keys'), keys);
     return wrap;
   }
 
@@ -820,7 +835,8 @@
     if (id === 'motion') add(...['spin', 'orbit', 'zoom'].map((k) => slider(G, k)));
     if (id === 'light') add(...['bright', 'bloom', 'sat'].map((k) => slider(G, k)), switchEl(G, 'spikes', 'Diffraction spikes'), switchEl(G, 'companions', 'Companion galaxies'));
     if (id === 'colour') add(colourControls(G));
-    if (id === 'create') add(createControls(G), switchEl(G, 'caps', 'Captions on screen'));
+    if (id === 'create') add(createControls(G));
+    if (id === 'settings') add(settingsControls(G));
     return box;
   }
 
@@ -2227,20 +2243,17 @@
   if (!window.galaxy || new URLSearchParams(location.search).has('embed')) { const r = document.getElementById('rail'); if (r) r.hidden = true; return; }
   const { ICON, CATS, EASE, still } = Kit;
   const $ = (id) => document.getElementById(id);
-  $('b-keys').innerHTML = ICON.keys;
-  $('b-snap').innerHTML = ICON.camera;
-  const themeIcon = (t) => {
-    const dark = (t || document.documentElement.dataset.theme) === 'dark';
-    $('b-theme').setAttribute('aria-label', dark ? 'Light mode' : 'Dark mode');
-    return dark ? ICON.sun : ICON.moon;
-  };
-  $('b-theme').innerHTML = themeIcon();
-  $('b-hide').innerHTML = ICON.hide;
   $('show').innerHTML = ICON.show + '<span>Show tools</span>';
 
+  // Cards: the six categories, then Settings below the camera. Camera and hide are actions.
+  const ALL = CATS.concat([{ id: 'settings', label: 'Settings', hint: 'Appearance and keys' }]);
+  const tab = (c) => `<button class="ib" role="tab" data-cat="${c.id}" data-tip aria-label="${c.label}" aria-selected="false" type="button">${ICON[c.id]}</button>`;
   const cats = $('cats');
-  cats.innerHTML = CATS.map((c) => `<button class="ib" role="tab" data-cat="${c.id}" data-tip aria-label="${c.label}" aria-selected="false" type="button">${ICON[c.id]}</button>`).join('');
-  const btns = () => Array.from(cats.querySelectorAll('.ib'));
+  cats.innerHTML = CATS.map(tab).join('') + '<hr>' +
+    `<button class="ib" id="b-snap" data-tip aria-label="Snap image (S)" type="button">${ICON.camera}</button>` +
+    tab(ALL[ALL.length - 1]) +
+    `<button class="ib" id="b-hide" data-tip aria-label="Hide tools (H)" type="button">${ICON.hide}</button>`;
+  const btns = () => Array.from(cats.querySelectorAll('[data-cat]'));
   let open = null;
   const pill = Kit.pillTrack(cats, btns, (b) => b.dataset.cat === open);
   Kit.tooltips(document.getElementById('rail'), 'right');
@@ -2264,7 +2277,7 @@
     open = id;
     btns().forEach((b) => b.setAttribute('aria-selected', String(b.dataset.cat === id)));
     pill.place(!!prev);
-    const cat = CATS.find((c) => c.id === id);
+    const cat = ALL.find((c) => c.id === id);
     if (!prev) {
       // Grow the card out of the rail.
       fly.hidden = false;
@@ -2280,7 +2293,7 @@
       return;
     }
     // Same card, new contents: morph height and position, blur the contents across.
-    const dir = CATS.findIndex((c) => c.id === id) > CATS.findIndex((c) => c.id === prev) ? 1 : -1;
+    const dir = ALL.findIndex((c) => c.id === id) > ALL.findIndex((c) => c.id === prev) ? 1 : -1;
     const fromTop = fly.offsetTop;
     Kit.swapHTML(fly.querySelector('b'), cat.label, true);
     Kit.swapHTML(fly.querySelector('.ctl-title span'), cat.hint, true);
@@ -2305,31 +2318,16 @@
   }
   btns().forEach((b) => b.addEventListener('click', () => (open === b.dataset.cat ? close() : show(b.dataset.cat))));
 
-  // Shortcuts card toggles beside the rail.
-  $('b-keys').addEventListener('click', () => {
-    const k = $('keys');
-    $('b-keys').setAttribute('aria-pressed', String(k.hidden));
-    if (k.hidden) { close(); k.hidden = false; Kit.enter(k, { transform: 'translateX(-10px) scale(0.96)' }); }
-    else k.hidden = true;
-  });
-
   // Hide: the rail slides away and a small pill offers the way back.
   function setTools(on) {
     document.body.classList.toggle('tools-off', !on);
-    if (!on) { close(); $('keys').hidden = true; $('b-keys').setAttribute('aria-pressed', 'false'); }
+    if (!on) close();
     $('show').hidden = on;
     if (!on) { Kit.enter($('show'), { transform: 'translateY(10px) scale(0.9)' }, 120); $('show').focus(); }
     else $('b-hide').focus();
   }
   $('b-hide').addEventListener('click', () => setTools(false));
   $('show').addEventListener('click', () => setTools(true));
-
-  // Theme: the icon blurs across while the chrome cross-fades.
-  $('b-theme').addEventListener('click', () => {
-    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    Kit.setTheme(next);
-    Kit.swapHTML($('b-theme'), themeIcon(next));
-  });
 
   // Snap: a quick flash, the galaxy alone saved as a PNG. Words only when the tools are showing.
   let snapping = false;
@@ -2357,12 +2355,12 @@
     bare: () => setBare(!isBare()),
     snap,
     hide: () => { if (isBare()) { setBare(false); return; } setTools(document.body.classList.contains('tools-off')); },
-    escape: () => { if (isBare()) { setBare(false); return; } if (!$('keys').hidden) { $('keys').hidden = true; $('b-keys').setAttribute('aria-pressed', 'false'); } else close(); },
+    escape: () => { if (isBare()) { setBare(false); return; } close(); },
   });
   pill.hide();
   // ?clean opens on the galaxy alone; small screens start with the flyout closed.
   if (new URLSearchParams(location.search).has('clean')) setBare(true);
-  if (innerWidth > 700) show('galaxy');
+  if (innerWidth > 700) show('create');
 })();
 </script>
 </body>
