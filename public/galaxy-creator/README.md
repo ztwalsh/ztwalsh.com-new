@@ -42,12 +42,14 @@ works too in most browsers.
 | | |
 |---|---|
 | Drag or swipe | orbit the camera; it keeps its momentum |
-| Pinch or scroll | zoom, the same value the Zoom slider holds |
-| Panel | type, arms, twist, core, spread, stars, star size, nebula, dust, spin, drift, zoom, brightness, bloom, saturation, colour |
+| Pinch or scroll | zoom |
+| The rail | Galaxy, Stars & gas, Motion, Light, Colour, Create: each opens its controls in a card beside the rail |
+| `S` | snap the galaxy alone to a PNG (numbered, so rapid snaps never overwrite) |
+| `⌘` `.` (Ctrl `.`) | everything off the screen but the galaxy; again, or `Esc`, to bring it back |
 | `Space` | pause |
 | `R` | new seed: the same settings, a different galaxy |
-| `H` | hide the panel and captions for a clean view |
-| Save .png | the galaxy only, no captions, no panel |
+| `H` | hide the toolbar; the Show tools pill or `H` brings it back |
+| Moon / sun | light or dark chrome (dark by default, remembered per browser) |
 
 **Blender-style navigation.** If your hands know Blender, they know this:
 
@@ -116,6 +118,8 @@ const HOME_URL   = '/';        // where the panel's back link goes
 const HOME_LABEL = '← back';   // what it says; HOME_URL = '' removes it
 ```
 
+The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md); `playground/` holds the directions it was chosen from.
+
 The opening state is the `BASE` object near the top of the script, and the six
 colour palettes are in `PRESETS` just above it. A visitor's own changes are
 saved to their browser under the key `galaxy-creator`, so editing `BASE`
@@ -124,7 +128,7 @@ changes what a new visitor sees, not what a returning one does.
 URL options:
 
 - `?seed=1234` grows a specific galaxy.
-- `?clean` opens with the panel and captions hidden.
+- `?clean` opens on the galaxy alone (the ⌘. view).
 
 ## Notes
 
