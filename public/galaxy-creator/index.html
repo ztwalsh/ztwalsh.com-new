@@ -97,21 +97,54 @@
   #cap-type { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 20px; color: rgba(255,255,255,0.75); }
   body.clean .cap { opacity: 0; }
 
-  /* ── motion tokens (see MOTION.md) ──────────────────────────────── */
+  /* ── toolbar: the left rail and its flyout (see DESIGN.md, MOTION.md) ── */
+  /* Toolbar kit (mirrors playground/kit.css).
+     Tokens mirror DESIGN.md (light chrome) and MOTION.md (springs), which in
+     turn mirror the live page. Prototypes link this file rather than copying
+     the values. */
   :root {
+    --chrome: #ffffff;
+    --chrome-2: #f2f2f3;
+    --chrome-3: #e7e7e9;
+    --ink: #0a0a0b;
+    --ink-2: #6c6c70;
+    --ink-3: #a3a3a8;
+    --hair: rgba(0, 0, 0, 0.07);
+    --lift: 0 24px 60px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.18);
+    --r-card: 24px;
+    --rail-pad: 10px;
+    /* Concentric corners: an item inset by the rail's padding takes the rail's
+       radius minus that padding, so the gap around each corner is even. */
+    --r-inset: calc(var(--r-card) - var(--rail-pad));
+    --r-md: 14px;
+    --r-sm: 10px;
+    --card-pad: 16px;
+    --hit: 40px;
+    --on-ink: #ffffff;          /* text and knobs that sit on --ink */
+    --seg-pill: #ffffff;
+    --face: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
     --spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.02);
     --spring-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
     --spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
     --t-snappy: 340ms; --t-pop: 450ms; --t-smooth: 390ms;
-    --ink: #f4f4f5;
-    --ink-2: rgba(244, 244, 245, 0.6);
-    --ink-3: rgba(244, 244, 245, 0.38);
-    --well: rgba(255, 255, 255, 0.075);
-    --well-hi: rgba(255, 255, 255, 0.12);
-    --hair: rgba(255, 255, 255, 0.09);
-    --sheet: rgba(9, 9, 10, 0.84);
   }
+  /* Dark chrome: the same shapes and motion, inverted. Still monochrome. */
+  :root[data-theme="dark"] {
+    --chrome: #141416;
+    --chrome-2: #232326;
+    --chrome-3: #303034;
+    --ink: #f4f4f5;
+    --ink-2: #a1a1a7;
+    --ink-3: #6e6e75;
+    --hair: rgba(255, 255, 255, 0.08);
+    --lift: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.07);
+    --on-ink: #0a0a0b;
+    --seg-pill: #3a3a3f;
+    color-scheme: dark;
+  }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.35s; }
   @supports (transition-timing-function: linear(0, 1)) {
     :root {
       --spring-snappy: linear(0, 0.047, 0.15, 0.28, 0.397, 0.527, 0.644, 0.744, 0.815, 0.882, 0.932, 0.968, 0.99, 1.007, 1.017, 1.021, 1.023, 1.022, 1.02, 1.018, 1.014, 1.011, 1.009, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 1);
@@ -120,225 +153,246 @@
     }
   }
 
-  /* ── toggle pill and panel ─────────────────────────────────────── */
-  #toggle {
-    position: fixed; z-index: 4;
-    top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px;
-    font: inherit; font-weight: 500; letter-spacing: inherit; color: var(--ink);
-    background: var(--sheet); border: 1px solid var(--hair); border-radius: 999px;
-    padding: 8px 14px 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 7px;
-    -webkit-backdrop-filter: blur(24px) saturate(1.3); backdrop-filter: blur(24px) saturate(1.3);
-    transition: transform var(--t-pop) var(--spring-pop), background 0.2s;
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: #000; }
+  body {
+    font-family: var(--face); font-size: 12.5px; color: var(--ink);
+    -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none;
   }
-  #toggle:hover { background: rgba(24, 24, 26, 0.9); }
-  #toggle:active { transform: scale(0.96); transition-duration: 0.1s; }
-  #toggle svg { width: 13px; height: 13px; }
-  #panel {
-    position: fixed; z-index: 4;
-    top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px; width: 264px;
-    max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
-    padding: 0 10px 10px;
-    background: var(--sheet);
-    -webkit-backdrop-filter: blur(28px) saturate(1.3); backdrop-filter: blur(28px) saturate(1.3);
-    border: 1px solid var(--hair); border-radius: 18px;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
-    scrollbar-width: none; transform-origin: top right; scroll-padding-top: 52px;
-  }
-  #panel::-webkit-scrollbar { display: none; }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    #panel, #toggle { background: rgba(9, 9, 10, 0.96); }
-  }
-  .head {
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 3;
-    margin: 0 -10px; padding: 14px 12px 8px 16px;
-    background: #0b0b0c;
-  }
-  .head::after {
-    content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 12px; pointer-events: none;
-    background: linear-gradient(#0b0b0c, rgba(11,11,12,0));
-  }
-  .head b { font-weight: 600; letter-spacing: -0.005em; font-size: 12.5px; }
-  .iconbtn {
-    font: inherit; color: var(--ink-2); background: none; border: 0; cursor: pointer;
-    width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center;
-    transition: transform var(--t-pop) var(--spring-pop), background 0.2s, color 0.2s;
-  }
-  .iconbtn:hover { color: var(--ink); background: var(--well); }
-  .iconbtn:active { transform: scale(0.9); transition-duration: 0.1s; }
-  .iconbtn svg { width: 12px; height: 12px; }
+  [hidden] { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  button { font: inherit; color: inherit; }
 
-  /* sections */
-  .sec { border-radius: 12px; }
-  .sec + .sec { margin-top: 2px; }
-  .sec-h {
-    width: 100%; font: inherit; color: var(--ink-3); background: none; border: 0; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 6px 7px; border-radius: 8px;
-    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500;
-    transition: color 0.2s;
-  }
-  .sec-h:hover { color: var(--ink-2); }
-  .sec-h svg { width: 10px; height: 10px; transition: transform var(--t-snappy) var(--spring-snappy); }
-  .sec-h[aria-expanded="false"] svg { transform: rotate(-90deg); }
-  .sec-b { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--t-smooth) var(--spring-smooth); }
-  .sec-b > div { overflow: hidden; min-height: 0; }
-  .sec-in { padding: 2px 0 8px; display: grid; gap: 4px; transition: opacity 0.25s, filter 0.25s, transform var(--t-smooth) var(--spring-smooth); }
-  .sec.shut .sec-b { grid-template-rows: 0fr; }
-  .sec.shut .sec-in { opacity: 0; filter: blur(4px); transform: translateY(-4px); transition-duration: 0.14s; transition-timing-function: var(--ease-exit); }
+  /* The galaxy, full bleed behind everything. */
+  #sky { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
 
-  /* segmented control with a stretching indicator */
-  .seg {
-    position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 2px; padding: 3px; background: var(--well); border-radius: 12px; margin-bottom: 4px;
+  /* Back to the gallery: small, low contrast, out of the way. */
+  .backbar {
+    position: fixed; z-index: 30; top: 14px; right: 16px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: rgba(255, 255, 255, 0.42); letter-spacing: 0.01em;
   }
-  .seg-ind {
-    position: absolute; z-index: 0; background: #fff; border-radius: 9px; pointer-events: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  .backbar a { color: rgba(255, 255, 255, 0.62); text-decoration: none; }
+  .backbar a:hover { color: #fff; }
+
+  /* Surfaces */
+  .card {
+    background: var(--chrome); border-radius: var(--r-card); box-shadow: var(--lift);
+  }
+
+  /* Icon button with the grey active pill */
+  .ib {
+    position: relative; width: var(--hit); height: var(--hit); border: 0; background: none;
+    border-radius: var(--r-inset); display: grid; place-items: center; cursor: pointer; color: var(--ink-2);
+    transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
+  }
+  .ib:hover { color: var(--ink); }
+  .ib:active { transform: scale(0.9); transition-duration: 0.1s; }
+  .ib[aria-pressed="true"], .ib[aria-selected="true"] { color: var(--ink); }
+  .ib svg { width: 20px; height: 20px; position: relative; z-index: 1; }
+  .ib .fill { opacity: 0; transition: opacity 0.2s; }
+  .ib[aria-pressed="true"] .fill, .ib[aria-selected="true"] .fill { opacity: 1; }
+  .pill-ind {
+    position: absolute; z-index: 0; background: var(--chrome-2); border-radius: var(--r-inset); pointer-events: none;
     transition: left var(--t-snappy) var(--spring-snappy), right var(--t-snappy) var(--spring-snappy),
-                top var(--t-snappy) var(--spring-snappy), bottom var(--t-snappy) var(--spring-snappy);
+                top var(--t-snappy) var(--spring-snappy), bottom var(--t-snappy) var(--spring-snappy),
+                opacity 0.2s;
   }
-  .seg.go-right .seg-ind { transition-delay: 50ms, 0ms, 0ms, 0ms; }
-  .seg.go-left .seg-ind { transition-delay: 0ms, 50ms, 0ms, 0ms; }
-  .seg button {
-    position: relative; z-index: 1; font: inherit; font-weight: 500; color: #fff; mix-blend-mode: difference;
-    background: none; border: 0; border-radius: 9px; padding: 7px 0; cursor: pointer;
-    transition: transform var(--t-pop) var(--spring-pop), opacity 0.2s;
-  }
-  .seg button:not([aria-pressed="true"]) { opacity: 0.62; }
-  .seg button:hover { opacity: 1; }
-  .seg button:active { transform: scale(0.94); transition-duration: 0.1s; }
+  .go-fwd > .pill-ind { transition-delay: 50ms, 0ms, 50ms, 0ms, 0ms; }
+  .go-back > .pill-ind { transition-delay: 0ms, 50ms, 0ms, 50ms, 0ms; }
 
-  /* slider: label and value inside a pill, white fill, inverted text */
-  .sl {
-    position: relative; isolation: isolate; height: 30px; border-radius: 9px; background: var(--well);
-    cursor: ew-resize; touch-action: none; outline: none; overflow: hidden;
-    transform-origin: left center;
-    transition: transform var(--t-pop) var(--spring-pop), height var(--t-snappy) var(--spring-snappy), opacity 0.25s, background 0.2s;
+  /* Tooltip label */
+  .tip {
+    position: absolute; z-index: 40; pointer-events: none; white-space: nowrap;
+    background: var(--ink); color: var(--on-ink); font-size: 11.5px; font-weight: 500;
+    padding: 5px 9px; border-radius: 8px;
   }
-  .sl:hover { background: var(--well-hi); }
-  .sl.drag { transition: height var(--t-snappy) var(--spring-snappy), background 0.2s; }
-  .sl.drag, .sl:focus-visible { background: var(--well-hi); }
-  .sl:focus-visible { box-shadow: 0 0 0 1.5px rgba(255,255,255,0.7); }
+
+  /* Inside a card, controls are concentric with its corners: card radius minus card padding. */
+  .card.concentric { --r-md: calc(var(--r-card) - var(--card-pad)); --r-sm: calc(var(--r-card) - var(--card-pad)); padding: var(--card-pad); }
+
+  /* Section title inside a card */
+  .ctl-title { display: flex; align-items: baseline; justify-content: space-between; padding: 2px 4px 10px; }
+  .ctl-title b { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .ctl-title span { font-size: 11px; color: var(--ink-3); }
+  .ctl { display: grid; gap: 6px; }
+
+  /* Slider: grey pill, black fill, text inverts over the fill */
+  .sl {
+    position: relative; isolation: isolate; height: 34px; border-radius: var(--r-sm); background: var(--chrome-2);
+    cursor: ew-resize; touch-action: none; outline: none; overflow: hidden;
+    transition: transform var(--t-pop) var(--spring-pop), opacity 0.25s, background 0.2s;
+  }
+  .sl:hover, .sl.drag { background: var(--chrome-3); }
+  .sl.drag { transition: opacity 0.25s, background 0.2s; }
+  .sl:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
   .sl-fill {
-    position: absolute; inset: 0 auto 0 0; width: 100%; background: #fff; border-radius: 9px 4px 4px 9px;
+    position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--ink);
     transform-origin: left center; transform: scaleX(var(--v, 0));
     transition: transform var(--t-snappy) var(--spring-snappy);
   }
   .sl.drag .sl-fill { transition: none; }
   .sl-txt {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
-    padding: 0 11px; color: #fff; mix-blend-mode: difference; pointer-events: none; font-weight: 500;
+    padding: 0 12px; color: #fff; mix-blend-mode: difference; pointer-events: none; font-weight: 500;
   }
-  .sl-txt output { font-variant-numeric: tabular-nums; opacity: 0.75; transition: opacity 0.2s; }
-  .sl.drag .sl-txt output, .sl:hover .sl-txt output { opacity: 1; }
-  .sl.off { opacity: 0.32; }
+  .sl-txt output { font-variant-numeric: tabular-nums; }
+  .sl.off { opacity: 0.35; }
 
-  /* switches */
+  /* Segmented control with a stretching grey pill */
+  .seg {
+    position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+    padding: 3px; background: var(--chrome-2); border-radius: var(--r-md);
+  }
+  .seg > .pill-ind { background: var(--seg-pill); box-shadow: 0 1px 4px rgba(0,0,0,0.1); border-radius: calc(var(--r-md) - 3px); }
+  .seg button {
+    position: relative; z-index: 1; border: 0; background: none; border-radius: calc(var(--r-md) - 3px); padding: 8px 0;
+    color: var(--ink-2); font-weight: 500; cursor: pointer;
+    transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
+  }
+  .seg button:hover, .seg button[aria-checked="true"] { color: var(--ink); }
+  .seg button:active { transform: scale(0.94); transition-duration: 0.1s; }
+
+  /* Switch */
   .sw {
     display: flex; align-items: center; justify-content: space-between; width: 100%;
-    font: inherit; color: var(--ink-2); background: none; border: 0; cursor: pointer;
-    padding: 6px 4px 6px 6px; border-radius: 9px; transition: color 0.2s, background 0.2s;
+    border: 0; background: none; cursor: pointer; padding: 8px 4px 8px 6px; border-radius: var(--r-sm);
+    color: var(--ink-2); font-weight: 500; transition: background 0.2s, color 0.2s;
   }
-  .sw:hover { color: var(--ink); background: var(--well); }
-  .sw i {
-    position: relative; width: 30px; height: 18px; border-radius: 999px; background: rgba(255,255,255,0.16);
-    transition: background var(--t-snappy) var(--spring-snappy);
-  }
-  .sw i::after {
-    content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 999px;
-    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    transition: left var(--t-snappy) var(--spring-snappy), width var(--t-snappy) var(--spring-snappy), background 0.2s;
-  }
-  .sw:active i::after { width: 18px; }
+  .sw:hover { background: var(--chrome-2); color: var(--ink); }
   .sw[aria-checked="true"] { color: var(--ink); }
-  .sw[aria-checked="true"] i { background: #fff; }
-  .sw[aria-checked="true"] i::after { left: 14px; background: #0a0a0b; box-shadow: none; }
+  .sw i { position: relative; width: 32px; height: 20px; border-radius: 999px; background: var(--chrome-3); transition: background var(--t-snappy) var(--spring-snappy); }
+  .sw i::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: left var(--t-snappy) var(--spring-snappy), width var(--t-snappy) var(--spring-snappy);
+  }
+  .sw:active i::after { width: 20px; }
+  .sw[aria-checked="true"] i { background: var(--ink); }
+  .sw[aria-checked="true"] i::after { left: 14px; background: var(--on-ink); }
   .sw[aria-checked="true"]:active i::after { left: 10px; }
 
-  /* colour — the one place hue is allowed */
-  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 4px 4px 2px; }
+  /* Buttons */
+  .btn {
+    height: 38px; border: 0; border-radius: var(--r-sm); background: var(--chrome-2); color: var(--ink);
+    font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+    transition: background 0.2s, transform var(--t-pop) var(--spring-pop);
+  }
+  .btn:hover { background: var(--chrome-3); }
+  .btn:active { transform: scale(0.96); transition-duration: 0.1s; }
+  .btn.primary { background: var(--ink); color: var(--on-ink); }
+  .btn.primary:hover { opacity: 0.88; }
+  .btn svg { width: 15px; height: 15px; }
+  .btn .spin { animation: kit-spin 0.8s linear infinite; }
+  .tick path { stroke-dasharray: 22; stroke-dashoffset: 22; animation: kit-draw 0.35s 0.05s var(--spring-smooth) forwards; }
+  @keyframes kit-spin { to { transform: rotate(360deg); } }
+  @keyframes kit-draw { to { stroke-dashoffset: 0; } }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  /* Colour — the one place hue is allowed */
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 4px 2px; }
   .swatches button {
-    aspect-ratio: 1; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
-    box-shadow: 0 0 0 0 #fff, 0 0 0 0 rgba(9,9,10,1);
+    aspect-ratio: 1; border: 0; border-radius: 50%; cursor: pointer; padding: 0;
+    box-shadow: 0 0 0 0 #fff, 0 0 0 0 var(--ink);
     transition: transform var(--t-pop) var(--spring-pop), box-shadow var(--t-snappy) var(--spring-snappy);
   }
   .swatches button:hover { transform: scale(1.08); }
   .swatches button:active { transform: scale(0.9); transition-duration: 0.1s; }
-  .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px rgba(9,9,10,1), 0 0 0 3.5px #fff; }
-  .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 4px; }
-  .pick {
-    display: flex; align-items: center; gap: 8px; color: var(--ink-2); cursor: pointer;
-    padding: 5px 6px; border-radius: 9px; transition: background 0.2s, color 0.2s;
+  .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--chrome), 0 0 0 3.5px var(--ink); }
+  .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .pick { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 500; cursor: pointer; }
+  .pick:hover { background: var(--chrome-2); color: var(--ink); }
+  .pick input { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border: 0; border-radius: 50%; padding: 0; background: none; cursor: pointer; flex: none; }
+  .pick input::-webkit-color-swatch-wrapper { padding: 0; }
+  .pick input::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+  .pick input::-moz-color-swatch { border: 0; border-radius: 50%; }
+
+  /* Small stat line (rolling numbers) */
+  .stat { display: flex; justify-content: space-between; padding: 6px 4px 2px; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .stat b { color: var(--ink-2); font-weight: 500; }
+  .roll { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .roll > span { display: inline-block; }
+
+  /* Toast: the one dark element */
+  #toast {
+    position: fixed; z-index: 50; left: 50%; bottom: 24px; transform: translateX(-50%); pointer-events: none;
+    background: var(--ink); color: var(--on-ink); border-radius: 999px; height: 36px; padding: 0 16px;
+    display: flex; align-items: center; gap: 8px; font-weight: 500; white-space: nowrap; overflow: hidden;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.45);
   }
-  .pick:hover { background: var(--well); color: var(--ink); }
-  .pick input[type=color] {
-    -webkit-appearance: none; appearance: none; width: 18px; height: 18px; flex: none;
-    padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  #toast svg { width: 14px; height: 14px; flex: none; }
+
+  /* One focus ring everywhere: black, never coloured. */
+  :where(.ib, .seg button, .sw, .btn, .swatches button, .tab, .act, .tg, .chips button, .dots button, .logo, #show):focus-visible,
+  :where(.pick, .ink):has(input:focus-visible) {
+    outline: none; box-shadow: 0 0 0 2px var(--chrome), 0 0 0 4px var(--ink);
+  }
+  :where(.ib, .seg button, .sw, .btn, .swatches button, .tab, .act, .tg, .chips button, .dots button, .logo, #show, .pick input, .ink input) { outline: none; }
+
+  /* Shutter flash for snaps: light, quick, no words. */
+  #flash { position: fixed; inset: 0; z-index: 60; background: #fff; pointer-events: none; opacity: 0; }
+
+  kbd {
+    font: inherit; font-size: 10.5px; color: var(--ink-2); background: var(--chrome-2);
+    border-radius: 5px; padding: 1px 5px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::after { transition-duration: 0.12s !important; transition-delay: 0s !important; transition-timing-function: ease !important; }
+  }
+  #rail {
+    position: fixed; z-index: 10; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 60px; padding: var(--rail-pad); display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border-radius: var(--r-card);
+    transition: transform var(--t-smooth) var(--spring-smooth), opacity 0.25s, filter 0.25s;
+  }
+  #rail .group { position: relative; display: flex; flex-direction: column; gap: 4px; }
+  #rail hr { width: 24px; border: 0; border-top: 1px solid var(--hair); margin: 8px 0; }
+  body.tools-off #rail { transform: translate(-120px, -50%); opacity: 0; filter: blur(6px); pointer-events: none; transition-timing-function: var(--ease-exit); transition-duration: 0.2s; }
+
+  #fly {
+    position: fixed; z-index: 9; left: 88px; width: 288px;
+    transform-origin: left center; overflow: hidden;
+  }
+  #fly .body { will-change: transform; }
+  #fly, #show, #keys, .backbar { transition: opacity var(--t-smooth) var(--spring-smooth), filter var(--t-smooth) var(--spring-smooth); }
+
+  /* ⌘. — nothing on screen but the galaxy. Leaving is quick, coming back is soft. */
+  body.bare #rail, body.bare #fly, body.bare #show, body.bare #keys, body.bare .backbar, body.bare #toast, body.bare .tip {
+    opacity: 0 !important; filter: blur(6px); pointer-events: none !important;
+    transition: opacity 0.18s var(--ease-exit), filter 0.18s var(--ease-exit) !important;
+  }
+  body.bare #rail { transform: translateY(-50%) !important; }
+  body.bare.tools-off #rail { transform: translate(-120px, -50%) !important; }
+  body.bare { cursor: none; }
+
+  #show {
+    position: fixed; z-index: 11; left: 16px; bottom: 16px;
+    height: 40px; padding: 0 14px 0 10px; border: 0; border-radius: 999px; background: var(--chrome); box-shadow: var(--lift);
+    display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer;
     transition: transform var(--t-pop) var(--spring-pop);
   }
-  .pick:active input[type=color] { transform: scale(0.85); transition-duration: 0.1s; }
-  .pick input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
-  .pick input[type=color]::-webkit-color-swatch { border: 0; border-radius: 50%; }
-  .pick input[type=color]::-moz-color-swatch { border: 0; border-radius: 50%; }
+  #show svg { width: 18px; height: 18px; }
+  #show:active { transform: scale(0.95); }
 
-  /* buttons */
-  .btn {
-    position: relative; font: inherit; font-weight: 500; color: var(--ink);
-    background: var(--well); border: 0; border-radius: 10px; height: 34px;
-    padding: 0 12px; cursor: pointer; width: 100%; overflow: hidden;
-    display: flex; align-items: center; justify-content: center; gap: 7px;
-    transition: transform var(--t-pop) var(--spring-pop), background 0.2s, color 0.2s;
+  #keys {
+    position: fixed; z-index: 12; left: 88px; bottom: 16px; width: 288px;
+    line-height: 2; color: var(--ink-2); font-size: 12px;
   }
-  .btn:hover:not(:disabled) { background: var(--well-hi); }
-  .btn:active:not(:disabled) { transform: scale(0.96); transition-duration: 0.1s; }
-  .btn:disabled { cursor: default; }
-  .btn.primary { background: #fff; color: #0a0a0b; }
-  .btn.primary:hover:not(:disabled) { background: #e9e9ea; }
-  .btn svg { width: 14px; height: 14px; flex: none; }
-  .btn .spin { animation: spin 0.8s linear infinite; }
-  .btn .tick path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw 0.35s 0.05s var(--spring-smooth) forwards; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .foot { padding: 10px 6px 2px; color: var(--ink-3); line-height: 1.75; font-size: 10px; letter-spacing: 0.005em; }
-  .foot a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--hair); transition: color 0.2s, border-color 0.2s; }
-  .foot a:hover { color: var(--ink); border-bottom-color: currentColor; }
-  .foot kbd {
-    font: inherit; font-size: 9.5px; color: var(--ink-2); background: var(--well);
-    border-radius: 4px; padding: 0 4px; margin: 0 1px;
-  }
+  #keys b { color: var(--ink); font-weight: 600; display: block; margin-bottom: 4px; font-size: 13px; }
 
-  /* toast */
-  #toast {
-    position: fixed; z-index: 5; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%); pointer-events: none;
-    background: #0a0a0b; color: var(--ink); border: 1px solid var(--hair); border-radius: 999px;
-    height: 34px; padding: 0 15px; display: flex; align-items: center; gap: 8px;
-    font-weight: 500; white-space: nowrap; box-shadow: 0 12px 34px rgba(0,0,0,0.5); overflow: hidden;
-  }
-  #toast svg { width: 13px; height: 13px; flex: none; }
-  #toast .tick path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw 0.35s 0.08s var(--spring-smooth) forwards; }
-  .roll { display: inline-block; position: relative; overflow: hidden; vertical-align: bottom; }
-  .roll > span { display: inline-block; }
+  /* Captions belong to the chrome too: ⌘. takes them away, and the bottom-left one
+     makes room for the Show tools pill. */
+  body.bare .cap { opacity: 0; }
+  body.tools-off #cap-info { opacity: 0; }
   #fallback {
     position: fixed; inset: 0; display: none; place-items: center; text-align: center;
     padding: 24px; color: #9a9aa0; line-height: 1.7;
   }
   #fallback.show { display: grid; }
   @media (max-width: 560px) {
-    #panel {
-      top: auto; left: 12px; right: 12px; width: auto;
-      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-      max-height: 52%; transform-origin: bottom center;
-    }
     #cap-info { display: none; }
-    #toast { bottom: auto; top: calc(16px + env(safe-area-inset-top, 0px)); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::after { transition-duration: 0.12s !important; transition-delay: 0s !important; transition-timing-function: ease !important; }
-    .sec.shut .sec-in { filter: none; transform: none; }
+    #fly, #keys { left: 84px; width: calc(100vw - 96px); }
   }
 </style>
 </head>
@@ -351,15 +405,471 @@
 <div class="cap" id="cap-info"><span id="cap-count"></span> stars · drag to orbit · scroll to zoom</div>
 <div class="cap" id="cap-type"></div>
 
-<div id="panel" role="region" aria-label="Controls">
-  <div class="head"><b>Galaxy Creator</b><button class="iconbtn" id="close" type="button" aria-label="Hide controls"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></div>
-  <div id="build"></div>
+<nav id="rail" class="card" aria-label="Tools">
+  <div class="group" id="cats" role="tablist" aria-orientation="vertical"></div>
+  <hr>
+  <div class="group">
+    <button class="ib" id="b-snap" data-tip aria-label="Snap image (S)" type="button"></button>
+    <button class="ib" id="b-theme" data-tip aria-label="Dark mode" type="button"></button>
+    <button class="ib" id="b-keys" data-tip aria-label="Shortcuts" type="button"></button>
+    <button class="ib" id="b-hide" data-tip aria-label="Hide tools (H)" type="button"></button>
+  </div>
+</nav>
+
+<section id="fly" class="card concentric" role="tabpanel" hidden>
+  <div class="ctl-title"><b></b><span></span></div>
+  <div class="body"></div>
+</section>
+
+<div id="keys" class="card concentric" hidden>
+  <b>Shortcuts</b>
+  Drag orbit · <kbd>Shift</kbd> drag pan · scroll zoom<br>
+  <kbd>1</kbd> <kbd>3</kbd> <kbd>7</kbd> front, side, top · <kbd>Home</kbd> reset<br>
+  <kbd>Space</kbd> pause · <kbd>R</kbd> new seed · <kbd>H</kbd> hide tools<br>
+  <kbd>S</kbd> snap an image · <kbd>⌘</kbd> <kbd>.</kbd> galaxy only<br>
+  <kbd>Esc</kbd> close the open tool
 </div>
-<button id="toggle" type="button" hidden><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 4h5.5M11.5 4H12M2 10h.5M6 10h6"/><circle cx="9.5" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/></svg>Controls</button>
-<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<button id="show" type="button" hidden></button>
 
 <div id="fallback">This piece is drawn with WebGL2, which this browser does not offer.<br>Try a current Chrome, Safari, Firefox or Edge.</div>
 
+<script>
+/* Galaxy Creator playground kit: connects to the live galaxy (../index.html?embed)
+   and builds the shared controls, following MOTION.md. Prototypes decide where
+   the controls live and how they open; the controls themselves come from here. */
+(function () {
+  'use strict';
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const EASE = { snappy: cssVar('--spring-snappy'), pop: cssVar('--spring-pop'), smooth: cssVar('--spring-smooth'), exit: cssVar('--ease-exit') };
+  const still = () => (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !Element.prototype.animate;
+
+  const svg = (body, extra) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${body}</svg>`;
+  const ICON = {
+    galaxy: svg('<circle class="fill" cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7"/><path d="M13.6 11.1c1.1-2.9 4.5-4.2 7.2-2.7M10.4 12.9c-1.1 2.9-4.5 4.2-7.2 2.7M12.9 13.6c2.9 1.1 4.2 4.5 2.7 7.2M11.1 10.4c-2.9-1.1-4.2-4.5-2.7-7.2"/>'),
+    matter: svg('<path class="fill" d="M12 3.5l1.9 5.2 5.1 1.9-5.1 1.9L12 17.7l-1.9-5.2L5 10.6l5.1-1.9z" fill="currentColor"/><path d="M12 3.5l1.9 5.2 5.1 1.9-5.1 1.9L12 17.7l-1.9-5.2L5 10.6l5.1-1.9z"/><path d="M18.5 16l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>'),
+    motion: svg('<ellipse cx="12" cy="12" rx="9.2" ry="4" transform="rotate(-24 12 12)"/><circle class="fill" cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="2.4"/><circle cx="19.6" cy="8.6" r="1.3" fill="currentColor" stroke="none"/>'),
+    light: svg('<circle class="fill" cx="12" cy="12" r="3.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="3.6"/><path d="M12 2.8V5M12 19v2.2M2.8 12H5M19 12h2.2M5.5 5.5l1.6 1.6M16.9 16.9l1.6 1.6M5.5 18.5l1.6-1.6M16.9 7.1l1.6-1.6"/>'),
+    colour: svg('<path class="fill" d="M12 3a9 9 0 1 0 0 18c1.3 0 1.9-.8 1.9-1.7 0-1.3-1-1.6-1-2.8 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z" fill="currentColor" fill-opacity=".14" stroke="none"/><path d="M12 3a9 9 0 1 0 0 18c1.3 0 1.9-.8 1.9-1.7 0-1.3-1-1.6-1-2.8 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z"/><circle cx="7.5" cy="11.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10" cy="7.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>'),
+    create: svg('<rect class="fill" x="4" y="4" width="16" height="16" rx="4.5" fill="currentColor" fill-opacity=".14" stroke="none"/><rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none"/>'),
+    save: svg('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>'),
+    hide: svg('<path d="M3 3l18 18M10.6 5.1A9.7 9.7 0 0 1 12 5c5.5 0 9 7 9 7a15 15 0 0 1-2.9 3.7M6.5 6.6C4.2 8.2 3 12 3 12s3.5 7 9 7c1.6 0 3-.4 4.2-1"/>'),
+    show: svg('<path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="2.8"/>'),
+    keys: svg('<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/>'),
+    close: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
+    seed: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
+    dice: svg('<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>'),
+    spin: svg('<circle cx="12" cy="12" r="8" stroke-opacity=".25"/><path d="M12 4a8 8 0 0 1 8 8"/>', ' class="spin"'),
+    tick: svg('<path d="M5 12.5 10 17.5 19 7"/>', ' class="tick" stroke-width="2"'),
+    view: svg('<path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="2.8"/>'),
+    pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10-6.5a1 1 0 0 0 0-1.7l-10-6.5A1 1 0 0 0 8 5.5Z"/></svg>',
+  };
+  ICON.moon = svg('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/>');
+  ICON.sun = svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>');
+  ICON.camera = svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.4-2h5l1.4 2h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/><circle cx="12" cy="12.5" r="3.4"/>');
+  const CATS = [
+    { id: 'galaxy', label: 'Galaxy', hint: 'Type and shape' },
+    { id: 'matter', label: 'Stars & gas', hint: 'What it is made of' },
+    { id: 'motion', label: 'Motion', hint: 'Spin, drift, zoom' },
+    { id: 'light', label: 'Light', hint: 'Exposure and lens' },
+    { id: 'colour', label: 'Colour', hint: 'Palettes and inks' },
+    { id: 'create', label: 'Create', hint: 'Seeds and export' },
+  ];
+
+  // ---- motion helpers -----------------------------------------------------------------
+  function swapHTML(el, html, isText) {
+    const same = isText ? el.textContent === html : el.innerHTML === html;
+    if (el._next === undefined && same) return;
+    const put = (v) => { if (isText) el.textContent = v; else el.innerHTML = v; };
+    if (still()) { put(html); return; }
+    if (el._next !== undefined) { el._next = html; return; }
+    el._next = html;
+    const out = el.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'none' }, { opacity: 0, filter: 'blur(4px)', transform: 'translateY(-4px)' }], { duration: 120, easing: EASE.exit, fill: 'forwards' });
+    out.onfinish = () => {
+      put(el._next); el._next = undefined; out.cancel();
+      el.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'translateY(4px)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 300, easing: EASE.pop });
+    };
+  }
+  function rollText(el, text) {
+    const old = el.dataset.v;
+    el.dataset.v = text;
+    if (old === undefined || still()) { el.textContent = text; return; }
+    if (old === text) return;
+    const num = (t) => parseFloat(t.replace(/[^0-9.]/g, '')) || 0;
+    const dir = num(text) >= num(old) ? 1 : -1;
+    el.textContent = '';
+    const n = text.length;
+    for (let i = 0; i < n; i++) {
+      const ch = text[i], prev = old[old.length - n + i];
+      if (ch === prev) { el.append(ch); continue; }
+      const wrap = document.createElement('span'), inner = document.createElement('span');
+      wrap.className = 'roll'; inner.textContent = ch; wrap.append(inner); el.append(wrap);
+      inner.animate([{ transform: `translateY(${dir * 80}%)`, opacity: 0, filter: 'blur(2px)' }, { transform: 'none', opacity: 1, filter: 'blur(0px)' }],
+        { duration: 280, delay: (n - 1 - i) * 25, easing: EASE.snappy, fill: 'backwards' });
+    }
+  }
+  // Animate an element's height from its current size to whatever its new content needs.
+  function morphHeight(el, change, opts) {
+    const from = el.getBoundingClientRect();
+    change();
+    const to = el.getBoundingClientRect();
+    if (still() || (from.height === to.height && from.width === to.width)) return;
+    const kf = [{ height: from.height + 'px' }, { height: to.height + 'px' }];
+    if (opts && opts.width) { kf[0].width = from.width + 'px'; kf[1].width = to.width + 'px'; }
+    if (opts && opts.radius) { kf[0].borderRadius = opts.radius[0]; kf[1].borderRadius = opts.radius[1]; }
+    // Leaving is quicker than arriving (MOTION.md): closes use the exit curve.
+    return el.animate(kf, opts && opts.exit ? { duration: 200, easing: EASE.exit } : { duration: 420, easing: EASE.smooth });
+  }
+  // Blur a group out quickly, then run `then` (used before a container shrinks).
+  function leave(els, then) {
+    els = Array.from(els).filter(Boolean);
+    if (still() || !els.length) { then(); return; }
+    let left = els.length;
+    els.forEach((el) => {
+      const a = el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(4px)' }], { duration: 150, easing: EASE.exit, fill: 'forwards' });
+      a.onfinish = () => { if (--left === 0) { then(); els.forEach((x) => x.getAnimations().forEach((an) => an.cancel())); } };
+    });
+  }
+  const enter = (el, from, delay) => {
+    if (still()) return;
+    el.animate([Object.assign({ opacity: 0, filter: 'blur(6px)' }, from || {}), { opacity: 1, filter: 'blur(0px)', transform: 'none' }],
+      { duration: 380, delay: delay || 0, easing: EASE.smooth, fill: 'backwards' });
+  };
+
+  // Toast: one black pill that morphs between messages.
+  let toastEl = null, toastTimer = 0, toastOn = false, toastHide = null;
+  function toast(msg, icon) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.id = 'toast'; toastEl.setAttribute('role', 'status'); toastEl.hidden = true; document.body.append(toastEl); }
+    const fill = () => { toastEl.innerHTML = (icon ? ICON[icon] : '') + '<span></span>'; toastEl.lastChild.textContent = msg; };
+    clearTimeout(toastTimer);
+    if (toastHide) { toastHide.cancel(); toastHide = null; }
+    if (!toastOn) {
+      fill(); toastEl.hidden = false; toastOn = true;
+      if (!still()) toastEl.animate([{ opacity: 0, transform: 'translateX(-50%) translateY(14px) scale(0.9)', filter: 'blur(8px)' }, { opacity: 1, transform: 'translateX(-50%)', filter: 'blur(0px)' }], { duration: 450, easing: EASE.pop });
+    } else {
+      const w0 = toastEl.offsetWidth; fill(); const w1 = toastEl.offsetWidth;
+      if (!still()) {
+        toastEl.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: 340, easing: EASE.snappy });
+        Array.from(toastEl.children).forEach((c) => c.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 260 }));
+      }
+    }
+    toastTimer = setTimeout(() => {
+      toastOn = false;
+      if (still()) { toastEl.hidden = true; return; }
+      toastHide = toastEl.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'translateX(-50%)' }, { opacity: 0, filter: 'blur(4px)', transform: 'translateX(-50%) translateY(6px) scale(0.98)' }], { duration: 180, easing: EASE.exit, fill: 'forwards' });
+      toastHide.onfinish = () => { toastEl.hidden = true; toastHide.cancel(); toastHide = null; };
+    }, 1700);
+  }
+
+  // A sliding grey pill for any row or column of items.
+  function pillTrack(container, items, getActive) {
+    let ind = container.querySelector(':scope > .pill-ind');
+    if (!ind) { ind = document.createElement('div'); ind.className = 'pill-ind'; container.prepend(ind); }
+    let at = null;
+    function place(animate) {
+      const b = items().find(getActive);
+      if (!b || !container.offsetWidth) { ind.style.opacity = b ? '' : '0'; return; }
+      ind.style.opacity = '';
+      const box = { left: b.offsetLeft, top: b.offsetTop, right: container.clientWidth - b.offsetLeft - b.offsetWidth, bottom: container.clientHeight - b.offsetTop - b.offsetHeight };
+      container.classList.remove('go-fwd', 'go-back');
+      if (animate && at && !still()) container.classList.add(box.left + box.top >= at.left + at.top ? 'go-fwd' : 'go-back');
+      else ind.style.transition = 'none';
+      for (const k in box) ind.style[k] = box[k] + 'px';
+      if (ind.style.transition === 'none') { void ind.offsetWidth; ind.style.transition = ''; }
+      at = box;
+    }
+    return { place, hide() { ind.style.opacity = '0'; at = null; } };
+  }
+
+  // Tooltips for icon buttons (aria-label), placed on the given side.
+  function tooltips(root, side) {
+    let tip = null;
+    const show = (b) => {
+      if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; document.body.append(tip); }
+      tip.textContent = b.getAttribute('aria-label');
+      const r = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      const pos = side === 'right' ? { x: r.right + 10, y: r.top + r.height / 2 - t.height / 2 }
+        : side === 'top' ? { x: r.left + r.width / 2 - t.width / 2, y: r.top - t.height - 10 }
+        : { x: r.left + r.width / 2 - t.width / 2, y: r.bottom + 10 };
+      tip.style.left = pos.x + 'px'; tip.style.top = pos.y + 'px';
+      if (!still()) tip.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'scale(0.94)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 220, easing: EASE.pop });
+      tip.hidden = false;
+    };
+    const hide = () => { if (tip) tip.hidden = true; };
+    root.querySelectorAll('[data-tip]').forEach((b) => {
+      b.addEventListener('pointerenter', () => show(b));
+      b.addEventListener('pointerleave', hide);
+      b.addEventListener('pointerdown', hide);
+      b.addEventListener('focus', () => { if (b.matches(':focus-visible')) show(b); });
+      b.addEventListener('blur', hide);
+    });
+    return { hide };
+  }
+
+  // Arrow keys move between the buttons of a tablist or toolbar.
+  function roving(container, selector, vertical) {
+    container.addEventListener('keydown', (e) => {
+      const next = vertical ? ['ArrowDown', 'ArrowUp'] : ['ArrowRight', 'ArrowLeft'];
+      const i = next.indexOf(e.key);
+      if (i < 0) return;
+      const items = Array.from(container.querySelectorAll(selector)).filter((b) => b.offsetParent);
+      const at = items.indexOf(document.activeElement);
+      if (at < 0) return;
+      e.preventDefault(); e.stopPropagation();
+      items[(at + (i === 0 ? 1 : -1) + items.length) % items.length].focus();
+    });
+  }
+
+  // ---- theme: light by the reference, dark on request; remembered per viewer --------------
+  const THEME_KEY = 'galaxy-creator-theme';
+  function theme() {
+    try { const t = localStorage.getItem(THEME_KEY); if (t === 'light' || t === 'dark') return t; } catch (e) {}
+    return 'dark';                                   // dark is the default; light is one click away
+  }
+  function setTheme(t) {
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+    const go = () => { document.documentElement.dataset.theme = t; };
+    // The whole chrome cross-fades between themes rather than snapping.
+    if (document.startViewTransition && !still()) document.startViewTransition(go); else go();
+  }
+  document.documentElement.dataset.theme = theme();
+
+  // ---- snapping: grab the galaxy alone and hand it to the viewer ---------------------------
+  function flash() {
+    let f = document.getElementById('flash');
+    if (!f) { f = document.createElement('div'); f.id = 'flash'; document.body.append(f); }
+    f.animate(still() ? [{ opacity: 0.25 }, { opacity: 0 }] : [{ opacity: 0.55 }, { opacity: 0 }], { duration: still() ? 160 : 420, easing: EASE.exit });
+  }
+  async function download(blob, name) {
+    // Inside the claude.ai viewer the page offers the file and the viewer confirms; elsewhere a link will do.
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (dl) { await dl.save({ filename: name, data: blob }); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+  let shotN = 0;
+  async function shoot(G) {
+    flash();
+    const blob = await G.snap();
+    if (!blob) throw new Error('could not encode');
+    const n = String(++shotN).padStart(2, '0');
+    await download(blob, `galaxy-${String(G.state.type).toLowerCase()}-${G.state.seed}-${n}.png`);
+  }
+
+  // ---- the galaxy ---------------------------------------------------------------------
+  function connect(frame) {
+    return new Promise((resolve) => {
+      const tryNow = () => {
+        try { const g = frame.contentWindow && frame.contentWindow.galaxy; if (g) { resolve(g); return true; } } catch (e) {}
+        return false;
+      };
+      if (tryNow()) return;
+      frame.addEventListener('load', () => { const iv = setInterval(() => { if (tryNow()) clearInterval(iv); }, 50); });
+    });
+  }
+
+  const views = new Set();   // rendered controls that re-read state on refresh()
+  function refresh(G) { views.forEach((v) => v(G)); }
+
+  function slider(G, key) {
+    const d = G.sliders.find((x) => x.key === key);
+    const el = document.createElement('div');
+    el.className = 'sl'; el.tabIndex = 0; el.setAttribute('role', 'slider');
+    el.setAttribute('aria-label', d.label); el.setAttribute('aria-valuemin', d.min); el.setAttribute('aria-valuemax', d.max);
+    el.innerHTML = `<div class="sl-fill"></div><div class="sl-txt"><span>${d.label}</span><output></output></div>`;
+    const out = el.querySelector('output');
+    const span = d.max - d.min, discrete = d.step >= 1;
+    function render(v) {
+      el.style.setProperty('--v', clamp((v - d.min) / span, 0, 1));
+      const t = d.format(v);
+      if (discrete) rollText(out, t); else out.textContent = t;
+      el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', t);
+      if (key === 'arms' || key === 'twist') el.classList.toggle('off', !['Spiral', 'Barred', 'Cycle'].includes(G.state.type));
+    }
+    const commit = (v) => { const nv = G.set(key, v); render(nv === undefined ? G.state[key] : nv); };
+    function stretch(px) {
+      if (!px || still()) { el.style.transform = ''; return; }
+      const r = Math.min(12, Math.abs(px) * 0.5 / (1 + Math.abs(px) / 80));
+      el.style.transformOrigin = px > 0 ? 'left center' : 'right center';
+      el.style.transform = `scaleX(${1 + r / el.offsetWidth})`;
+    }
+    let grab = null;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      grab = { x: e.clientX, v: G.state[key], moved: false, w: el.getBoundingClientRect().width };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!grab) return;
+      const dx = e.clientX - grab.x;
+      if (!grab.moved && Math.abs(dx) < 3) return;
+      if (!grab.moved) { grab.moved = true; el.classList.add('drag'); }
+      const raw = grab.v + dx / grab.w * span;
+      commit(raw);
+      stretch(raw > d.max ? (raw - d.max) / span * grab.w : raw < d.min ? (raw - d.min) / span * grab.w : 0);
+    });
+    const release = (e) => {
+      if (!grab) return;
+      if (!grab.moved && e.type === 'pointerup') {
+        const r = el.getBoundingClientRect();
+        commit(d.min + clamp((e.clientX - r.left) / r.width, 0, 1) * span);
+      }
+      grab = null; el.classList.remove('drag'); stretch(0);
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('dblclick', () => commit(G.base[key]));
+    el.addEventListener('keydown', (e) => {
+      const k = e.key, big = e.shiftKey ? 10 : 1;
+      const v = k === 'ArrowRight' || k === 'ArrowUp' ? G.state[key] + d.step * big
+        : k === 'ArrowLeft' || k === 'ArrowDown' ? G.state[key] - d.step * big
+        : k === 'Home' ? d.min : k === 'End' ? d.max : null;
+      if (v === null) return;
+      e.preventDefault(); e.stopPropagation(); commit(v);
+    });
+    render(G.state[key]);
+    const view = () => { if (G.state[key] !== +el.getAttribute('aria-valuenow') || key === 'arms' || key === 'twist') render(G.state[key]); };
+    views.add(view);
+    return el;
+  }
+
+  function typeSeg(G) {
+    const el = document.createElement('div');
+    el.className = 'seg'; el.setAttribute('role', 'radiogroup'); el.setAttribute('aria-label', 'Galaxy type');
+    el.innerHTML = G.types.map((t) => `<button type="button" role="radio" data-type="${t}">${t}</button>`).join('');
+    const btns = () => Array.from(el.querySelectorAll('button'));
+    const pill = pillTrack(el, btns, (b) => b.dataset.type === G.state.type);
+    const sync = (animate) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.type === G.state.type))); pill.place(animate); };
+    btns().forEach((b) => b.addEventListener('click', () => { G.setType(b.dataset.type); sync(true); refresh(G); }));
+    requestAnimationFrame(() => sync(false));
+    el._place = () => sync(false);
+    views.add(() => sync(true));
+    return el;
+  }
+
+  function switchEl(G, id, label) {
+    const keyOf = { spikes: 'spikes', companions: 'companions', caps: 'captions' };
+    const el = document.createElement('button');
+    el.type = 'button'; el.className = 'sw'; el.setAttribute('role', 'switch');
+    el.innerHTML = `<span>${label}</span><i></i>`;
+    const sync = () => el.setAttribute('aria-checked', String(!!G.state[keyOf[id]]));
+    el.addEventListener('click', () => { G.toggle(id); sync(); });
+    sync(); views.add(sync);
+    return el;
+  }
+
+  const swatchStyle = (p) => `background: radial-gradient(circle at 50% 50%, ${p.old} 0 18%, ${p.young} 38%, ${p.gasA} 62%, ${p.gasB} 100%)`;
+  function colourControls(G) {
+    const wrap = document.createElement('div'); wrap.className = 'ctl';
+    const sw = document.createElement('div'); sw.className = 'swatches';
+    sw.innerHTML = Object.keys(G.presets).map((n) => `<button type="button" data-preset="${n}" aria-label="${n} palette" title="${n}" style="${swatchStyle(G.presets[n])}"></button>`).join('');
+    const picks = document.createElement('div'); picks.className = 'picks';
+    const LABELS = { old: 'Old stars', young: 'Young stars', gasA: 'Gas', gasB: 'Gas, second' };
+    picks.innerHTML = Object.keys(LABELS).map((k) => `<label class="pick"><input type="color" data-k="${k}"><span>${LABELS[k]}</span></label>`).join('');
+    const sync = () => {
+      sw.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === G.state.preset)));
+      picks.querySelectorAll('input').forEach((i) => { i.value = G.state[i.dataset.k]; });
+    };
+    sw.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { G.setPreset(b.dataset.preset); sync(); }));
+    picks.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { G.setColour(i.dataset.k, i.value); sync(); }));
+    sync(); views.add(sync);
+    wrap.append(sw, picks);
+    return wrap;
+  }
+
+  const SAVE_IDLE = ICON.save + '<span>Save .png</span>';
+  function createControls(G) {
+    const wrap = document.createElement('div'); wrap.className = 'ctl';
+    wrap.innerHTML = `<div class="pair"><button class="btn" data-a="seed" type="button">${ICON.seed}<span>New seed</span></button><button class="btn" data-a="surprise" type="button">${ICON.dice}<span>Surprise</span></button></div>
+      <button class="btn primary" data-a="save" type="button"><span style="display:flex;align-items:center;gap:7px">${SAVE_IDLE}</span></button>
+      <div class="stat"><span>Seed <b class="k-seed"></b></span><span><b class="k-stars"></b> stars</span></div>`;
+    const twirl = (b) => { const ic = b.querySelector('svg'); if (ic && !still()) ic.animate([{ transform: 'rotate(0deg) scale(0.8)' }, { transform: 'rotate(360deg) scale(1)' }], { duration: 600, easing: EASE.pop }); };
+    const seedEl = wrap.querySelector('.k-seed'), starsEl = wrap.querySelector('.k-stars');
+    const stat = () => {
+      rollText(seedEl, '#' + G.state.seed);
+      rollText(starsEl, Math.round((G.state.stars * G.state.stars) * (navigator.maxTouchPoints > 0 ? 160000 : 420000)).toLocaleString('en-US'));
+    };
+    wrap.querySelector('[data-a=seed]').addEventListener('click', (e) => { twirl(e.currentTarget); G.reseed(); refresh(G); toast('Seed #' + G.state.seed, 'seed'); });
+    wrap.querySelector('[data-a=surprise]').addEventListener('click', (e) => {
+      twirl(e.currentTarget); G.surprise(); refresh(G);
+      toast(`${G.typeNames[Math.max(0, G.types.indexOf(G.state.type))]} · ${G.state.preset}`, 'dice');
+    });
+    const saveBtn = wrap.querySelector('[data-a=save]'), face = saveBtn.firstElementChild;
+    saveBtn.addEventListener('click', async () => {
+      if (saveBtn.disabled) return;
+      saveBtn.disabled = true;
+      swapHTML(face, ICON.spin + '<span>Rendering</span>');
+      try { await shoot(G); swapHTML(face, ICON.tick + '<span>Saved</span>'); } catch (e) { swapHTML(face, e && e.code === 'declined' ? SAVE_IDLE : '<span>Could not save</span>'); }
+      setTimeout(() => { swapHTML(face, SAVE_IDLE); saveBtn.disabled = false; }, 1600);
+    });
+    stat(); views.add(stat);
+    return wrap;
+  }
+
+  // The controls for one category.
+  function section(G, id) {
+    const box = document.createElement('div'); box.className = 'ctl';
+    const add = (...els) => els.forEach((e) => box.append(e));
+    if (id === 'galaxy') add(typeSeg(G), ...['arms', 'twist', 'core', 'spread'].map((k) => slider(G, k)));
+    if (id === 'matter') add(...['stars', 'size', 'nebula', 'dust'].map((k) => slider(G, k)));
+    if (id === 'motion') add(...['spin', 'orbit', 'zoom'].map((k) => slider(G, k)));
+    if (id === 'light') add(...['bright', 'bloom', 'sat'].map((k) => slider(G, k)), switchEl(G, 'spikes', 'Diffraction spikes'), switchEl(G, 'companions', 'Companion galaxies'));
+    if (id === 'colour') add(colourControls(G));
+    if (id === 'create') add(createControls(G), switchEl(G, 'caps', 'Captions on screen'));
+    return box;
+  }
+
+  // Keyboard: the galaxy hands its keys up to us; we handle the ones the
+  // prototype doesn't, and toast the camera views.
+  const VIEW_NAMES = { 1: ['Front view', 'Back view'], 3: ['Right view', 'Left view'], 7: ['Top view', 'Bottom view'], 9: ['Other side', 'Other side'], 0: ['Home view', 'Home view'], 5: ['Home view', 'Home view'] };
+  function bindKeys(G, handlers) {
+    const onKey = (e) => {
+      // ⌘. (Ctrl+. elsewhere): everything off the screen but the galaxy.
+      if ((e.metaKey || e.ctrlKey) && (e.key === '.' || e.code === 'Period')) { if (handlers && handlers.bare) handlers.bare(); return; }
+      if (e.metaKey || e.altKey) return;
+      const k = (e.key || '').toLowerCase();
+      if (handlers && handlers.key && handlers.key(e) === true) return;
+      if (k === 's' && !e.ctrlKey && handlers && handlers.snap) { handlers.snap(); return; }
+      if (k === 'h' && handlers && handlers.hide) { handlers.hide(); return; }
+      if (k === 'escape' && handlers && handlers.escape) { handlers.escape(); return; }
+      if (e.key === ' ') { const p = G.pause(); toast(p ? 'Paused' : 'Playing', p ? 'pause' : 'play'); return; }
+      if (k === 'r' && !e.ctrlKey) { G.reseed(); refresh(G); toast('Seed #' + G.state.seed, 'seed'); return; }
+      const m = /^(?:Numpad|Digit)([0-9])$/.exec(e.code || '');
+      if (G.view(e)) {
+        if (m && VIEW_NAMES[m[1]]) toast(VIEW_NAMES[m[1]][e.ctrlKey ? 1 : 0], 'view');
+        if (e.key === 'Home') toast('Home view', 'view');
+        refresh(G);
+      }
+    };
+    window.addEventListener('message', (ev) => { if (ev.data && ev.data.type === 'galaxy-key') onKey(ev.data); });
+    document.addEventListener('keydown', (e) => {
+      const t = e.target;
+      const bareKey = (e.metaKey || e.ctrlKey) && (e.key === '.' || e.code === 'Period');
+      if (bareKey) e.preventDefault();
+      if (!bareKey && t && (t.tagName === 'INPUT' || t.getAttribute('role') === 'slider') && e.key !== 'h' && e.key !== 'Escape') return;
+      if (e.key === ' ') e.preventDefault();
+      onKey(e);
+    });
+    // Zoom also changes from the scroll wheel inside the galaxy.
+    (function poll() { refresh(G); setTimeout(poll, 400); })();
+  }
+
+  function backbar(name) {
+    const b = document.createElement('div');
+    b.className = 'backbar';
+    b.innerHTML = `<a href="./">← Playground</a><span>·</span><span></span>`;
+    b.lastChild.textContent = name;
+    document.body.append(b);
+  }
+
+  window.Kit = { ICON, CATS, EASE, still, clamp, theme, setTheme, flash, download, shoot, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
+})();
+</script>
 <script>
 (function () {
   'use strict';
@@ -379,7 +889,7 @@
 
   const canvas = $('stage');
   const gl = canvas.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false });
-  if (!gl) { $('fallback').classList.add('show'); $('panel').hidden = true; return; }
+  if (!gl) { $('fallback').classList.add('show'); document.getElementById('rail').hidden = true; return; }
   // Floating-point targets are what let ten thousand overlapping stars add up
   // to a white-hot core instead of clipping. Without them it still runs, flatter.
   const HDR = !!gl.getExtension('EXT_color_buffer_float');
@@ -447,7 +957,7 @@
   // Where the galaxy's centre sits on screen, in clip units: a touch up and
   // left of dead centre, so it reads balanced beside the panel. Orbiting
   // still pivots on the core; the shift is in the lens, not the camera.
-  const LENS = [-0.07, 0.06];
+  const LENS = query.has('embed') ? [0, 0] : [0.05, 0.06];   // a touch right of centre and up, to balance the rail on the left
   const PITCH_MAX = 1.5607;
   const HOLD = 7, MORPH = 4, PICK_MORPH = 2.6;
   const DIST_FAR = 16, DIST_NEAR = 0.025;
@@ -1559,102 +2069,22 @@
     requestAnimationFrame(frame);
   }
 
-  // ---- motion helpers (MOTION.md) ----------------------------------------------------------
-  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const EASE = { snappy: cssVar('--spring-snappy'), pop: cssVar('--spring-pop'), smooth: cssVar('--spring-smooth'), exit: cssVar('--ease-exit') };
-  const still = () => reduceMotion() || !Element.prototype.animate;
-
-  // Content changes cross-fade through a blur: out up, in from below.
-  function swapHTML(el, html, isText) {
-    const same = isText ? el.textContent === html : el.innerHTML === html;
-    if (el._next === undefined && same) return;
-    if (still()) { if (isText) el.textContent = html; else el.innerHTML = html; return; }
-    if (el._next !== undefined) { el._next = html; return; }   // mid-swap: just change where it lands
-    el._next = html;
-    const out = el.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'none' },
-      { opacity: 0, filter: 'blur(4px)', transform: 'translateY(-4px)' }], { duration: 120, easing: EASE.exit, fill: 'forwards' });
-    out.onfinish = () => {
-      if (isText) el.textContent = el._next; else el.innerHTML = el._next;
-      el._next = undefined;
-      out.cancel();
-      el.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'translateY(4px)' },
-        { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 300, easing: EASE.pop });
-    };
-  }
-  const swapText = (el, t) => swapHTML(el, t, true);
-
-  // Numbers roll: only the changed characters move, up when the value rises.
-  function rollText(el, text) {
-    const old = el.dataset.v;
-    el.dataset.v = text;
-    if (old === undefined || still()) { el.textContent = text; return; }
-    if (old === text) return;
-    const num = (t) => parseFloat(t.replace(/[^0-9.]/g, '')) || 0;
-    const dir = num(text) >= num(old) ? 1 : -1;
-    el.textContent = '';
-    const n = text.length;
-    for (let i = 0; i < n; i++) {
-      const ch = text[i], prev = old[old.length - n + i];
-      if (ch === prev) { el.append(ch); continue; }
-      const wrap = document.createElement('span'), inner = document.createElement('span');
-      wrap.className = 'roll'; inner.textContent = ch; wrap.append(inner); el.append(wrap);
-      inner.animate([{ transform: `translateY(${dir * 80}%)`, opacity: 0, filter: 'blur(2px)' },
-        { transform: 'none', opacity: 1, filter: 'blur(0px)' }],
-        { duration: 280, delay: (n - 1 - i) * 25, easing: EASE.snappy, fill: 'backwards' });
-    }
-  }
-
-  // Toast: one pill that morphs between messages instead of stacking.
-  const ICON = {
-    tick: '<svg class="tick" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 6 10.5 11 4"/></svg>',
-    spin: '<svg class="spin" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="5" stroke-opacity=".25"/><path d="M7 2a5 5 0 0 1 5 5"/></svg>',
-    save: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v7M4 6.5 7 9.5 10 6.5M2.5 12h9"/></svg>',
-    seed: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 7a4.5 4.5 0 1 1-1.3-3.2M11.5 2v2.5H9"/></svg>',
-    dice: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="2" width="10" height="10" rx="2.5"/><circle cx="5" cy="5" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="7" cy="7" r=".9" fill="currentColor" stroke="none"/></svg>',
-    view: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 7S3.5 3 7 3s5.5 4 5.5 4-2 4-5.5 4S1.5 7 1.5 7Z"/><circle cx="7" cy="7" r="1.6"/></svg>',
-    pause: '<svg viewBox="0 0 14 14" fill="currentColor"><rect x="3.5" y="3" width="2.4" height="8" rx=".8"/><rect x="8.1" y="3" width="2.4" height="8" rx=".8"/></svg>',
-    play: '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M4.5 3.2v7.6a.6.6 0 0 0 .9.5l6-3.8a.6.6 0 0 0 0-1l-6-3.8a.6.6 0 0 0-.9.5Z"/></svg>',
-    eye: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2l10 10M5.6 3.3A6 6 0 0 1 7 3c3.5 0 5.5 4 5.5 4a9 9 0 0 1-1.7 2.2M3.3 4.8A9.5 9.5 0 0 0 1.5 7s2 4 5.5 4c.9 0 1.7-.2 2.4-.6"/></svg>',
-  };
-  const toastEl = $('toast');
-  let toastTimer = 0, toastOn = false, toastHide = null;
-  function toast(msg, icon) {
-    const html = (icon ? ICON[icon] : '') + '<span></span>';
-    clearTimeout(toastTimer);
-    if (toastHide) { toastHide.cancel(); toastHide = null; }
-    if (!toastOn) {
-      toastEl.innerHTML = html; toastEl.lastChild.textContent = msg;
-      toastEl.hidden = false; toastOn = true;
-      if (!still()) toastEl.animate([
-        { opacity: 0, transform: 'translateX(-50%) translateY(14px) scale(0.9)', filter: 'blur(8px)' },
-        { opacity: 1, transform: 'translateX(-50%)', filter: 'blur(0px)' }], { duration: 450, easing: EASE.pop });
-    } else {
-      const w0 = toastEl.offsetWidth;
-      toastEl.innerHTML = html; toastEl.lastChild.textContent = msg;
-      const w1 = toastEl.offsetWidth;
-      if (!still()) {
-        toastEl.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: 340, easing: EASE.snappy });
-        Array.from(toastEl.children).forEach((c) => c.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 260 }));
-      }
-    }
-    toastTimer = setTimeout(() => {
-      toastOn = false;
-      if (still()) { toastEl.hidden = true; return; }
-      toastHide = toastEl.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'translateX(-50%)' },
-        { opacity: 0, filter: 'blur(4px)', transform: 'translateX(-50%) translateY(6px) scale(0.98)' }], { duration: 180, easing: EASE.exit, fill: 'forwards' });
-      toastHide.onfinish = () => { toastEl.hidden = true; toastHide.cancel(); toastHide = null; };
-    }, 1700);
-  }
-
   // ---- captions -------------------------------------------------------------------------
+  const toast = () => {};                    // the toolbar announces camera views itself
   function updateCaptions() {
     const name = morphing ? `${TYPE_NAMES[mFrom]} → ${TYPE_NAMES[mTo]}` : TYPE_NAMES[mTo];
-    swapText($('cap-type'), name);
+    const K = window.Kit;
+    if (K) {
+      K.swapHTML($('cap-type'), name, true);
+      K.rollText($('cap-seed'), '#' + S.seed);
+      K.rollText($('cap-count'), starCount().toLocaleString('en-US'));
+    } else {
+      $('cap-type').textContent = name; $('cap-seed').textContent = '#' + S.seed;
+      $('cap-count').textContent = starCount().toLocaleString('en-US');
+    }
     $('phase').textContent = name;
-    rollText($('cap-seed'), '#' + S.seed);
-    rollText($('cap-count'), starCount().toLocaleString('en-US'));
   }
-  function applyCaptions() { document.body.classList.toggle('clean', !S.captions); }
+  function applyCaptions() { document.body.classList.toggle('clean', !S.captions || query.has('embed')); }
 
   // ---- PNG export ----------------------------------------------------------------------
   function grabPNG() {
@@ -1673,41 +2103,8 @@
     o.putImageData(img, 0, 0);
     return new Promise((res) => out.toBlob(res, 'image/png'));
   }
-  // The save button morphs through its states in place: label → spinner → a
-  // check that draws itself → label.
-  const SAVE_IDLE = ICON.save + '<span>Save .png</span>';
-  async function savePNG() {
-    const btn = $('save'), face = btn.firstElementChild;
-    if (btn.disabled) return;
-    const name = `galaxy-${TYPES[mTo].toLowerCase()}-${S.seed}-${Date.now()}.png`;
-    btn.disabled = true;
-    swapHTML(face, ICON.spin + '<span>Rendering</span>');
-    let ok = false;
-    try {
-      const blob = await grabPNG();
-      if (!blob) throw new Error('could not encode');
-      // Inside the claude.ai viewer a page cannot download on its own; it
-      // offers the file and the viewer confirms. Standalone, a link will do.
-      const downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-      if (downloads) {
-        await downloads.save({ filename: name, data: blob });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = name;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
-      ok = true;
-      swapHTML(face, ICON.tick + '<span>Saved</span>');
-    } catch (e) {
-      swapHTML(face, e && e.code === 'declined' ? SAVE_IDLE : '<span>Could not save</span>');
-      if (!(e && e.code === 'declined')) toast((e && e.message) || 'Could not save');
-    }
-    setTimeout(() => { swapHTML(face, SAVE_IDLE); btn.disabled = false; }, ok ? 1600 : 2200);
-  }
 
-  // ---- panel --------------------------------------------------------------------------
+  // ---- state: everything the toolbar (or an embedding page) can change ---------------------
   const pct = (v) => Math.round(v * 100) + '%';
   const fix2 = (v) => v.toFixed(2);
   const fmtZoom = (v) => { const d = zoomToDist(v); return d >= 1 ? d.toFixed(1) : d.toFixed(2); };
@@ -1727,182 +2124,13 @@
     ['light', 'bloom', 'Bloom', 0, 3, 0.01, fix2],
     ['light', 'sat', 'Saturation', 0, 2, 0.01, fix2],
   ];
-  const CHEVRON = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5 5 6.5 8 3.5"/></svg>';
-  const slidersFor = (g) => SLIDERS.filter((d) => d[0] === g).map(([, key, lab, min, max]) =>
-    `<div class="sl" id="s-${key}" role="slider" tabindex="0" aria-label="${lab}" aria-valuemin="${min}" aria-valuemax="${max}"><div class="sl-fill"></div><div class="sl-txt"><span>${lab}</span><output id="o-${key}"></output></div></div>`
-  ).join('');
-  const sw = (id, label) => `<button class="sw" id="${id}" type="button" role="switch" aria-checked="false"><span>${label}</span><i></i></button>`;
-  const section = (id, title, body) =>
-    `<section class="sec" data-sec="${id}"><button class="sec-h" type="button" aria-expanded="true"><span>${title}</span>${CHEVRON}</button><div class="sec-b"><div><div class="sec-in">${body}</div></div></div></section>`;
-  const swatchStyle = (p) => `background: radial-gradient(circle at 50% 50%, ${p.old} 0 18%, ${p.young} 38%, ${p.gasA} 62%, ${p.gasB} 100%)`;
 
-  $('build').innerHTML =
-    section('galaxy', 'Galaxy',
-      `<div class="seg" id="types" role="radiogroup" aria-label="Galaxy type"><div class="seg-ind"></div>` +
-      TYPES.concat(['Cycle']).map((n) => `<button type="button" role="radio" data-type="${n}">${n}</button>`).join('') +
-      `</div>${slidersFor('galaxy')}`) +
-    section('matter', 'Stars &amp; gas', slidersFor('matter')) +
-    section('motion', 'Motion', slidersFor('motion')) +
-    section('light', 'Light', slidersFor('light') + sw('spikes', 'Diffraction spikes') + sw('companions', 'Companion galaxies')) +
-    section('colour', 'Colour',
-      `<div class="swatches" id="swatches">` +
-      Object.keys(PRESETS).map((n) => `<button type="button" data-preset="${n}" title="${n}" aria-label="${n} palette" style="${swatchStyle(PRESETS[n])}"></button>`).join('') +
-      `</div>
-       <div class="colors">
-         <label class="pick"><input type="color" id="c-old"><span>Old stars</span></label>
-         <label class="pick"><input type="color" id="c-young"><span>Young stars</span></label>
-         <label class="pick"><input type="color" id="c-gasA"><span>Gas</span></label>
-         <label class="pick"><input type="color" id="c-gasB"><span>Gas, second</span></label>
-       </div>`) +
-    section('create', 'Create',
-      `<div class="pair">
-         <button class="btn" id="reseed" type="button">${ICON.seed}<span>New seed</span></button>
-         <button class="btn" id="surprise" type="button">${ICON.dice}<span>Surprise</span></button>
-       </div>
-       ${sw('caps', 'Captions on screen')}
-       <button class="btn primary" id="save" type="button"><span style="display:flex;align-items:center;gap:7px">${SAVE_IDLE}</span></button>`) +
-    `<div class="foot"><a id="home" href="/"></a><br>Drag orbit · <kbd>Shift</kbd> pan · scroll zoom<br><kbd>1</kbd><kbd>3</kbd><kbd>7</kbd> views · <kbd>Home</kbd> reset · <kbd>Space</kbd> pause<br><kbd>R</kbd> seed · <kbd>H</kbd> hide · double-click a slider to reset</div>`;
-
-  if (HOME_URL) { $('home').href = HOME_URL; $('home').textContent = HOME_LABEL; }
-  else { const h = $('home'); h.nextSibling && h.nextSibling.remove(); h.remove(); }
-
-  // Sections fold by height on the smooth spring; which are open is a per-viewer convenience.
-  let uiState = {};
-  try { uiState = JSON.parse(localStorage.getItem('galaxy-creator-ui') || '{}') || {}; } catch (e) {}
-  document.querySelectorAll('.sec').forEach((sec) => {
-    const head = sec.querySelector('.sec-h'), id = sec.dataset.sec;
-    const set = (open) => {
-      sec.classList.toggle('shut', !open);
-      head.setAttribute('aria-expanded', String(open));
-      sec.querySelector('.sec-b > div').inert = !open;
-    };
-    set(uiState[id] !== false);
-    head.addEventListener('click', () => {
-      const open = sec.classList.contains('shut');
-      set(open);
-      uiState[id] = open;
-      try { localStorage.setItem('galaxy-creator-ui', JSON.stringify(uiState)); } catch (e) {}
-      if (open && id === 'galaxy') placeIndicator(false);
-    });
-  });
-
-  // Sliders: grab anywhere and drag (no jump), tap to set, rubber-band past the
-  // ends, keys to step, double-click for the default.
-  const sliders = {};
-  function onSlide(key) {
-    if (key === 'stars') { clearTimeout(onSlide.t); onSlide.t = setTimeout(updateCaptions, 140); }
-    persist();
-  }
-  SLIDERS.forEach(([, key, , min, max, step, fmt]) => {
-    const el = $('s-' + key), out = $('o-' + key);
-    const span = max - min, discrete = step >= 1;
-    const frac = (v) => (v - min) / span;
-    const snap = (v) => +clamp(Math.round((v - min) / step) * step + min, min, max).toFixed(4);
-    function render(v) {
-      el.style.setProperty('--v', clamp(frac(v), 0, 1));
-      const text = fmt(v);
-      if (discrete) rollText(out, text); else out.textContent = text;
-      el.setAttribute('aria-valuenow', v);
-      el.setAttribute('aria-valuetext', text);
-    }
-    function commit(v) {
-      v = snap(v);
-      if (v !== S[key]) { S[key] = v; render(v); onSlide(key); }
-    }
-    function stretch(px) {
-      if (!px || still()) { el.style.transform = ''; return; }
-      const r = Math.min(9, Math.abs(px) * 0.35 / (1 + Math.abs(px) / 60));
-      el.style.transformOrigin = px > 0 ? 'left center' : 'right center';
-      el.style.transform = `scaleX(${1 + r / el.offsetWidth})`;
-    }
-    let grab = null;
-    el.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
-      try { el.setPointerCapture(e.pointerId); } catch (err) {}
-      grab = { x: e.clientX, v: S[key], moved: false, w: el.getBoundingClientRect().width };
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!grab) return;
-      const dx = e.clientX - grab.x;
-      if (!grab.moved && Math.abs(dx) < 3) return;
-      if (!grab.moved) { grab.moved = true; el.classList.add('drag'); }
-      const raw = grab.v + dx / grab.w * span;
-      commit(raw);
-      const over = raw > max ? (raw - max) / span * grab.w : raw < min ? (raw - min) / span * grab.w : 0;
-      stretch(over);
-    });
-    const release = (e) => {
-      if (!grab) return;
-      if (!grab.moved && e.type === 'pointerup') {
-        const r = el.getBoundingClientRect();
-        commit(min + clamp((e.clientX - r.left) / r.width, 0, 1) * span);   // a tap animates to the spot
-      }
-      grab = null;
-      el.classList.remove('drag');
-      stretch(0);                                                            // and springs back from a stretch
-    };
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
-    el.addEventListener('dblclick', () => commit(BASE[key]));
-    el.addEventListener('keydown', (e) => {
-      const big = e.shiftKey ? 10 : 1;
-      const k = e.key;
-      let v = null;
-      if (k === 'ArrowRight' || k === 'ArrowUp') v = S[key] + step * big;
-      else if (k === 'ArrowLeft' || k === 'ArrowDown') v = S[key] - step * big;
-      else if (k === 'PageUp') v = S[key] + step * 10;
-      else if (k === 'PageDown') v = S[key] - step * 10;
-      else if (k === 'Home') v = min;
-      else if (k === 'End') v = max;
-      if (v === null) return;
-      e.preventDefault(); e.stopPropagation();
-      commit(v);
-    });
-    sliders[key] = { render };
-  });
-  function setZoom(v) {
-    S.zoom = clamp(v, 0, 1);
-    if (sliders.zoom) sliders.zoom.render(S.zoom);
-    persist();
-  }
-  function syncSliders() {
-    SLIDERS.forEach(([, key]) => sliders[key].render(S[key]));
-    const disky = S.type === 'Spiral' || S.type === 'Barred' || S.type === 'Cycle';
-    $('s-arms').classList.toggle('off', !disky);
-    $('s-twist').classList.toggle('off', !disky);
-  }
-
-  // Galaxy type: one white pill that slides, leading edge first, so it
-  // stretches in flight and settles to size.
-  const seg = $('types'), ind = seg.querySelector('.seg-ind');
-  const typeBtns = Array.from(seg.querySelectorAll('button'));
-  let indAt = null;
-  function placeIndicator(animate) {
-    const b = typeBtns.find((x) => x.dataset.type === S.type);
-    if (!b || !seg.offsetWidth) return;
-    const box = { left: b.offsetLeft, top: b.offsetTop, right: seg.clientWidth - b.offsetLeft - b.offsetWidth, bottom: seg.clientHeight - b.offsetTop - b.offsetHeight };
-    seg.classList.remove('go-left', 'go-right');
-    if (animate && indAt && !still()) seg.classList.add(box.left >= indAt.left ? 'go-right' : 'go-left');
-    else { ind.style.transition = 'none'; }
-    for (const k in box) ind.style[k] = box[k] + 'px';
-    if (ind.style.transition === 'none') { void ind.offsetWidth; ind.style.transition = ''; }
-    indAt = box;
-  }
-  function syncTypeUI(animate) {
-    typeBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.type === S.type)));
-    typeBtns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.type === S.type)));
-    placeIndicator(animate);
-    syncSliders();
-  }
+  function setZoom(v) { S.zoom = clamp(v, 0, 1); persist(); }
   function setType(name) {
-    S.type = name;
-    syncTypeUI(true); persist();
+    S.type = name; persist();
     if (name !== 'Cycle') morphTo(TYPES.indexOf(name), PICK_MORPH);
     else holdT = HOLD - 1.5;
   }
-  typeBtns.forEach((b) => b.addEventListener('click', () => setType(b.dataset.type)));
-  window.addEventListener('resize', () => placeIndicator(false), { passive: true });
-
   function matchPreset() {
     for (const n in PRESETS) {
       const p = PRESETS[n];
@@ -1910,26 +2138,9 @@
     }
     return '';
   }
-  const swatchBtns = Array.from($('swatches').querySelectorAll('button'));
-  const PICKS = ['old', 'young', 'gasA', 'gasB'];
-  function syncColourUI() {
-    PICKS.forEach((k) => { $('c-' + k).value = S[k]; });
-    swatchBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === S.preset)));
-  }
-  swatchBtns.forEach((b) => b.addEventListener('click', () => {
-    Object.assign(S, PRESETS[b.dataset.preset], { preset: b.dataset.preset });
-    syncColourUI(); applyColour(); persist();
-  }));
-  PICKS.forEach((k) => $('c-' + k).addEventListener('input', (e) => {
-    S[k] = e.target.value; S.preset = matchPreset(); syncColourUI(); applyColour(); persist();
-  }));
-
-  // A small turn on the icon says the press landed.
-  const twirl = (btn) => { const ic = btn.querySelector('svg'); if (ic && !still()) ic.animate([{ transform: 'rotate(0deg) scale(0.8)' }, { transform: 'rotate(360deg) scale(1)' }], { duration: 600, easing: EASE.pop }); };
   function reseed() {
     S.seed = 1 + Math.floor(Math.random() * 99999);
     grow(); updateCaptions(); persist();
-    toast('Seed #' + S.seed, 'seed');
   }
   function surprise() {
     const r = Math.random;
@@ -1945,91 +2156,213 @@
       dust: 0.3 + r() * 0.9,
       spin: 0.3 + r() * 0.9,
     }, PRESETS[p], { preset: p });
-    syncColourUI(); applyColour();
+    applyColour();
     S.seed = 1 + Math.floor(Math.random() * 99999);
-    grow(); persist();
+    grow();
     setType(t);
     updateCaptions();
-    toast(`${TYPE_NAMES[TYPES.indexOf(t)]} · ${p}`, 'dice');
   }
-  $('reseed').addEventListener('click', (e) => { twirl(e.currentTarget); reseed(); });
-  $('surprise').addEventListener('click', (e) => { twirl(e.currentTarget); surprise(); });
-  $('save').addEventListener('click', savePNG);
 
-  // Switches.
-  const switches = {};
-  function bindSwitch(id, key, after) {
-    const el = $(id);
-    const set = (v) => { S[key] = v; el.setAttribute('aria-checked', String(v)); };
-    set(!!S[key]);
-    el.addEventListener('click', () => { set(!S[key]); if (after) after(); persist(); });
-    switches[id] = set;
-  }
-  bindSwitch('spikes', 'spikes');
-  bindSwitch('companions', 'companions');
-  bindSwitch('caps', 'captions', () => applyCaptions());
-
-  // The panel opens out of the Controls pill and its sections arrive in turn;
-  // it closes faster than it opens.
-  const panel = $('panel'), toggle = $('toggle');
-  let panelAnim = null;
-  function setPanel(open, animate) {
-    if (panelAnim) { panelAnim.cancel(); panelAnim = null; }
-    if (open) {
-      panel.hidden = false; toggle.hidden = true;
-      panel.scrollTop = 0;
-      placeIndicator(false);
-      if (animate && !still()) {
-        panel.animate([{ opacity: 0, transform: 'scale(0.94)' }, { opacity: 1, transform: 'none' }], { duration: 390, easing: EASE.smooth });
-        Array.from(panel.querySelectorAll('.head, .sec, .foot')).slice(0, 9).forEach((el, i) =>
-          el.animate([{ opacity: 0, transform: 'translateY(6px)', filter: 'blur(4px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }],
-            { duration: 360, delay: 40 + i * 28, easing: EASE.smooth, fill: 'backwards' }));
-      }
-    } else {
-      const done = () => {
-        panel.hidden = true; toggle.hidden = false; panelAnim = null;
-        if (animate && !still()) toggle.animate([{ opacity: 0, transform: 'scale(0.9)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 450, easing: EASE.pop });
-      };
-      if (animate && !still() && !panel.hidden) {
-        panelAnim = panel.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }], { duration: 170, easing: EASE.exit, fill: 'forwards' });
-        panelAnim.onfinish = done;
-      } else done();
-    }
-  }
-  $('close').addEventListener('click', () => setPanel(false, true));
-  toggle.addEventListener('click', () => setPanel(true, true));
-  setPanel(window.innerWidth > 560 && !query.has('clean'), false);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.metaKey || e.altKey) return;
-    const tag = document.activeElement && document.activeElement.tagName;
-    if (tag === 'INPUT' && e.key === ' ') return;
-    if (viewKey(e)) { e.preventDefault(); return; }
-    if (e.ctrlKey) return;
-    const k = e.key.toLowerCase();
-    if (k === 'r') reseed();
-    if (k === 'h') {
-      const show = panel.hidden;
-      setPanel(show, true);
-      switches.caps(show);
+  // The galaxy's API. The toolbar below drives it; with ?embed, so does a host page.
+  const embedded = query.has('embed');
+  let capTimer = 0;
+  window.galaxy = {
+    state: S,
+    base: BASE,
+    sliders: SLIDERS.map(([group, key, label, min, max, step, fmt]) => ({ group, key, label, min, max, step, format: fmt })),
+    types: TYPES.concat(['Cycle']),
+    typeNames: TYPE_NAMES,
+    presets: PRESETS,
+    set(key, v) {
+      const d = SLIDERS.find((x) => x[1] === key);
+      if (!d) return;
+      v = +clamp(Math.round((v - d[3]) / d[5]) * d[5] + d[3], d[3], d[4]).toFixed(4);
+      if (key === 'zoom') { setZoom(v); return v; }
+      S[key] = v;
+      if (key === 'stars') { clearTimeout(capTimer); capTimer = setTimeout(updateCaptions, 140); }
+      persist();
+      return v;
+    },
+    setType,
+    setPreset(name) { Object.assign(S, PRESETS[name], { preset: name }); applyColour(); persist(); },
+    setColour(k, hex) { S[k] = hex; S.preset = matchPreset(); applyColour(); persist(); },
+    toggle(id, v) {
+      const key = { spikes: 'spikes', companions: 'companions', caps: 'captions' }[id];
+      S[key] = v === undefined ? !S[key] : !!v;
       applyCaptions(); persist();
-      if (!show) toast('Press H to bring the controls back', 'eye');
-    }
-    if (e.key === ' ') { e.preventDefault(); paused = !paused; toast(paused ? 'Paused' : 'Playing', paused ? 'pause' : 'play'); }
-  });
+      return S[key];
+    },
+    reseed() { reseed(); persist(); },
+    surprise() { surprise(); persist(); },
+    save: () => grabPNG(),
+    snap: () => grabPNG(),               // a PNG blob of the galaxy alone
+    view(e) { return viewKey({ code: e.code || '', key: e.key || '', ctrlKey: !!e.ctrlKey, shiftKey: !!e.shiftKey }); },
+    pause(v) { paused = v === undefined ? !paused : v; return paused; },
+  };
+
+  // Embedded, the host page owns the keyboard: hand every key up to it.
+  if (embedded) {
+    document.addEventListener('keydown', (e) => {
+      if (window.parent === window) return;
+      if (e.key === ' ') e.preventDefault();
+      try { window.parent.postMessage({ type: 'galaxy-key', key: e.key, code: e.code, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, metaKey: e.metaKey, altKey: e.altKey }, '*'); } catch (err) {}
+    });
+  }
 
   // ---- go --------------------------------------------------------------------------------
   S.preset = matchPreset();
-  syncTypeUI(false);
-  syncColourUI();
   applyColour();
   applyCaptions();
   updateCaptions();
-  if (query.has('clean')) document.body.classList.add('clean');
+  if (embedded) document.body.classList.add('clean');
   if (reduceMotion()) dist = zoomToDist(S.zoom);
   window.addEventListener('resize', resize, { passive: true });
   resize();
   requestAnimationFrame(frame);
+})();
+</script>
+<script>
+(async function () {
+  // The toolbar: the left rail and its flyout. Not built when embedded, or without WebGL2.
+  if (!window.galaxy || new URLSearchParams(location.search).has('embed')) { const r = document.getElementById('rail'); if (r) r.hidden = true; return; }
+  const { ICON, CATS, EASE, still } = Kit;
+  const $ = (id) => document.getElementById(id);
+  $('b-keys').innerHTML = ICON.keys;
+  $('b-snap').innerHTML = ICON.camera;
+  const themeIcon = (t) => {
+    const dark = (t || document.documentElement.dataset.theme) === 'dark';
+    $('b-theme').setAttribute('aria-label', dark ? 'Light mode' : 'Dark mode');
+    return dark ? ICON.sun : ICON.moon;
+  };
+  $('b-theme').innerHTML = themeIcon();
+  $('b-hide').innerHTML = ICON.hide;
+  $('show').innerHTML = ICON.show + '<span>Show tools</span>';
+
+  const cats = $('cats');
+  cats.innerHTML = CATS.map((c) => `<button class="ib" role="tab" data-cat="${c.id}" data-tip aria-label="${c.label}" aria-selected="false" type="button">${ICON[c.id]}</button>`).join('');
+  const btns = () => Array.from(cats.querySelectorAll('.ib'));
+  let open = null;
+  const pill = Kit.pillTrack(cats, btns, (b) => b.dataset.cat === open);
+  Kit.tooltips(document.getElementById('rail'), 'right');
+  Kit.roving(cats, '.ib', true);
+
+  const G = window.galaxy;
+  const fly = $('fly'), body = fly.querySelector('.body');
+  const panes = {};
+  const paneFor = (id) => panes[id] || (panes[id] = Kit.section(G, id));
+
+  // Line the card up with its icon, kept on screen.
+  function align(id) {
+    const b = btns().find((x) => x.dataset.cat === id).getBoundingClientRect();
+    const h = fly.offsetHeight;
+    const top = Math.max(16, Math.min(innerHeight - h - 16, b.top + b.height / 2 - 34));
+    return top;
+  }
+
+  function show(id) {
+    const prev = open;
+    open = id;
+    btns().forEach((b) => b.setAttribute('aria-selected', String(b.dataset.cat === id)));
+    pill.place(!!prev);
+    const cat = CATS.find((c) => c.id === id);
+    if (!prev) {
+      // Grow the card out of the rail.
+      fly.hidden = false;
+      fly.querySelector('b').textContent = cat.label;
+      fly.querySelector('.ctl-title span').textContent = cat.hint;
+      body.replaceChildren(paneFor(id));
+      fly.style.top = align(id) + 'px';
+      if (body.firstChild.querySelector('.seg')) body.firstChild.querySelector('.seg')._place && body.firstChild.querySelector('.seg')._place();
+      if (!still()) {
+        fly.animate([{ opacity: 0, transform: 'translateX(-14px) scale(0.92)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 420, easing: EASE.smooth });
+        Array.from(body.firstChild.children).forEach((c, i) => Kit.enter(c, { transform: 'translateY(6px)' }, 60 + i * 28));
+      }
+      return;
+    }
+    // Same card, new contents: morph height and position, blur the contents across.
+    const dir = CATS.findIndex((c) => c.id === id) > CATS.findIndex((c) => c.id === prev) ? 1 : -1;
+    const fromTop = fly.offsetTop;
+    Kit.swapHTML(fly.querySelector('b'), cat.label, true);
+    Kit.swapHTML(fly.querySelector('.ctl-title span'), cat.hint, true);
+    // Measure the new height before the morph starts, so the card stays on screen.
+    let toTop = fromTop;
+    Kit.morphHeight(fly, () => { body.replaceChildren(paneFor(id)); toTop = align(id); fly.style.top = toTop + 'px'; });
+    const seg = body.querySelector('.seg'); if (seg && seg._place) seg._place();
+    if (!still()) {
+      fly.animate([{ top: fromTop + 'px' }, { top: toTop + 'px' }], { duration: 420, easing: EASE.smooth });
+      body.firstChild.animate([{ opacity: 0, filter: 'blur(6px)', transform: `translateY(${dir * 10}px)` }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 360, easing: EASE.smooth });
+    }
+  }
+  function close() {
+    if (!open) return;
+    open = null;
+    btns().forEach((b) => b.setAttribute('aria-selected', 'false'));
+    pill.hide();
+    const done = () => { fly.hidden = true; };
+    if (still()) return done();
+    const a = fly.animate([{ opacity: 1, transform: 'none', filter: 'blur(0px)' }, { opacity: 0, transform: 'translateX(-10px) scale(0.96)', filter: 'blur(4px)' }], { duration: 170, easing: EASE.exit });
+    a.onfinish = done;
+  }
+  btns().forEach((b) => b.addEventListener('click', () => (open === b.dataset.cat ? close() : show(b.dataset.cat))));
+
+  // Shortcuts card toggles beside the rail.
+  $('b-keys').addEventListener('click', () => {
+    const k = $('keys');
+    $('b-keys').setAttribute('aria-pressed', String(k.hidden));
+    if (k.hidden) { close(); k.hidden = false; Kit.enter(k, { transform: 'translateX(-10px) scale(0.96)' }); }
+    else k.hidden = true;
+  });
+
+  // Hide: the rail slides away and a small pill offers the way back.
+  function setTools(on) {
+    document.body.classList.toggle('tools-off', !on);
+    if (!on) { close(); $('keys').hidden = true; $('b-keys').setAttribute('aria-pressed', 'false'); }
+    $('show').hidden = on;
+    if (!on) { Kit.enter($('show'), { transform: 'translateY(10px) scale(0.9)' }, 120); $('show').focus(); }
+    else $('b-hide').focus();
+  }
+  $('b-hide').addEventListener('click', () => setTools(false));
+  $('show').addEventListener('click', () => setTools(true));
+
+  // Theme: the icon blurs across while the chrome cross-fades.
+  $('b-theme').addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    Kit.setTheme(next);
+    Kit.swapHTML($('b-theme'), themeIcon(next));
+  });
+
+  // Snap: a quick flash, the galaxy alone saved as a PNG. Words only when the tools are showing.
+  let snapping = false;
+  async function snap() {
+    if (snapping) return;
+    snapping = true;
+    try {
+      await Kit.shoot(G);
+      if (!document.body.classList.contains('bare')) Kit.toast('Snapped', 'tick');
+    } catch (e) {
+      if (!(e && e.code === 'declined')) Kit.toast('Could not save the image');
+    }
+    snapping = false;
+  }
+  $('b-snap').addEventListener('click', snap);
+
+  // ⌘. strips everything, text included; ⌘. or Esc brings it all back as it was.
+  function setBare(on) {
+    document.body.classList.toggle('bare', on);
+    if (on && document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+  const isBare = () => document.body.classList.contains('bare');
+
+  Kit.bindKeys(G, {
+    bare: () => setBare(!isBare()),
+    snap,
+    hide: () => { if (isBare()) { setBare(false); return; } setTools(document.body.classList.contains('tools-off')); },
+    escape: () => { if (isBare()) { setBare(false); return; } if (!$('keys').hidden) { $('keys').hidden = true; $('b-keys').setAttribute('aria-pressed', 'false'); } else close(); },
+  });
+  pill.hide();
+  // ?clean opens on the galaxy alone; small screens start with the flyout closed.
+  if (new URLSearchParams(location.search).has('clean')) setBare(true);
+  if (innerWidth > 700) show('galaxy');
 })();
 </script>
 </body>
