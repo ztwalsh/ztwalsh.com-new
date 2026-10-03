@@ -74,6 +74,7 @@
     font-size: 11.5px;
     letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
+    font-kerning: normal; font-feature-settings: "kern";
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -96,107 +97,231 @@
   #cap-type { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 20px; color: rgba(255,255,255,0.75); }
   body.clean .cap { opacity: 0; }
 
-  /* ── panel ─────────────────────────────────────────────────────── */
+  /* ── motion tokens (see MOTION.md) ──────────────────────────────── */
+  :root {
+    --spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.02);
+    --spring-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
+    --t-snappy: 340ms; --t-pop: 450ms; --t-smooth: 390ms;
+    --ink: #f4f4f5;
+    --ink-2: rgba(244, 244, 245, 0.6);
+    --ink-3: rgba(244, 244, 245, 0.38);
+    --well: rgba(255, 255, 255, 0.075);
+    --well-hi: rgba(255, 255, 255, 0.12);
+    --hair: rgba(255, 255, 255, 0.09);
+    --sheet: rgba(9, 9, 10, 0.84);
+  }
+  @supports (transition-timing-function: linear(0, 1)) {
+    :root {
+      --spring-snappy: linear(0, 0.047, 0.15, 0.28, 0.397, 0.527, 0.644, 0.744, 0.815, 0.882, 0.932, 0.968, 0.99, 1.007, 1.017, 1.021, 1.023, 1.022, 1.02, 1.018, 1.014, 1.011, 1.009, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 1);
+      --spring-pop: linear(0, 0.065, 0.209, 0.386, 0.565, 0.725, 0.857, 0.955, 1.022, 1.062, 1.08, 1.083, 1.076, 1.063, 1.048, 1.033, 1.02, 1.01, 1.002, 0.997, 0.994, 0.993, 0.993, 0.994, 0.995, 0.996, 0.998, 0.999, 0.999, 1, 1);
+      --spring-smooth: linear(0, 0.033, 0.106, 0.199, 0.3, 0.387, 0.482, 0.568, 0.644, 0.702, 0.759, 0.807, 0.847, 0.876, 0.903, 0.925, 0.942, 0.956, 0.966, 0.974, 0.981, 0.986, 0.99, 0.993, 0.995, 0.996, 0.998, 0.998, 0.999, 1, 1);
+    }
+  }
+
+  /* ── toggle pill and panel ─────────────────────────────────────── */
   #toggle {
     position: fixed; z-index: 4;
     top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px;
-    font: inherit; letter-spacing: inherit; color: var(--panel-ink);
-    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 999px;
-    padding: 7px 13px; cursor: pointer;
-    -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+    font: inherit; font-weight: 500; letter-spacing: inherit; color: var(--ink);
+    background: var(--sheet); border: 1px solid var(--hair); border-radius: 999px;
+    padding: 8px 14px 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 7px;
+    -webkit-backdrop-filter: blur(24px) saturate(1.3); backdrop-filter: blur(24px) saturate(1.3);
+    transition: transform var(--t-pop) var(--spring-pop), background 0.2s;
   }
-  #toggle:hover { border-color: rgba(255,255,255,0.3); }
+  #toggle:hover { background: rgba(24, 24, 26, 0.9); }
+  #toggle:active { transform: scale(0.96); transition-duration: 0.1s; }
+  #toggle svg { width: 13px; height: 13px; }
   #panel {
     position: fixed; z-index: 4;
-    top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px; width: 252px;
+    top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px; width: 264px;
     max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
-    padding: 0 14px 13px;
-    background: var(--panel);
-    -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
-    border: 1px solid var(--panel-line); border-radius: 12px;
-    box-shadow: 0 22px 54px rgba(0,0,0,0.5);
-    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent;
+    padding: 0 10px 10px;
+    background: var(--sheet);
+    -webkit-backdrop-filter: blur(28px) saturate(1.3); backdrop-filter: blur(28px) saturate(1.3);
+    border: 1px solid var(--hair); border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
+    scrollbar-width: none; transform-origin: top right; scroll-padding-top: 52px;
   }
+  #panel::-webkit-scrollbar { display: none; }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    #panel, #toggle { background: var(--panel-opaque); }
+    #panel, #toggle { background: rgba(9, 9, 10, 0.96); }
   }
-  #panel input[type=range] { touch-action: none; }
   .head {
     display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 2;
-    margin: 0 -14px; padding: 13px 14px 9px;
-    background: rgba(10, 10, 16, 0.88);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: sticky; top: 0; z-index: 3;
+    margin: 0 -10px; padding: 14px 12px 8px 16px;
+    background: #0b0b0c;
   }
-  .head b { font-weight: 500; letter-spacing: 0.005em; }
-  .close {
-    font: inherit; color: var(--panel-dim); background: none; border: 0; cursor: pointer;
-    font-size: 21px; line-height: 1; width: 32px; height: 32px; border-radius: 7px;
-    margin: -7px -9px -7px 0; display: grid; place-items: center;
+  .head::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 12px; pointer-events: none;
+    background: linear-gradient(#0b0b0c, rgba(11,11,12,0));
   }
-  .close:hover { color: var(--panel-ink); background: rgba(255,255,255,0.09); }
-  .grp {
-    margin-top: 13px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);
-    color: var(--panel-faint); letter-spacing: 0.13em; font-size: 10px; text-transform: uppercase;
+  .head b { font-weight: 600; letter-spacing: -0.005em; font-size: 12.5px; }
+  .iconbtn {
+    font: inherit; color: var(--ink-2); background: none; border: 0; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center;
+    transition: transform var(--t-pop) var(--spring-pop), background 0.2s, color 0.2s;
   }
-  .grp:first-of-type { border-top: 0; padding-top: 0; }
-  .row { display: grid; grid-template-columns: 64px 1fr 34px; gap: 9px; align-items: center; margin-top: 4px; }
-  .row span { color: var(--panel-dim); letter-spacing: 0.005em; }
-  .row output { text-align: right; color: var(--panel-ink); font-variant-numeric: tabular-nums; }
-  .row.off span, .row.off output { opacity: 0.4; }
-  input[type=range] {
-    -webkit-appearance: none; appearance: none; width: 100%; height: 22px;
-    background: none; cursor: pointer;
+  .iconbtn:hover { color: var(--ink); background: var(--well); }
+  .iconbtn:active { transform: scale(0.9); transition-duration: 0.1s; }
+  .iconbtn svg { width: 12px; height: 12px; }
+
+  /* sections */
+  .sec { border-radius: 12px; }
+  .sec + .sec { margin-top: 2px; }
+  .sec-h {
+    width: 100%; font: inherit; color: var(--ink-3); background: none; border: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 6px 7px; border-radius: 8px;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500;
+    transition: color 0.2s;
   }
-  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; }
-  input[type=range]::-moz-range-track { height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
-    background: var(--panel-ink); margin-top: -6.5px; border: 0;
+  .sec-h:hover { color: var(--ink-2); }
+  .sec-h svg { width: 10px; height: 10px; transition: transform var(--t-snappy) var(--spring-snappy); }
+  .sec-h[aria-expanded="false"] svg { transform: rotate(-90deg); }
+  .sec-b { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--t-smooth) var(--spring-smooth); }
+  .sec-b > div { overflow: hidden; min-height: 0; }
+  .sec-in { padding: 2px 0 8px; display: grid; gap: 4px; transition: opacity 0.25s, filter 0.25s, transform var(--t-smooth) var(--spring-smooth); }
+  .sec.shut .sec-b { grid-template-rows: 0fr; }
+  .sec.shut .sec-in { opacity: 0; filter: blur(4px); transform: translateY(-4px); transition-duration: 0.14s; transition-timing-function: var(--ease-exit); }
+
+  /* segmented control with a stretching indicator */
+  .seg {
+    position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; padding: 3px; background: var(--well); border-radius: 12px; margin-bottom: 4px;
   }
-  input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--panel-ink); border: 0; }
-  input[type=range]:focus-visible { outline: 1px dashed var(--panel-ink); outline-offset: 3px; }
-  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; margin-bottom: 4px; }
+  .seg-ind {
+    position: absolute; z-index: 0; background: #fff; border-radius: 9px; pointer-events: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    transition: left var(--t-snappy) var(--spring-snappy), right var(--t-snappy) var(--spring-snappy),
+                top var(--t-snappy) var(--spring-snappy), bottom var(--t-snappy) var(--spring-snappy);
+  }
+  .seg.go-right .seg-ind { transition-delay: 50ms, 0ms, 0ms, 0ms; }
+  .seg.go-left .seg-ind { transition-delay: 0ms, 50ms, 0ms, 0ms; }
   .seg button {
-    font: inherit; letter-spacing: 0.005em; color: var(--panel-dim);
-    background: rgba(255,255,255,0.05); border: 1px solid transparent; border-radius: 5px;
-    padding: 5px 0; cursor: pointer;
+    position: relative; z-index: 1; font: inherit; font-weight: 500; color: #fff; mix-blend-mode: difference;
+    background: none; border: 0; border-radius: 9px; padding: 7px 0; cursor: pointer;
+    transition: transform var(--t-pop) var(--spring-pop), opacity 0.2s;
   }
-  .seg button:hover { color: var(--panel-ink); }
-  .seg button[aria-pressed="true"] { color: #0c0c0e; background: var(--panel-ink); }
-  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 8px; }
+  .seg button:not([aria-pressed="true"]) { opacity: 0.62; }
+  .seg button:hover { opacity: 1; }
+  .seg button:active { transform: scale(0.94); transition-duration: 0.1s; }
+
+  /* slider: label and value inside a pill, white fill, inverted text */
+  .sl {
+    position: relative; isolation: isolate; height: 30px; border-radius: 9px; background: var(--well);
+    cursor: ew-resize; touch-action: none; outline: none; overflow: hidden;
+    transform-origin: left center;
+    transition: transform var(--t-pop) var(--spring-pop), height var(--t-snappy) var(--spring-snappy), opacity 0.25s, background 0.2s;
+  }
+  .sl:hover { background: var(--well-hi); }
+  .sl.drag { transition: height var(--t-snappy) var(--spring-snappy), background 0.2s; }
+  .sl.drag, .sl:focus-visible { background: var(--well-hi); }
+  .sl:focus-visible { box-shadow: 0 0 0 1.5px rgba(255,255,255,0.7); }
+  .sl-fill {
+    position: absolute; inset: 0 auto 0 0; width: 100%; background: #fff; border-radius: 9px 4px 4px 9px;
+    transform-origin: left center; transform: scaleX(var(--v, 0));
+    transition: transform var(--t-snappy) var(--spring-snappy);
+  }
+  .sl.drag .sl-fill { transition: none; }
+  .sl-txt {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 11px; color: #fff; mix-blend-mode: difference; pointer-events: none; font-weight: 500;
+  }
+  .sl-txt output { font-variant-numeric: tabular-nums; opacity: 0.75; transition: opacity 0.2s; }
+  .sl.drag .sl-txt output, .sl:hover .sl-txt output { opacity: 1; }
+  .sl.off { opacity: 0.32; }
+
+  /* switches */
+  .sw {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    font: inherit; color: var(--ink-2); background: none; border: 0; cursor: pointer;
+    padding: 6px 4px 6px 6px; border-radius: 9px; transition: color 0.2s, background 0.2s;
+  }
+  .sw:hover { color: var(--ink); background: var(--well); }
+  .sw i {
+    position: relative; width: 30px; height: 18px; border-radius: 999px; background: rgba(255,255,255,0.16);
+    transition: background var(--t-snappy) var(--spring-snappy);
+  }
+  .sw i::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 999px;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    transition: left var(--t-snappy) var(--spring-snappy), width var(--t-snappy) var(--spring-snappy), background 0.2s;
+  }
+  .sw:active i::after { width: 18px; }
+  .sw[aria-checked="true"] { color: var(--ink); }
+  .sw[aria-checked="true"] i { background: #fff; }
+  .sw[aria-checked="true"] i::after { left: 14px; background: #0a0a0b; box-shadow: none; }
+  .sw[aria-checked="true"]:active i::after { left: 10px; }
+
+  /* colour — the one place hue is allowed */
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 4px 4px 2px; }
   .swatches button {
-    aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
-    cursor: pointer; padding: 0;
+    aspect-ratio: 1; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+    box-shadow: 0 0 0 0 #fff, 0 0 0 0 rgba(9,9,10,1);
+    transition: transform var(--t-pop) var(--spring-pop), box-shadow var(--t-snappy) var(--spring-snappy);
   }
-  .swatches button[aria-pressed="true"] { outline: 1.5px solid var(--panel-ink); outline-offset: 2px; }
-  .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px; margin-top: 10px; }
-  .pick { display: grid; grid-template-columns: 22px 1fr; gap: 7px; align-items: center; color: var(--panel-dim); cursor: pointer; }
+  .swatches button:hover { transform: scale(1.08); }
+  .swatches button:active { transform: scale(0.9); transition-duration: 0.1s; }
+  .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px rgba(9,9,10,1), 0 0 0 3.5px #fff; }
+  .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 4px; }
+  .pick {
+    display: flex; align-items: center; gap: 8px; color: var(--ink-2); cursor: pointer;
+    padding: 5px 6px; border-radius: 9px; transition: background 0.2s, color 0.2s;
+  }
+  .pick:hover { background: var(--well); color: var(--ink); }
   .pick input[type=color] {
-    -webkit-appearance: none; appearance: none; width: 22px; height: 22px;
-    padding: 0; border: 1px solid rgba(255,255,255,0.22); border-radius: 50%; background: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none; width: 18px; height: 18px; flex: none;
+    padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+    transition: transform var(--t-pop) var(--spring-pop);
   }
-  .pick input[type=color]::-webkit-color-swatch-wrapper { padding: 1px; }
+  .pick:active input[type=color] { transform: scale(0.85); transition-duration: 0.1s; }
+  .pick input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
   .pick input[type=color]::-webkit-color-swatch { border: 0; border-radius: 50%; }
   .pick input[type=color]::-moz-color-swatch { border: 0; border-radius: 50%; }
+
+  /* buttons */
   .btn {
-    font: inherit; letter-spacing: 0.005em; color: var(--panel-ink);
-    background: rgba(255,255,255,0.07); border: 1px solid var(--panel-line); border-radius: 6px;
-    padding: 7px 10px; cursor: pointer; width: 100%;
+    position: relative; font: inherit; font-weight: 500; color: var(--ink);
+    background: var(--well); border: 0; border-radius: 10px; height: 34px;
+    padding: 0 12px; cursor: pointer; width: 100%; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: transform var(--t-pop) var(--spring-pop), background 0.2s, color 0.2s;
   }
-  .btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); }
-  .btn:disabled { opacity: 0.4; cursor: default; }
-  .btn.primary { margin-top: 9px; padding: 9px 10px; background: var(--panel-ink); color: #0c0c0e; border-color: transparent; }
-  .btn.primary:hover:not(:disabled) { background: #fff; }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }
-  .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--panel-dim); cursor: pointer; }
-  .check input { accent-color: var(--panel-ink); width: 13px; height: 13px; }
-  .foot a { color: var(--panel-dim); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.18); }
-  .foot a:hover { color: var(--panel-ink); border-bottom-color: currentColor; }
-  .foot { margin-top: 11px; color: var(--panel-faint); line-height: 1.8; font-size: 10px; letter-spacing: 0.005em; }
-  #note { margin-top: 8px; color: var(--panel-dim); min-height: 13px; font-size: 10px; }
+  .btn:hover:not(:disabled) { background: var(--well-hi); }
+  .btn:active:not(:disabled) { transform: scale(0.96); transition-duration: 0.1s; }
+  .btn:disabled { cursor: default; }
+  .btn.primary { background: #fff; color: #0a0a0b; }
+  .btn.primary:hover:not(:disabled) { background: #e9e9ea; }
+  .btn svg { width: 14px; height: 14px; flex: none; }
+  .btn .spin { animation: spin 0.8s linear infinite; }
+  .btn .tick path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw 0.35s 0.05s var(--spring-smooth) forwards; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .foot { padding: 10px 6px 2px; color: var(--ink-3); line-height: 1.75; font-size: 10px; letter-spacing: 0.005em; }
+  .foot a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--hair); transition: color 0.2s, border-color 0.2s; }
+  .foot a:hover { color: var(--ink); border-bottom-color: currentColor; }
+  .foot kbd {
+    font: inherit; font-size: 9.5px; color: var(--ink-2); background: var(--well);
+    border-radius: 4px; padding: 0 4px; margin: 0 1px;
+  }
+
+  /* toast */
+  #toast {
+    position: fixed; z-index: 5; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%); pointer-events: none;
+    background: #0a0a0b; color: var(--ink); border: 1px solid var(--hair); border-radius: 999px;
+    height: 34px; padding: 0 15px; display: flex; align-items: center; gap: 8px;
+    font-weight: 500; white-space: nowrap; box-shadow: 0 12px 34px rgba(0,0,0,0.5); overflow: hidden;
+  }
+  #toast svg { width: 13px; height: 13px; flex: none; }
+  #toast .tick path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw 0.35s 0.08s var(--spring-smooth) forwards; }
+  .roll { display: inline-block; position: relative; overflow: hidden; vertical-align: bottom; }
+  .roll > span { display: inline-block; }
   #fallback {
     position: fixed; inset: 0; display: none; place-items: center; text-align: center;
     padding: 24px; color: #9a9aa0; line-height: 1.7;
@@ -206,11 +331,15 @@
     #panel {
       top: auto; left: 12px; right: 12px; width: auto;
       bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-      max-height: 52%;
+      max-height: 52%; transform-origin: bottom center;
     }
     #cap-info { display: none; }
+    #toast { bottom: auto; top: calc(16px + env(safe-area-inset-top, 0px)); }
   }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::after { transition-duration: 0.12s !important; transition-delay: 0s !important; transition-timing-function: ease !important; }
+    .sec.shut .sec-in { filter: none; transform: none; }
+  }
 </style>
 </head>
 <body>
@@ -219,14 +348,15 @@
 <p class="sr-only" id="phase" aria-live="polite"></p>
 
 <div class="cap" id="cap-title">Galaxy Creator<i id="cap-seed"></i></div>
-<div class="cap" id="cap-info"></div>
+<div class="cap" id="cap-info"><span id="cap-count"></span> stars · drag to orbit · scroll to zoom</div>
 <div class="cap" id="cap-type"></div>
 
-<div id="panel">
-  <div class="head"><b>Galaxy Creator</b><button class="close" id="close" type="button" aria-label="Hide controls">&times;</button></div>
+<div id="panel" role="region" aria-label="Controls">
+  <div class="head"><b>Galaxy Creator</b><button class="iconbtn" id="close" type="button" aria-label="Hide controls"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></div>
   <div id="build"></div>
 </div>
-<button id="toggle" type="button" hidden>Controls</button>
+<button id="toggle" type="button" hidden><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 4h5.5M11.5 4H12M2 10h.5M6 10h6"/><circle cx="9.5" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/></svg>Controls</button>
+<div id="toast" role="status" aria-live="polite" hidden></div>
 
 <div id="fallback">This piece is drawn with WebGL2, which this browser does not offer.<br>Try a current Chrome, Safari, Firefox or Edge.</div>
 
@@ -1087,12 +1217,6 @@
     const [a, b] = Array.from(pointers.values());
     return b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
   };
-  function setZoom(v) {
-    S.zoom = clamp(v, 0, 1);
-    const input = $('s-zoom');
-    if (input) { input.value = S.zoom; $('o-zoom').textContent = fmtZoom(S.zoom); }
-    persist();
-  }
   // Blender's mapping: a plain drag (left or middle button) orbits, Shift pans,
   // Ctrl zooms. Alt is accepted alongside for trackpads, as in Blender's
   // emulate-three-button mode: Alt orbit, Shift+Alt pan, Ctrl+Alt zoom.
@@ -1180,6 +1304,7 @@
   function homeView() {
     viewTo({ yaw: HOME_VIEW.yaw, pitch: HOME_VIEW.pitch, roll: HOME_VIEW.roll, target: [0, 0, 0] });
     setZoom(BASE.zoom);
+    toast('Home view', 'view');
   }
   function viewKey(e) {
     const m = /^(?:Numpad|Digit)([0-9])$/.exec(e.code);
@@ -1187,10 +1312,10 @@
     const ctrl = e.ctrlKey;
     // Blender's front view looks along its +Y; here the disk lies in x–z, so
     // front and side views are edge-on and top looks straight down on the disk.
-    if (n === 1) { viewTo({ yaw: ctrl ? PI : 0, pitch: 0, roll: 0 }); return true; }
-    if (n === 3) { viewTo({ yaw: ctrl ? -PI / 2 : PI / 2, pitch: 0, roll: 0 }); return true; }
-    if (n === 7) { viewTo({ yaw: 0, pitch: ctrl ? -PITCH_MAX : PITCH_MAX, roll: 0 }); return true; }
-    if (n === 9) { viewTo({ yaw: yaw + PI, pitch: -pitch }); return true; }
+    if (n === 1) { viewTo({ yaw: ctrl ? PI : 0, pitch: 0, roll: 0 }); toast(ctrl ? 'Back view' : 'Front view', 'view'); return true; }
+    if (n === 3) { viewTo({ yaw: ctrl ? -PI / 2 : PI / 2, pitch: 0, roll: 0 }); toast(ctrl ? 'Left view' : 'Right view', 'view'); return true; }
+    if (n === 7) { viewTo({ yaw: 0, pitch: ctrl ? -PITCH_MAX : PITCH_MAX, roll: 0 }); toast(ctrl ? 'Bottom view' : 'Top view', 'view'); return true; }
+    if (n === 9) { viewTo({ yaw: yaw + PI, pitch: -pitch }); toast('Other side', 'view'); return true; }
     if (n === 0 || n === 5) { homeView(); return true; }
     if (n === 2 || n === 4 || n === 6 || n === 8) {
       if (ctrl) {                                                    // Ctrl+2/4/6/8 pans
@@ -1434,13 +1559,100 @@
     requestAnimationFrame(frame);
   }
 
+  // ---- motion helpers (MOTION.md) ----------------------------------------------------------
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const EASE = { snappy: cssVar('--spring-snappy'), pop: cssVar('--spring-pop'), smooth: cssVar('--spring-smooth'), exit: cssVar('--ease-exit') };
+  const still = () => reduceMotion() || !Element.prototype.animate;
+
+  // Content changes cross-fade through a blur: out up, in from below.
+  function swapHTML(el, html, isText) {
+    const same = isText ? el.textContent === html : el.innerHTML === html;
+    if (el._next === undefined && same) return;
+    if (still()) { if (isText) el.textContent = html; else el.innerHTML = html; return; }
+    if (el._next !== undefined) { el._next = html; return; }   // mid-swap: just change where it lands
+    el._next = html;
+    const out = el.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'none' },
+      { opacity: 0, filter: 'blur(4px)', transform: 'translateY(-4px)' }], { duration: 120, easing: EASE.exit, fill: 'forwards' });
+    out.onfinish = () => {
+      if (isText) el.textContent = el._next; else el.innerHTML = el._next;
+      el._next = undefined;
+      out.cancel();
+      el.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'translateY(4px)' },
+        { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 300, easing: EASE.pop });
+    };
+  }
+  const swapText = (el, t) => swapHTML(el, t, true);
+
+  // Numbers roll: only the changed characters move, up when the value rises.
+  function rollText(el, text) {
+    const old = el.dataset.v;
+    el.dataset.v = text;
+    if (old === undefined || still()) { el.textContent = text; return; }
+    if (old === text) return;
+    const num = (t) => parseFloat(t.replace(/[^0-9.]/g, '')) || 0;
+    const dir = num(text) >= num(old) ? 1 : -1;
+    el.textContent = '';
+    const n = text.length;
+    for (let i = 0; i < n; i++) {
+      const ch = text[i], prev = old[old.length - n + i];
+      if (ch === prev) { el.append(ch); continue; }
+      const wrap = document.createElement('span'), inner = document.createElement('span');
+      wrap.className = 'roll'; inner.textContent = ch; wrap.append(inner); el.append(wrap);
+      inner.animate([{ transform: `translateY(${dir * 80}%)`, opacity: 0, filter: 'blur(2px)' },
+        { transform: 'none', opacity: 1, filter: 'blur(0px)' }],
+        { duration: 280, delay: (n - 1 - i) * 25, easing: EASE.snappy, fill: 'backwards' });
+    }
+  }
+
+  // Toast: one pill that morphs between messages instead of stacking.
+  const ICON = {
+    tick: '<svg class="tick" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 6 10.5 11 4"/></svg>',
+    spin: '<svg class="spin" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="5" stroke-opacity=".25"/><path d="M7 2a5 5 0 0 1 5 5"/></svg>',
+    save: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v7M4 6.5 7 9.5 10 6.5M2.5 12h9"/></svg>',
+    seed: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 7a4.5 4.5 0 1 1-1.3-3.2M11.5 2v2.5H9"/></svg>',
+    dice: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2" y="2" width="10" height="10" rx="2.5"/><circle cx="5" cy="5" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="7" cy="7" r=".9" fill="currentColor" stroke="none"/></svg>',
+    view: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 7S3.5 3 7 3s5.5 4 5.5 4-2 4-5.5 4S1.5 7 1.5 7Z"/><circle cx="7" cy="7" r="1.6"/></svg>',
+    pause: '<svg viewBox="0 0 14 14" fill="currentColor"><rect x="3.5" y="3" width="2.4" height="8" rx=".8"/><rect x="8.1" y="3" width="2.4" height="8" rx=".8"/></svg>',
+    play: '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M4.5 3.2v7.6a.6.6 0 0 0 .9.5l6-3.8a.6.6 0 0 0 0-1l-6-3.8a.6.6 0 0 0-.9.5Z"/></svg>',
+    eye: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2l10 10M5.6 3.3A6 6 0 0 1 7 3c3.5 0 5.5 4 5.5 4a9 9 0 0 1-1.7 2.2M3.3 4.8A9.5 9.5 0 0 0 1.5 7s2 4 5.5 4c.9 0 1.7-.2 2.4-.6"/></svg>',
+  };
+  const toastEl = $('toast');
+  let toastTimer = 0, toastOn = false, toastHide = null;
+  function toast(msg, icon) {
+    const html = (icon ? ICON[icon] : '') + '<span></span>';
+    clearTimeout(toastTimer);
+    if (toastHide) { toastHide.cancel(); toastHide = null; }
+    if (!toastOn) {
+      toastEl.innerHTML = html; toastEl.lastChild.textContent = msg;
+      toastEl.hidden = false; toastOn = true;
+      if (!still()) toastEl.animate([
+        { opacity: 0, transform: 'translateX(-50%) translateY(14px) scale(0.9)', filter: 'blur(8px)' },
+        { opacity: 1, transform: 'translateX(-50%)', filter: 'blur(0px)' }], { duration: 450, easing: EASE.pop });
+    } else {
+      const w0 = toastEl.offsetWidth;
+      toastEl.innerHTML = html; toastEl.lastChild.textContent = msg;
+      const w1 = toastEl.offsetWidth;
+      if (!still()) {
+        toastEl.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: 340, easing: EASE.snappy });
+        Array.from(toastEl.children).forEach((c) => c.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 260 }));
+      }
+    }
+    toastTimer = setTimeout(() => {
+      toastOn = false;
+      if (still()) { toastEl.hidden = true; return; }
+      toastHide = toastEl.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'translateX(-50%)' },
+        { opacity: 0, filter: 'blur(4px)', transform: 'translateX(-50%) translateY(6px) scale(0.98)' }], { duration: 180, easing: EASE.exit, fill: 'forwards' });
+      toastHide.onfinish = () => { toastEl.hidden = true; toastHide.cancel(); toastHide = null; };
+    }, 1700);
+  }
+
   // ---- captions -------------------------------------------------------------------------
   function updateCaptions() {
     const name = morphing ? `${TYPE_NAMES[mFrom]} → ${TYPE_NAMES[mTo]}` : TYPE_NAMES[mTo];
-    $('cap-type').textContent = name;
+    swapText($('cap-type'), name);
     $('phase').textContent = name;
-    $('cap-seed').textContent = '#' + S.seed;
-    $('cap-info').textContent = `${starCount().toLocaleString('en-US')} stars · drag to orbit · scroll to zoom`;
+    rollText($('cap-seed'), '#' + S.seed);
+    rollText($('cap-count'), starCount().toLocaleString('en-US'));
   }
   function applyCaptions() { document.body.classList.toggle('clean', !S.captions); }
 
@@ -1461,11 +1673,16 @@
     o.putImageData(img, 0, 0);
     return new Promise((res) => out.toBlob(res, 'image/png'));
   }
+  // The save button morphs through its states in place: label → spinner → a
+  // check that draws itself → label.
+  const SAVE_IDLE = ICON.save + '<span>Save .png</span>';
   async function savePNG() {
-    const btn = $('save');
+    const btn = $('save'), face = btn.firstElementChild;
+    if (btn.disabled) return;
     const name = `galaxy-${TYPES[mTo].toLowerCase()}-${S.seed}-${Date.now()}.png`;
     btn.disabled = true;
-    note('rendering…');
+    swapHTML(face, ICON.spin + '<span>Rendering</span>');
+    let ok = false;
     try {
       const blob = await grabPNG();
       if (!blob) throw new Error('could not encode');
@@ -1481,14 +1698,14 @@
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
       }
-      note('saved');
+      ok = true;
+      swapHTML(face, ICON.tick + '<span>Saved</span>');
     } catch (e) {
-      note(e && e.code === 'declined' ? '' : 'could not save: ' + ((e && e.message) || 'unknown'));
+      swapHTML(face, e && e.code === 'declined' ? SAVE_IDLE : '<span>Could not save</span>');
+      if (!(e && e.code === 'declined')) toast((e && e.message) || 'Could not save');
     }
-    btn.disabled = false;
-    setTimeout(() => note(''), 2600);
+    setTimeout(() => { swapHTML(face, SAVE_IDLE); btn.disabled = false; }, ok ? 1600 : 2200);
   }
-  const note = (s) => { $('note').textContent = s; };
 
   // ---- panel --------------------------------------------------------------------------
   const pct = (v) => Math.round(v * 100) + '%';
@@ -1510,73 +1727,181 @@
     ['light', 'bloom', 'Bloom', 0, 3, 0.01, fix2],
     ['light', 'sat', 'Saturation', 0, 2, 0.01, fix2],
   ];
-  const rowsFor = (g) => SLIDERS.filter((d) => d[0] === g).map(([, key, lab, min, max, step]) =>
-    `<label class="row" id="r-${key}"><span>${lab}</span><input type="range" id="s-${key}" min="${min}" max="${max}" step="${step}"><output id="o-${key}"></output></label>`
+  const CHEVRON = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5 5 6.5 8 3.5"/></svg>';
+  const slidersFor = (g) => SLIDERS.filter((d) => d[0] === g).map(([, key, lab, min, max]) =>
+    `<div class="sl" id="s-${key}" role="slider" tabindex="0" aria-label="${lab}" aria-valuemin="${min}" aria-valuemax="${max}"><div class="sl-fill"></div><div class="sl-txt"><span>${lab}</span><output id="o-${key}"></output></div></div>`
   ).join('');
+  const sw = (id, label) => `<button class="sw" id="${id}" type="button" role="switch" aria-checked="false"><span>${label}</span><i></i></button>`;
+  const section = (id, title, body) =>
+    `<section class="sec" data-sec="${id}"><button class="sec-h" type="button" aria-expanded="true"><span>${title}</span>${CHEVRON}</button><div class="sec-b"><div><div class="sec-in">${body}</div></div></div></section>`;
   const swatchStyle = (p) => `background: radial-gradient(circle at 50% 50%, ${p.old} 0 18%, ${p.young} 38%, ${p.gasA} 62%, ${p.gasB} 100%)`;
 
   $('build').innerHTML =
-    `<div class="grp">Galaxy</div>
-     <div class="seg" id="types">` +
-    TYPES.concat(['Cycle']).map((n) => `<button type="button" data-type="${n}">${n}</button>`).join('') +
-    `</div>${rowsFor('galaxy')}
-     <div class="grp">Stars &amp; gas</div>${rowsFor('matter')}
-     <div class="grp">Motion</div>${rowsFor('motion')}
-     <div class="grp">Light</div>${rowsFor('light')}
-     <label class="check"><input type="checkbox" id="spikes"><span>Diffraction spikes</span></label>
-     <label class="check"><input type="checkbox" id="companions"><span>Companion galaxies</span></label>
-     <div class="grp">Colour</div>
-     <div class="swatches" id="swatches">` +
-    Object.keys(PRESETS).map((n) => `<button type="button" data-preset="${n}" title="${n}" aria-label="${n}" style="${swatchStyle(PRESETS[n])}"></button>`).join('') +
-    `</div>
-     <div class="colors">
-       <label class="pick"><input type="color" id="c-old"><span>Old stars</span></label>
-       <label class="pick"><input type="color" id="c-young"><span>Young stars</span></label>
-       <label class="pick"><input type="color" id="c-gasA"><span>Gas</span></label>
-       <label class="pick"><input type="color" id="c-gasB"><span>Gas, second</span></label>
-     </div>
-     <div class="grp">Create</div>
-     <div class="pair">
-       <button class="btn" id="reseed" type="button">New seed</button>
-       <button class="btn" id="surprise" type="button">Surprise me</button>
-     </div>
-     <label class="check"><input type="checkbox" id="caps"><span>Show captions on screen</span></label>
-     <button class="btn primary" id="save" type="button">Save .png</button>
-     <div id="note" role="status"></div>
-     <div class="foot"><a id="home" href="/"></a><br>Drag or middle-drag to orbit · Shift+drag to pan<br>Ctrl+drag, scroll or pinch to zoom<br>1 3 7 front, side, top · 2 4 6 8 turn · Ctrl flips<br>Home or 0 resets the view<br>Space to pause · R new galaxy · H to hide</div>`;
+    section('galaxy', 'Galaxy',
+      `<div class="seg" id="types" role="radiogroup" aria-label="Galaxy type"><div class="seg-ind"></div>` +
+      TYPES.concat(['Cycle']).map((n) => `<button type="button" role="radio" data-type="${n}">${n}</button>`).join('') +
+      `</div>${slidersFor('galaxy')}`) +
+    section('matter', 'Stars &amp; gas', slidersFor('matter')) +
+    section('motion', 'Motion', slidersFor('motion')) +
+    section('light', 'Light', slidersFor('light') + sw('spikes', 'Diffraction spikes') + sw('companions', 'Companion galaxies')) +
+    section('colour', 'Colour',
+      `<div class="swatches" id="swatches">` +
+      Object.keys(PRESETS).map((n) => `<button type="button" data-preset="${n}" title="${n}" aria-label="${n} palette" style="${swatchStyle(PRESETS[n])}"></button>`).join('') +
+      `</div>
+       <div class="colors">
+         <label class="pick"><input type="color" id="c-old"><span>Old stars</span></label>
+         <label class="pick"><input type="color" id="c-young"><span>Young stars</span></label>
+         <label class="pick"><input type="color" id="c-gasA"><span>Gas</span></label>
+         <label class="pick"><input type="color" id="c-gasB"><span>Gas, second</span></label>
+       </div>`) +
+    section('create', 'Create',
+      `<div class="pair">
+         <button class="btn" id="reseed" type="button">${ICON.seed}<span>New seed</span></button>
+         <button class="btn" id="surprise" type="button">${ICON.dice}<span>Surprise</span></button>
+       </div>
+       ${sw('caps', 'Captions on screen')}
+       <button class="btn primary" id="save" type="button"><span style="display:flex;align-items:center;gap:7px">${SAVE_IDLE}</span></button>`) +
+    `<div class="foot"><a id="home" href="/"></a><br>Drag orbit · <kbd>Shift</kbd> pan · scroll zoom<br><kbd>1</kbd><kbd>3</kbd><kbd>7</kbd> views · <kbd>Home</kbd> reset · <kbd>Space</kbd> pause<br><kbd>R</kbd> seed · <kbd>H</kbd> hide · double-click a slider to reset</div>`;
 
   if (HOME_URL) { $('home').href = HOME_URL; $('home').textContent = HOME_LABEL; }
   else { const h = $('home'); h.nextSibling && h.nextSibling.remove(); h.remove(); }
 
-  function syncSliders() {
-    SLIDERS.forEach(([, key, , , , , fmt]) => {
-      const input = $('s-' + key);
-      if (parseFloat(input.value) !== S[key]) input.value = S[key];
-      $('o-' + key).textContent = fmt(S[key]);
-    });
-    const disky = S.type === 'Spiral' || S.type === 'Barred' || S.type === 'Cycle';
-    $('r-arms').classList.toggle('off', !disky);
-    $('r-twist').classList.toggle('off', !disky);
-  }
-  SLIDERS.forEach(([, key, , , , , fmt]) => {
-    const input = $('s-' + key), out = $('o-' + key);
-    input.addEventListener('input', () => {
-      S[key] = parseFloat(input.value);
-      out.textContent = fmt(S[key]);
-      if (key === 'stars') updateCaptions();
-      persist();
+  // Sections fold by height on the smooth spring; which are open is a per-viewer convenience.
+  let uiState = {};
+  try { uiState = JSON.parse(localStorage.getItem('galaxy-creator-ui') || '{}') || {}; } catch (e) {}
+  document.querySelectorAll('.sec').forEach((sec) => {
+    const head = sec.querySelector('.sec-h'), id = sec.dataset.sec;
+    const set = (open) => {
+      sec.classList.toggle('shut', !open);
+      head.setAttribute('aria-expanded', String(open));
+      sec.querySelector('.sec-b > div').inert = !open;
+    };
+    set(uiState[id] !== false);
+    head.addEventListener('click', () => {
+      const open = sec.classList.contains('shut');
+      set(open);
+      uiState[id] = open;
+      try { localStorage.setItem('galaxy-creator-ui', JSON.stringify(uiState)); } catch (e) {}
+      if (open && id === 'galaxy') placeIndicator(false);
     });
   });
 
-  const typeBtns = Array.from($('types').querySelectorAll('button'));
-  function syncTypeUI() { typeBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.type === S.type))); syncSliders(); }
+  // Sliders: grab anywhere and drag (no jump), tap to set, rubber-band past the
+  // ends, keys to step, double-click for the default.
+  const sliders = {};
+  function onSlide(key) {
+    if (key === 'stars') { clearTimeout(onSlide.t); onSlide.t = setTimeout(updateCaptions, 140); }
+    persist();
+  }
+  SLIDERS.forEach(([, key, , min, max, step, fmt]) => {
+    const el = $('s-' + key), out = $('o-' + key);
+    const span = max - min, discrete = step >= 1;
+    const frac = (v) => (v - min) / span;
+    const snap = (v) => +clamp(Math.round((v - min) / step) * step + min, min, max).toFixed(4);
+    function render(v) {
+      el.style.setProperty('--v', clamp(frac(v), 0, 1));
+      const text = fmt(v);
+      if (discrete) rollText(out, text); else out.textContent = text;
+      el.setAttribute('aria-valuenow', v);
+      el.setAttribute('aria-valuetext', text);
+    }
+    function commit(v) {
+      v = snap(v);
+      if (v !== S[key]) { S[key] = v; render(v); onSlide(key); }
+    }
+    function stretch(px) {
+      if (!px || still()) { el.style.transform = ''; return; }
+      const r = Math.min(9, Math.abs(px) * 0.35 / (1 + Math.abs(px) / 60));
+      el.style.transformOrigin = px > 0 ? 'left center' : 'right center';
+      el.style.transform = `scaleX(${1 + r / el.offsetWidth})`;
+    }
+    let grab = null;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      grab = { x: e.clientX, v: S[key], moved: false, w: el.getBoundingClientRect().width };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!grab) return;
+      const dx = e.clientX - grab.x;
+      if (!grab.moved && Math.abs(dx) < 3) return;
+      if (!grab.moved) { grab.moved = true; el.classList.add('drag'); }
+      const raw = grab.v + dx / grab.w * span;
+      commit(raw);
+      const over = raw > max ? (raw - max) / span * grab.w : raw < min ? (raw - min) / span * grab.w : 0;
+      stretch(over);
+    });
+    const release = (e) => {
+      if (!grab) return;
+      if (!grab.moved && e.type === 'pointerup') {
+        const r = el.getBoundingClientRect();
+        commit(min + clamp((e.clientX - r.left) / r.width, 0, 1) * span);   // a tap animates to the spot
+      }
+      grab = null;
+      el.classList.remove('drag');
+      stretch(0);                                                            // and springs back from a stretch
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('dblclick', () => commit(BASE[key]));
+    el.addEventListener('keydown', (e) => {
+      const big = e.shiftKey ? 10 : 1;
+      const k = e.key;
+      let v = null;
+      if (k === 'ArrowRight' || k === 'ArrowUp') v = S[key] + step * big;
+      else if (k === 'ArrowLeft' || k === 'ArrowDown') v = S[key] - step * big;
+      else if (k === 'PageUp') v = S[key] + step * 10;
+      else if (k === 'PageDown') v = S[key] - step * 10;
+      else if (k === 'Home') v = min;
+      else if (k === 'End') v = max;
+      if (v === null) return;
+      e.preventDefault(); e.stopPropagation();
+      commit(v);
+    });
+    sliders[key] = { render };
+  });
+  function setZoom(v) {
+    S.zoom = clamp(v, 0, 1);
+    if (sliders.zoom) sliders.zoom.render(S.zoom);
+    persist();
+  }
+  function syncSliders() {
+    SLIDERS.forEach(([, key]) => sliders[key].render(S[key]));
+    const disky = S.type === 'Spiral' || S.type === 'Barred' || S.type === 'Cycle';
+    $('s-arms').classList.toggle('off', !disky);
+    $('s-twist').classList.toggle('off', !disky);
+  }
+
+  // Galaxy type: one white pill that slides, leading edge first, so it
+  // stretches in flight and settles to size.
+  const seg = $('types'), ind = seg.querySelector('.seg-ind');
+  const typeBtns = Array.from(seg.querySelectorAll('button'));
+  let indAt = null;
+  function placeIndicator(animate) {
+    const b = typeBtns.find((x) => x.dataset.type === S.type);
+    if (!b || !seg.offsetWidth) return;
+    const box = { left: b.offsetLeft, top: b.offsetTop, right: seg.clientWidth - b.offsetLeft - b.offsetWidth, bottom: seg.clientHeight - b.offsetTop - b.offsetHeight };
+    seg.classList.remove('go-left', 'go-right');
+    if (animate && indAt && !still()) seg.classList.add(box.left >= indAt.left ? 'go-right' : 'go-left');
+    else { ind.style.transition = 'none'; }
+    for (const k in box) ind.style[k] = box[k] + 'px';
+    if (ind.style.transition === 'none') { void ind.offsetWidth; ind.style.transition = ''; }
+    indAt = box;
+  }
+  function syncTypeUI(animate) {
+    typeBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.type === S.type)));
+    typeBtns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.type === S.type)));
+    placeIndicator(animate);
+    syncSliders();
+  }
   function setType(name) {
     S.type = name;
-    syncTypeUI(); persist();
+    syncTypeUI(true); persist();
     if (name !== 'Cycle') morphTo(TYPES.indexOf(name), PICK_MORPH);
     else holdT = HOLD - 1.5;
   }
   typeBtns.forEach((b) => b.addEventListener('click', () => setType(b.dataset.type)));
+  window.addEventListener('resize', () => placeIndicator(false), { passive: true });
 
   function matchPreset() {
     for (const n in PRESETS) {
@@ -1599,9 +1924,12 @@
     S[k] = e.target.value; S.preset = matchPreset(); syncColourUI(); applyColour(); persist();
   }));
 
+  // A small turn on the icon says the press landed.
+  const twirl = (btn) => { const ic = btn.querySelector('svg'); if (ic && !still()) ic.animate([{ transform: 'rotate(0deg) scale(0.8)' }, { transform: 'rotate(360deg) scale(1)' }], { duration: 600, easing: EASE.pop }); };
   function reseed() {
     S.seed = 1 + Math.floor(Math.random() * 99999);
     grow(); updateCaptions(); persist();
+    toast('Seed #' + S.seed, 'seed');
   }
   function surprise() {
     const r = Math.random;
@@ -1618,31 +1946,59 @@
       spin: 0.3 + r() * 0.9,
     }, PRESETS[p], { preset: p });
     syncColourUI(); applyColour();
-    reseed();
+    S.seed = 1 + Math.floor(Math.random() * 99999);
+    grow(); persist();
     setType(t);
+    updateCaptions();
+    toast(`${TYPE_NAMES[TYPES.indexOf(t)]} · ${p}`, 'dice');
   }
-  $('reseed').addEventListener('click', reseed);
-  $('surprise').addEventListener('click', surprise);
+  $('reseed').addEventListener('click', (e) => { twirl(e.currentTarget); reseed(); });
+  $('surprise').addEventListener('click', (e) => { twirl(e.currentTarget); surprise(); });
   $('save').addEventListener('click', savePNG);
-  const spikes = $('spikes');
-  spikes.checked = S.spikes;
-  spikes.addEventListener('change', () => { S.spikes = spikes.checked; persist(); });
-  const comps = $('companions');
-  comps.checked = S.companions;
-  comps.addEventListener('change', () => { S.companions = comps.checked; persist(); });
-  const caps = $('caps');
-  caps.checked = S.captions;
-  caps.addEventListener('change', () => { S.captions = caps.checked; applyCaptions(); persist(); });
 
-  const panel = $('panel'), toggle = $('toggle');
-  function setPanel(open) {
-    panel.hidden = !open;
-    toggle.hidden = open;
-    if (open) panel.scrollTop = 0;
+  // Switches.
+  const switches = {};
+  function bindSwitch(id, key, after) {
+    const el = $(id);
+    const set = (v) => { S[key] = v; el.setAttribute('aria-checked', String(v)); };
+    set(!!S[key]);
+    el.addEventListener('click', () => { set(!S[key]); if (after) after(); persist(); });
+    switches[id] = set;
   }
-  $('close').addEventListener('click', () => setPanel(false));
-  toggle.addEventListener('click', () => setPanel(true));
-  setPanel(window.innerWidth > 560 && !query.has('clean'));
+  bindSwitch('spikes', 'spikes');
+  bindSwitch('companions', 'companions');
+  bindSwitch('caps', 'captions', () => applyCaptions());
+
+  // The panel opens out of the Controls pill and its sections arrive in turn;
+  // it closes faster than it opens.
+  const panel = $('panel'), toggle = $('toggle');
+  let panelAnim = null;
+  function setPanel(open, animate) {
+    if (panelAnim) { panelAnim.cancel(); panelAnim = null; }
+    if (open) {
+      panel.hidden = false; toggle.hidden = true;
+      panel.scrollTop = 0;
+      placeIndicator(false);
+      if (animate && !still()) {
+        panel.animate([{ opacity: 0, transform: 'scale(0.94)' }, { opacity: 1, transform: 'none' }], { duration: 390, easing: EASE.smooth });
+        Array.from(panel.querySelectorAll('.head, .sec, .foot')).slice(0, 9).forEach((el, i) =>
+          el.animate([{ opacity: 0, transform: 'translateY(6px)', filter: 'blur(4px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }],
+            { duration: 360, delay: 40 + i * 28, easing: EASE.smooth, fill: 'backwards' }));
+      }
+    } else {
+      const done = () => {
+        panel.hidden = true; toggle.hidden = false; panelAnim = null;
+        if (animate && !still()) toggle.animate([{ opacity: 0, transform: 'scale(0.9)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 450, easing: EASE.pop });
+      };
+      if (animate && !still() && !panel.hidden) {
+        panelAnim = panel.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }], { duration: 170, easing: EASE.exit, fill: 'forwards' });
+        panelAnim.onfinish = done;
+      } else done();
+    }
+  }
+  $('close').addEventListener('click', () => setPanel(false, true));
+  toggle.addEventListener('click', () => setPanel(true, true));
+  setPanel(window.innerWidth > 560 && !query.has('clean'), false);
 
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.altKey) return;
@@ -1654,16 +2010,17 @@
     if (k === 'r') reseed();
     if (k === 'h') {
       const show = panel.hidden;
-      setPanel(show);
-      S.captions = show; caps.checked = show;
+      setPanel(show, true);
+      switches.caps(show);
       applyCaptions(); persist();
+      if (!show) toast('Press H to bring the controls back', 'eye');
     }
-    if (e.key === ' ') { e.preventDefault(); paused = !paused; }
+    if (e.key === ' ') { e.preventDefault(); paused = !paused; toast(paused ? 'Paused' : 'Playing', paused ? 'pause' : 'play'); }
   });
 
   // ---- go --------------------------------------------------------------------------------
   S.preset = matchPreset();
-  syncTypeUI();
+  syncTypeUI(false);
   syncColourUI();
   applyColour();
   applyCaptions();
