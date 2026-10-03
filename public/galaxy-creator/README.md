@@ -43,13 +43,13 @@ works too in most browsers.
 |---|---|
 | Drag or swipe | orbit the camera; it keeps its momentum |
 | Pinch or scroll | zoom |
-| The rail | Galaxy, Stars & gas, Motion, Light, Colour, Create: each opens its controls in a card beside the rail |
-| `S` | snap the galaxy alone to a PNG (numbered, so rapid snaps never overwrite) |
+| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Settings and hide. Each opens its controls in a card beside the rail |
+| Camera, or `S` | snap the galaxy alone to a PNG (numbered, so rapid snaps never overwrite) |
 | `⌘` `.` (Ctrl `.`) | everything off the screen but the galaxy; again, or `Esc`, to bring it back |
 | `Space` | pause |
 | `R` | new seed: the same settings, a different galaxy |
 | `H` | hide the toolbar; the Show tools pill or `H` brings it back |
-| Moon / sun | light or dark chrome (dark by default, remembered per browser) |
+| Settings | Light, Dark or System appearance (dark by default), captions on screen, and every key command |
 
 **Blender-style navigation.** If your hands know Blender, they know this:
 
@@ -118,7 +118,7 @@ const HOME_URL   = '/';        // where the panel's back link goes
 const HOME_LABEL = '← back';   // what it says; HOME_URL = '' removes it
 ```
 
-The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md); `playground/` holds the directions it was chosen from.
+The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md). It is designed in `playground/` (`kit.css`, `kit.js`, `left-rail-flyout.html`) and copied into this page with `python3 tools/sync-toolbar.py`.
 
 The opening state is the `BASE` object near the top of the script, and the six
 colour palettes are in `PRESETS` just above it. A visitor's own changes are
