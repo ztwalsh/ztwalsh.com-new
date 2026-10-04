@@ -403,6 +403,7 @@
     display: flex; align-items: center; gap: 8px;
   }
   #dbar .ib.sm { width: 36px; height: 36px; border-radius: 999px; flex: none; }
+  #dbar .ib.sm[hidden] { display: none; }
   #dbar .track { position: relative; flex: 1; height: 40px; margin: 0 10px; cursor: pointer; touch-action: none; }
   #dbar .line { position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: var(--chrome-2); }
   #dbar .done { position: absolute; left: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: var(--ink-3); }
@@ -420,6 +421,11 @@
   #dbar .ph { position: absolute; top: 50%; width: 4px; height: 22px; margin: -11px 0 0 -2px; border-radius: 4px; background: var(--ink); pointer-events: none; box-shadow: 0 0 0 2px var(--chrome); }
   #dbar .empty-hint { position: absolute; inset: 0 0 0 12px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; white-space: nowrap; overflow: hidden; }
   #dbar .tc { min-width: 92px; text-align: right; }
+  #dundo {
+    position: fixed; z-index: 11; left: 50%; translate: -50% 0; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    padding: 5px 5px 5px 16px; border-radius: 999px; display: flex; align-items: center; gap: 12px; font-weight: 500;
+  }
+  #dundo .chip { border-radius: 999px; }
   #dpeek { position: fixed; z-index: 15; padding: 6px; border-radius: 16px; pointer-events: none; }
   #dpeek img { display: block; width: 176px; height: 99px; object-fit: cover; border-radius: 11px; background: var(--chrome-2); }
   #dpeek span { display: block; padding: 5px 4px 1px; font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; font-weight: 500; }
@@ -469,8 +475,8 @@
 
   /* Direct mode: the rail steps aside for the timeline (director.js). */
   body.direct #rail { transform: translate(-120px, -50%); opacity: 0; filter: blur(6px); pointer-events: none; transition-timing-function: var(--ease-exit); transition-duration: 0.2s; }
-  body.tools-off .modes, body.tools-off #dbar, body.tools-off #dopts, body.tools-off #dpeek,
-  body.bare .modes, body.bare #dbar, body.bare #dopts, body.bare #dpeek, body.bare .menu {
+  body.tools-off .modes, body.tools-off #dbar, body.tools-off #dopts, body.tools-off #dpeek, body.tools-off #dundo,
+  body.bare .modes, body.bare #dbar, body.bare #dopts, body.bare #dpeek, body.bare #dundo, body.bare .menu {
     opacity: 0 !important; filter: blur(6px); pointer-events: none !important;
     transition: opacity 0.18s var(--ease-exit), filter 0.18s var(--ease-exit) !important;
   }
@@ -1297,7 +1303,19 @@
       d.seek(0);
     };
     d.SHOTS = [['approach', 'Approach'], ['orbit', 'Orbit'], ['reveal', 'Reveal'], ['flyover', 'Flyover']];
-    d.clear = () => { stop(); d.keys = []; d.selected = null; d.t = 0; emit(); };
+    // Start over: an empty timeline, the playhead back at the start. One step of undo.
+    d.undoable = null;
+    d.clear = () => {
+      if (!d.keys.length) return;
+      stop();
+      d.undoable = { keys: d.keys, length: d.length, t: d.t };
+      d.keys = []; d.selected = null; d.t = 0; emit();
+    };
+    d.undo = () => {
+      const u = d.undoable;
+      if (!u) return;
+      d.undoable = null; d.keys = u.keys; d.length = u.length; d.selected = null; d.seek(u.t);
+    };
 
     // Export: the recorder follows the keys, start to end, at the shot's length.
     d.export = async () => {
@@ -1394,6 +1412,7 @@
     more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>',
     trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7"/>'),
     refresh: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
+    restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/>'),
   });
   ICON.record = Kit.ICON.record; ICON.stop = Kit.ICON.stop;
 
@@ -1431,7 +1450,7 @@
   // the time, + and a menu. Hover a dot for its picture; pick one for its options.
   function dotTrack(d) {
     const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
-    const bar = el('section', 'card dchrome', `<button class="ib sm play" type="button" data-tip aria-label="Play (Space)"></button><div class="track"></div><span class="tc"></span><button class="ib sm add" type="button" data-tip aria-label="Keyframe (K)">${ICON.create}</button><button class="ib sm more" type="button" data-tip aria-label="Shots, length, export">${ICON.more}</button>`);
+    const bar = el('section', 'card dchrome', `<button class="ib sm play" type="button" data-tip aria-label="Play (Space)"></button><div class="track"></div><span class="tc"></span><button class="ib sm add" type="button" data-tip aria-label="Keyframe (K)">${ICON.create}</button><button class="ib sm over" type="button" data-tip aria-label="Start over" hidden>${ICON.restart}</button><button class="ib sm more" type="button" data-tip aria-label="Shots, length, export">${ICON.more}</button>`);
     bar.id = 'dbar'; bar.setAttribute('aria-label', 'Timeline');
     const peek = el('div', 'card', '<img alt=""><span></span>'); peek.id = 'dpeek'; peek.hidden = true;
     const opts = el('div', 'card dchrome'); opts.id = 'dopts'; opts.hidden = true;
@@ -1440,8 +1459,32 @@
     Kit.tooltips(bar, 'top');
     play.onclick = () => (d.recording ? d.export() : d.toggle());
     bar.querySelector('.add').onclick = () => d.add();
+    bar.querySelector('.over').onclick = () => startOver();
     bar.querySelector('.more').onclick = (e) => menu(e.currentTarget, shotItems(d).concat(['-'], lengthItems(d), ['-',
-      ['Preview', d.preview, 'P'], ['Export video', d.export], ['Clear keyframes', () => d.clear()]]));
+      ['Preview', d.preview, 'P'], ['Export video', d.export], ['Start over', () => startOver()]]));
+
+    // Start over clears at once; a small pill offers the way back for a few seconds.
+    const undo = el('div', 'card dchrome', '<span>Shot cleared</span><button class="chip" type="button">Undo</button>');
+    undo.id = 'dundo'; undo.hidden = true;
+    document.body.append(undo);
+    let undoTimer = 0;
+    const hideUndo = () => {
+      clearTimeout(undoTimer);
+      if (undo.hidden) return;
+      if (still()) { undo.hidden = true; return; }
+      undo.animate([{ opacity: 1, transform: 'none', filter: 'blur(0px)' }, { opacity: 0, transform: 'translateY(6px) scale(0.97)', filter: 'blur(4px)' }], { duration: 170, easing: EASE.exit, fill: 'forwards' });
+      undoTimer = setTimeout(() => { undo.hidden = true; undo.getAnimations().forEach((x) => x.cancel()); }, 180);
+    };
+    undo.querySelector('button').onclick = () => { d.undo(); hideUndo(); };
+    function startOver() {
+      if (!d.keys.length) return;
+      d.clear();
+      undo.getAnimations().forEach((x) => x.cancel());
+      undo.hidden = false;
+      if (!still()) undo.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 320, easing: EASE.pop });
+      clearTimeout(undoTimer);
+      undoTimer = setTimeout(() => { hideUndo(); d.undoable = null; }, 6000);
+    }
 
     const pct = (t) => (t / d.length * 100) + '%';
     track.addEventListener('pointerdown', (e) => {
@@ -1524,6 +1567,8 @@
       track.querySelector('.ph').style.left = pct(d.t);
       track.querySelector('.done').style.width = pct(d.t);
       bar.classList.toggle('recording', !!d.recording);
+      bar.querySelector('.over').hidden = !d.keys.length;
+      if (d.keys.length && !undo.hidden) hideUndo();
       tc.innerHTML = d.recording ? `<b>Recording</b> ${Math.floor(d.recording.k * 100)}%` : `<b>${fmt(d.t)}</b> / ${fmt(d.length)}`;
       play.innerHTML = d.recording ? ICON.stop : d.playing ? ICON.pause : ICON.play;
       play.setAttribute('aria-label', d.recording ? 'Stop recording (Esc)' : d.playing ? 'Pause (Space)' : 'Play (Space)');
@@ -1533,7 +1578,7 @@
     // Shown in Direct mode, put away in Create.
     function show(on) {
       const els = [bar];
-      if (!on) { opts.hidden = true; peek.hidden = true; optsFor = null; }
+      if (!on) { opts.hidden = true; peek.hidden = true; undo.hidden = true; optsFor = null; }
       if (on === !bar.hidden) return;
       if (still()) { bar.hidden = !on; if (on) strip(); return; }
       if (on) {

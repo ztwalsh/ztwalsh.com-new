@@ -68,7 +68,8 @@ when you move it.
 | `Space` | play the camera between the keyframes |
 | `←` `→` | previous or next keyframe |
 | `P` | preview: the shot alone, start to end, nothing else on screen |
-| `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Clear |
+| Start over (↺) | clears the timeline at once; Undo appears for a few seconds |
+| `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Start over |
 
 The camera moves on Catmull-Rom curves through the keyframes, each with its own
 easing. Export video records the shot at its length, the same way loops are
