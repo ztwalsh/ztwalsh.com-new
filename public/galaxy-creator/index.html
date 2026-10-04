@@ -928,7 +928,7 @@
     return wrap;
   }
 
-  // Settings: appearance, captions, and every key command, one per line.
+  // Settings: the share link, appearance, captions, and every key command, one per line.
   const KEYS = [
     ['Snap an image', ['S']],
     ['Copy share link', ['L']],
@@ -957,7 +957,9 @@
     requestAnimationFrame(() => sync(false));
     const keys = document.createElement('div'); keys.className = 'keys';
     keys.innerHTML = KEYS.map(([what, ks]) => `<div class="key"><span>${what}</span><span>${ks.map((k) => `<kbd>${k}</kbd>`).join('')}</span></div>`).join('');
-    wrap.append(label('Appearance'), seg, switchEl(G, 'caps', 'Captions on screen'), label('Keys'), keys);
+    const link = button('link', 'Copy share link', 'primary');
+    link.addEventListener('click', () => copyLink(G));
+    wrap.append(label('Share'), link, label('Appearance'), seg, switchEl(G, 'caps', 'Captions on screen'), label('Keys'), keys);
     return wrap;
   }
 
@@ -2576,15 +2578,14 @@
   const $ = (id) => document.getElementById(id);
   $('show').innerHTML = ICON.show + '<span>Show tools</span>';
 
-  // Cards: the six categories, then the camera (stills and loops) and Settings. Share and hide are actions.
+  // Cards: the six categories, then the camera (stills and loops) and Settings (with the share link). Hide is an action.
   const CAPTURE = { id: 'capture', label: 'Capture', hint: 'Stills and loops' };
-  const SETTINGS = { id: 'settings', label: 'Settings', hint: 'Appearance and keys' };
+  const SETTINGS = { id: 'settings', label: 'Settings', hint: 'Sharing, appearance, keys' };
   const ALL = CATS.concat([CAPTURE, SETTINGS]);
   const tab = (c) => `<button class="ib" role="tab" data-cat="${c.id}" data-tip aria-label="${c.label}" aria-selected="false" type="button">${ICON[c.id]}</button>`;
   const cats = $('cats');
   cats.innerHTML = CATS.map(tab).join('') + '<hr>' +
     tab(CAPTURE) +
-    `<button class="ib" id="b-share" data-tip aria-label="Copy share link (L)" type="button">${ICON.share}</button>` +
     tab(SETTINGS) +
     `<button class="ib" id="b-hide" data-tip aria-label="Hide tools (H)" type="button">${ICON.hide}</button>`;
   const btns = () => Array.from(cats.querySelectorAll('[data-cat]'));
@@ -2682,7 +2683,6 @@
     }
     snapping = false;
   }
-  $('b-share').addEventListener('click', () => Kit.copyLink(G));
 
   // ⌘. strips everything, text included; ⌘. or Esc brings it all back as it was.
   function setBare(on) {

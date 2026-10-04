@@ -45,15 +45,15 @@ works too in most browsers.
 |---|---|
 | Drag or swipe | orbit the camera; it keeps its momentum |
 | Pinch or scroll | zoom |
-| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Share, Settings and hide. Each category, the camera and Settings open a card beside the rail |
+| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Settings and hide. Each category, the camera and Settings open a card beside the rail |
 | Camera | save a still at screen size, 4K, 6K or 8K, or record a 10, 20 or 30 second loop |
 | `S` | snap the galaxy alone to a PNG at screen size (numbered, so rapid snaps never overwrite) |
-| Share, or `L` | copy a link to this exact galaxy, camera included |
+| Settings › Copy share link, or `L` | copy a link to this exact galaxy, camera included |
 | `⌘` `.` (Ctrl `.`) | everything off the screen but the galaxy; again, or `Esc`, to bring it back |
 | `Space` | pause |
 | `R` | new seed: the same settings, a different galaxy |
 | `H` | hide the toolbar; the Show tools pill or `H` brings it back |
-| Settings | Light, Dark or System appearance (dark by default), captions on screen, and every key command |
+| Settings | the share link, Light, Dark or System appearance (dark by default), captions on screen, and every key command |
 
 **Blender-style navigation.** If your hands know Blender, they know this:
 
