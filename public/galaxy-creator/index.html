@@ -469,6 +469,7 @@
   ICON.sun = svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>');
   ICON.camera = svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.4-2h5l1.4 2h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/><circle cx="12" cy="12.5" r="3.4"/>');
   ICON.create = svg('<path d="M12 5v14M5 12h14"/>');
+  ICON.capture = ICON.camera;
   ICON.share = svg('<path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M8.5 10.5H7A2.5 2.5 0 0 0 4.5 13v4.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V13a2.5 2.5 0 0 0-2.5-2.5h-1.5"/>');
   ICON.link = svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>');
   ICON.record = svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>');
@@ -809,6 +810,7 @@
   function choice(label, opts, get, set) {
     const seg = document.createElement('div');
     seg.className = 'seg'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', label);
+    seg.style.gridTemplateColumns = `repeat(${opts.length}, 1fr)`;
     seg.innerHTML = opts.map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
     const btns = () => Array.from(seg.querySelectorAll('button'));
     const pill = pillTrack(seg, btns, (b) => b.dataset.v === String(get()));
@@ -827,7 +829,7 @@
   };
   const setButton = (b, icon, text) => { b.innerHTML = `${ICON[icon]}<span></span>`; b.lastChild.textContent = text; };
 
-  // Share: a link to exactly this galaxy, a still far bigger than the screen, and a loop.
+  // Sharing: a link to exactly this galaxy, copied from the rail or with L.
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
     const t = document.createElement('textarea');
@@ -843,18 +845,21 @@
     else toast('Could not copy the link');
   }
   const pref = (k, v) => { try { if (v === undefined) return localStorage.getItem('galaxy-share-' + k); localStorage.setItem('galaxy-share-' + k, v); } catch (e) {} return null; };
-  function shareControls(G) {
+  // The camera's card: stills at screen size or far bigger, and loops.
+  function captureControls(G) {
     const wrap = document.createElement('div'); wrap.className = 'ctl';
-    const link = button('link', 'Copy link', 'primary');
-    link.addEventListener('click', () => copyLink(G));
 
-    // Stills: the long edge in pixels, framed exactly as on screen.
-    const EDGES = [['3840', '4K'], ['6144', '6K'], ['7680', '8K']].filter(([v]) => +v <= (G.maxEdge || 16384));
-    let edge = EDGES.some(([v]) => v === pref('edge')) ? pref('edge') : EDGES[0][0];
-    const image = button('save', 'Save image');
+    // Stills: the screen as it is (what S snaps), or the long edge at 4K, 6K or 8K, framed the same.
+    const EDGES = [['screen', 'Screen']].concat([['3840', '4K'], ['6144', '6K'], ['7680', '8K']].filter(([v]) => +v <= (G.maxEdge || 16384)));
+    let edge = EDGES.some(([v]) => v === pref('edge')) ? pref('edge') : 'screen';
+    const image = button('camera', 'Save image', 'primary');
     let rendering = false;
     image.addEventListener('click', async () => {
       if (rendering) return;
+      if (edge === 'screen') {
+        try { await shoot(G); toast('Snapped', 'tick'); } catch (e) { if (!(e && e.code === 'declined')) toast('Could not save the image'); }
+        return;
+      }
       rendering = true;
       setButton(image, 'spin', 'Rendering');
       try {
@@ -865,7 +870,7 @@
       } catch (e) {
         if (!(e && e.code === 'declined')) toast(e && e.code === 'size' ? 'Too big for this device' : 'Could not save the image');
       }
-      setButton(image, 'save', 'Save image');
+      setButton(image, 'camera', 'Save image');
       rendering = false;
     });
 
@@ -893,7 +898,7 @@
     });
     const loops = G.canLoop && G.canLoop();
 
-    wrap.append(link,
+    wrap.append(
       label('Image'), choice('Image size', EDGES, () => edge, (v) => { edge = v; pref('edge', v); }), image,
       ...(loops ? [label('Loop · one full turn'), choice('Loop length', [['10', '10 s'], ['20', '20 s'], ['30', '30 s']], () => secs, (v) => { secs = v; pref('loop', v); }), loop] : []));
     return wrap;
@@ -943,7 +948,7 @@
     if (id === 'colour') add(colourControls(G));
     if (id === 'create') add(createControls(G));
     if (id === 'settings') add(settingsControls(G));
-    if (id === 'share') add(shareControls(G));
+    if (id === 'capture') add(captureControls(G));
     return box;
   }
 
@@ -2544,15 +2549,16 @@
   const $ = (id) => document.getElementById(id);
   $('show').innerHTML = ICON.show + '<span>Show tools</span>';
 
-  // Cards: the six categories, then Share and Settings below the camera. Camera and hide are actions.
-  const SHARE = { id: 'share', label: 'Share', hint: 'A link, a big still, a loop' };
+  // Cards: the six categories, then the camera (stills and loops) and Settings. Share and hide are actions.
+  const CAPTURE = { id: 'capture', label: 'Capture', hint: 'Stills and loops' };
   const SETTINGS = { id: 'settings', label: 'Settings', hint: 'Appearance and keys' };
-  const ALL = CATS.concat([SHARE, SETTINGS]);
+  const ALL = CATS.concat([CAPTURE, SETTINGS]);
   const tab = (c) => `<button class="ib" role="tab" data-cat="${c.id}" data-tip aria-label="${c.label}" aria-selected="false" type="button">${ICON[c.id]}</button>`;
   const cats = $('cats');
   cats.innerHTML = CATS.map(tab).join('') + '<hr>' +
-    `<button class="ib" id="b-snap" data-tip aria-label="Snap image (S)" type="button">${ICON.camera}</button>` +
-    tab(SHARE) + tab(SETTINGS) +
+    tab(CAPTURE) +
+    `<button class="ib" id="b-share" data-tip aria-label="Copy share link (L)" type="button">${ICON.share}</button>` +
+    tab(SETTINGS) +
     `<button class="ib" id="b-hide" data-tip aria-label="Hide tools (H)" type="button">${ICON.hide}</button>`;
   const btns = () => Array.from(cats.querySelectorAll('[data-cat]'));
   let open = null;
@@ -2643,7 +2649,7 @@
     }
     snapping = false;
   }
-  $('b-snap').addEventListener('click', snap);
+  $('b-share').addEventListener('click', () => Kit.copyLink(G));
 
   // ⌘. strips everything, text included; ⌘. or Esc brings it all back as it was.
   function setBare(on) {

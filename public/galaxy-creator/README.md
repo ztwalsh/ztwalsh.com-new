@@ -45,10 +45,10 @@ works too in most browsers.
 |---|---|
 | Drag or swipe | orbit the camera; it keeps its momentum |
 | Pinch or scroll | zoom |
-| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Share, Settings and hide. Each opens its controls in a card beside the rail |
-| Camera, or `S` | snap the galaxy alone to a PNG (numbered, so rapid snaps never overwrite) |
-| Share | copy a link to this exact galaxy, camera included; save a 4K, 6K or 8K still; record a 10, 20 or 30 second loop |
-| `L` | copy the share link |
+| The rail | Create galaxy, Galaxy, Stars & gas, Motion, Light, Colour, then the camera, Share, Settings and hide. Each category, the camera and Settings open a card beside the rail |
+| Camera | save a still at screen size, 4K, 6K or 8K, or record a 10, 20 or 30 second loop |
+| `S` | snap the galaxy alone to a PNG at screen size (numbered, so rapid snaps never overwrite) |
+| Share, or `L` | copy a link to this exact galaxy, camera included |
 | `⌘` `.` (Ctrl `.`) | everything off the screen but the galaxy; again, or `Esc`, to bring it back |
 | `Space` | pause |
 | `R` | new seed: the same settings, a different galaxy |
@@ -86,7 +86,7 @@ dust filaments and small pink star-forming knots.
 
 **Surprise me** rolls the type, the shape, the gas, the palette and the seed.
 
-**Share.** The link carries every setting, the palette, the seed and the camera
+**Share and capture.** The link carries every setting, the palette, the seed and the camera
 in the address's `#g=` part, so it needs no server. Opening one shows that
 galaxy without touching the visitor's own; it becomes theirs, and leaves the
 address bar, the moment they change something.
