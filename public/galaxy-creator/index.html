@@ -396,21 +396,23 @@
   #show svg { width: 18px; height: 18px; }
   #show:active { transform: scale(0.95); }
 
-  /* Phones: the rail becomes a dock along the bottom and the cards rise above it. */
+  /* Phones: the rail becomes a dock along the bottom and the cards rise above it,
+     exactly as wide as the dock. */
   @media (max-width: 700px) {
+    :root { --dock-w: min(calc(100% - 32px), 420px); }
     #rail {
       --rail-pad: 6px;
       top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
-      width: max-content; max-width: calc(100vw - 32px); flex-direction: row;
+      width: var(--dock-w); flex-direction: row;
     }
-    #rail .group { flex-direction: row; gap: 0; min-width: 0; }
-    #rail .ib { flex: 0 1 44px; min-width: 0; height: 44px; }
+    #rail .group { flex-direction: row; gap: 0; min-width: 0; width: 100%; }
+    #rail .ib { flex: 1 1 0; min-width: 0; height: 44px; }
     #rail hr { width: 0; height: 24px; align-self: center; border-top: 0; border-left: 1px solid var(--hair); margin: 0 4px; flex: none; }
     body.tools-off #rail { transform: translate(-50%, 120px); }
     body.bare #rail { transform: translateX(-50%) !important; }
     body.bare.tools-off #rail { transform: translate(-50%, 120px) !important; }
     #fly {
-      left: 16px; right: 16px; width: auto; top: auto !important;
+      left: calc(50% - var(--dock-w) / 2); width: var(--dock-w); top: auto !important;
       bottom: calc(16px + 56px + 10px + env(safe-area-inset-bottom, 0px));
       max-height: calc(100vh - 16px - 56px - 10px - 16px - env(safe-area-inset-bottom, 0px)); overflow-y: auto;
       transform-origin: center bottom;
@@ -501,7 +503,7 @@
   // Create galaxy leads the rail; Settings sits with the actions at the bottom.
   const CATS = [
     { id: 'create', label: 'Create galaxy', hint: 'A new one, or a surprise' },
-    { id: 'galaxy', label: 'Galaxy', hint: 'Type and shape' },
+    { id: 'galaxy', label: 'Structure', hint: 'Type and shape' },
     { id: 'matter', label: 'Stars & gas', hint: 'What it is made of' },
     { id: 'motion', label: 'Motion', hint: 'Spin, drift, zoom' },
     { id: 'light', label: 'Light', hint: 'Exposure and lens' },
