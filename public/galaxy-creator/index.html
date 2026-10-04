@@ -187,6 +187,7 @@
     transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
   }
   .ib:hover { color: var(--ink); }
+  :where(.ib, .seg button, .btn, .sw, .swatches button, #show) { -webkit-tap-highlight-color: transparent; }
   .ib:active { transform: scale(0.9); transition-duration: 0.1s; }
   .ib[aria-pressed="true"], .ib[aria-selected="true"] { color: var(--ink); }
   .ib svg { width: 20px; height: 20px; position: relative; z-index: 1; }
@@ -395,6 +396,27 @@
   #show svg { width: 18px; height: 18px; }
   #show:active { transform: scale(0.95); }
 
+  /* Phones: the rail becomes a dock along the bottom and the cards rise above it. */
+  @media (max-width: 700px) {
+    #rail {
+      --rail-pad: 6px;
+      top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
+      width: max-content; max-width: calc(100vw - 32px); flex-direction: row;
+    }
+    #rail .group { flex-direction: row; gap: 0; min-width: 0; }
+    #rail .ib { flex: 0 1 44px; min-width: 0; height: 44px; }
+    #rail hr { width: 0; height: 24px; align-self: center; border-top: 0; border-left: 1px solid var(--hair); margin: 0 4px; flex: none; }
+    body.tools-off #rail { transform: translate(-50%, 120px); }
+    body.bare #rail { transform: translateX(-50%) !important; }
+    body.bare.tools-off #rail { transform: translate(-50%, 120px) !important; }
+    #fly {
+      left: 16px; right: 16px; width: auto; top: auto !important;
+      bottom: calc(16px + 56px + 10px + env(safe-area-inset-bottom, 0px));
+      max-height: calc(100vh - 16px - 56px - 10px - 16px - env(safe-area-inset-bottom, 0px)); overflow-y: auto;
+      transform-origin: center bottom;
+    }
+  }
+
   /* Captions belong to the chrome too: ⌘. takes them away, and the bottom-left one
      makes room for the Show tools pill. */
   body.bare .cap { opacity: 0; }
@@ -404,9 +426,10 @@
     padding: 24px; color: #9a9aa0; line-height: 1.7;
   }
   #fallback.show { display: grid; }
-  @media (max-width: 560px) {
+  @media (max-width: 700px) {
+    /* The dock takes the bottom edge, so the type moves up beside the title. */
     #cap-info { display: none; }
-    #fly, #keys { left: 84px; width: calc(100vw - 96px); }
+    #cap-type { bottom: auto; top: calc(20px + env(safe-area-inset-top, 0px)); }
   }
 </style>
 </head>
@@ -597,8 +620,9 @@
       if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; document.body.append(tip); }
       tip.textContent = b.getAttribute('aria-label');
       const r = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
-      const pos = side === 'right' ? { x: r.right + 10, y: r.top + r.height / 2 - t.height / 2 }
-        : side === 'top' ? { x: r.left + r.width / 2 - t.width / 2, y: r.top - t.height - 10 }
+      const at = typeof side === 'function' ? side() : side;
+      const pos = at === 'right' ? { x: r.right + 10, y: r.top + r.height / 2 - t.height / 2 }
+        : at === 'top' ? { x: r.left + r.width / 2 - t.width / 2, y: r.top - t.height - 10 }
         : { x: r.left + r.width / 2 - t.width / 2, y: r.bottom + 10 };
       tip.style.left = pos.x + 'px'; tip.style.top = pos.y + 'px';
       if (!still()) tip.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'scale(0.94)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 220, easing: EASE.pop });
@@ -1115,7 +1139,9 @@
   // Where the galaxy's centre sits on screen, in clip units: a touch up and
   // left of dead centre, so it reads balanced beside the panel. Orbiting
   // still pivots on the core; the shift is in the lens, not the camera.
-  const LENS = query.has('embed') ? [0, 0] : [0.05, 0.06];   // a touch right of centre and up, to balance the rail on the left
+  // A touch right of centre and up to balance the rail on the left; on phones, where
+  // the rail docks along the bottom, straight up instead.
+  const lens = () => (query.has('embed') ? [0, 0] : innerWidth <= 700 ? [0, 0.1] : [0.05, 0.06]);
   const PITCH_MAX = 1.5607;
   const HOLD = 7, MORPH = 4, PICK_MORPH = 2.6;
   const DIST_FAR = 16, DIST_NEAR = 0.025;
@@ -2055,6 +2081,7 @@
     for (let i = 0; i < 3; i++) eye[i] += focus[i];
     const view = rollView(lookAt(eye, focus, [0, 1, 0]), roll);
     const proj = perspective(FOV, W / H, Math.max(1e-4, dist * 0.002), 200);
+    const LENS = lens();
     proj[8] -= LENS[0]; proj[9] -= LENS[1];
     lastView = view;
     const focalPx = (H / 2) / Math.tan(FOV / 2);
@@ -2563,7 +2590,7 @@
   const btns = () => Array.from(cats.querySelectorAll('[data-cat]'));
   let open = null;
   const pill = Kit.pillTrack(cats, btns, (b) => b.dataset.cat === open);
-  Kit.tooltips(document.getElementById('rail'), 'right');
+  Kit.tooltips(document.getElementById('rail'), () => (docked() ? 'top' : 'right'));
   Kit.roving(cats, '.ib', true);
 
   const G = window.galaxy;
@@ -2571,8 +2598,11 @@
   const panes = {};
   const paneFor = (id) => panes[id] || (panes[id] = Kit.section(G, id));
 
+  // Phones dock the rail along the bottom; the card then sits above it (CSS places it).
+  const docked = () => matchMedia('(max-width: 700px)').matches;
   // Line the card up with its icon, kept on screen.
   function align(id) {
+    if (docked()) return null;
     const b = btns().find((x) => x.dataset.cat === id).getBoundingClientRect();
     const h = fly.offsetHeight;
     const top = Math.max(16, Math.min(innerHeight - h - 16, b.top + b.height / 2 - 34));
@@ -2591,10 +2621,12 @@
       fly.querySelector('b').textContent = cat.label;
       fly.querySelector('.ctl-title span').textContent = cat.hint;
       body.replaceChildren(paneFor(id));
-      fly.style.top = align(id) + 'px';
+      const top = align(id);
+      fly.style.top = top === null ? '' : top + 'px';
       if (body.firstChild.querySelector('.seg')) body.firstChild.querySelector('.seg')._place && body.firstChild.querySelector('.seg')._place();
       if (!still()) {
-        fly.animate([{ opacity: 0, transform: 'translateX(-14px) scale(0.92)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 420, easing: EASE.smooth });
+        const from = docked() ? 'translateY(14px) scale(0.94)' : 'translateX(-14px) scale(0.92)';
+        fly.animate([{ opacity: 0, transform: from, filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 420, easing: EASE.smooth });
         Array.from(body.firstChild.children).forEach((c, i) => Kit.enter(c, { transform: 'translateY(6px)' }, 60 + i * 28));
       }
       return;
@@ -2606,10 +2638,11 @@
     Kit.swapHTML(fly.querySelector('.ctl-title span'), cat.hint, true);
     // Measure the new height before the morph starts, so the card stays on screen.
     let toTop = fromTop;
-    Kit.morphHeight(fly, () => { body.replaceChildren(paneFor(id)); toTop = align(id); fly.style.top = toTop + 'px'; });
+    const dock = docked();
+    Kit.morphHeight(fly, () => { body.replaceChildren(paneFor(id)); if (!dock) { toTop = align(id); fly.style.top = toTop + 'px'; } });
     const seg = body.querySelector('.seg'); if (seg && seg._place) seg._place();
     if (!still()) {
-      fly.animate([{ top: fromTop + 'px' }, { top: toTop + 'px' }], { duration: 420, easing: EASE.smooth });
+      if (!dock) fly.animate([{ top: fromTop + 'px' }, { top: toTop + 'px' }], { duration: 420, easing: EASE.smooth });
       body.firstChild.animate([{ opacity: 0, filter: 'blur(6px)', transform: `translateY(${dir * 10}px)` }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 360, easing: EASE.smooth });
     }
   }
@@ -2620,7 +2653,7 @@
     pill.hide();
     const done = () => { fly.hidden = true; };
     if (still()) return done();
-    const a = fly.animate([{ opacity: 1, transform: 'none', filter: 'blur(0px)' }, { opacity: 0, transform: 'translateX(-10px) scale(0.96)', filter: 'blur(4px)' }], { duration: 170, easing: EASE.exit });
+    const a = fly.animate([{ opacity: 1, transform: 'none', filter: 'blur(0px)' }, { opacity: 0, transform: docked() ? 'translateY(10px) scale(0.97)' : 'translateX(-10px) scale(0.96)', filter: 'blur(4px)' }], { duration: 170, easing: EASE.exit });
     a.onfinish = done;
   }
   btns().forEach((b) => b.addEventListener('click', () => (open === b.dataset.cat ? close() : show(b.dataset.cat))));
