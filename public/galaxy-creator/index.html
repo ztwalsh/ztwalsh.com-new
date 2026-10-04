@@ -1208,19 +1208,33 @@
       } catch (e) {}
     }
 
+    // The camera as it comes to rest, its angle unwound to sit nearest a neighbouring key,
+    // so a key from an earlier visit (or after long drifting) never adds extra turns.
+    function grab(t, self) {
+      const cam = G.settle ? G.settle() : G.camera();
+      const others = d.keys.filter((k) => k !== self);
+      const near = others.filter((k) => k.t <= t).pop() || others[0];
+      if (near) cam.yaw -= Math.round((cam.yaw - near.cam.yaw) / TAU) * TAU;
+      return cam;
+    }
     // K: keep what the camera sees now, at the playhead. A key already there is replaced.
     d.add = async () => {
-      const cam = G.camera();
       let k = d.keys.find((x) => Math.abs(x.t - d.t) < 0.05);
+      const cam = grab(d.t, k);
+      G.setCamera(cam);                                          // show exactly what is kept
+      const isNew = !k;
       if (k) k.cam = cam;
       else { k = { id: nextId++, t: d.t, cam, ease: 'smooth', thumb: null }; d.keys.push(k); sort(); }
       d.selected = k.id;
       emit();
       await thumb(k);
+      // A new last key moves the playhead on a little, so the next K makes the next key
+      // instead of replacing this one. The camera stays put until you move it.
+      if (isNew && k === d.keys[d.keys.length - 1] && d.t < d.length) { d.t = Math.min(d.length, d.t + Math.min(3, d.length / 4)); d.selected = null; }
       emit();
       return k;
     };
-    d.update = async (id) => { const k = d.key(id); if (!k) return; k.cam = G.camera(); emit(); await thumb(k); emit(); };
+    d.update = async (id) => { const k = d.key(id); if (!k) return; k.cam = grab(k.t, k); G.setCamera(k.cam); emit(); await thumb(k); emit(); };
     d.remove = (id) => { d.keys = d.keys.filter((k) => k.id !== id); if (d.selected === id) d.selected = null; emit(); };
     d.move = (id, t) => { const k = d.key(id); if (!k) return; k.t = Math.max(0, Math.min(d.length, t)); sort(); emit(); };
     d.ease = (id, e) => { const k = d.key(id); if (k) { k.ease = e; emit(); } };
@@ -3089,6 +3103,16 @@
       goal = null; yawVel = 0; pitchVel = 0;
     },
     hold(v) { held = v === undefined ? !held : !!v; return held; },
+    // Where the camera is coming to rest: skip the rest of any glide, momentum or zoom
+    // ease and put it there now, so a keyframe keeps the view you meant, not one mid-move.
+    settle() {
+      if (goal) { yaw = goal.yaw; pitch = goal.pitch; roll = goal.roll; for (let i = 0; i < 3; i++) focus[i] = goal.target[i]; goal = null; }
+      const k = Math.log(1 / 0.12);                                // momentum decays as 0.12^t
+      yaw += yawVel / k; pitch = clamp(pitch + pitchVel / k, -PITCH_MAX, PITCH_MAX);
+      yawVel = 0; pitchVel = 0;
+      dist = zoomToDist(S.zoom);
+      return { yaw, pitch, roll, focus: focus.slice(), dist };
+    },
     view(e) { return viewKey({ code: e.code || '', key: e.key || '', ctrlKey: !!e.ctrlKey, shiftKey: !!e.shiftKey }); },
     pause(v) { paused = v === undefined ? !paused : v; return paused; },
   };
