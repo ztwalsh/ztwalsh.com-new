@@ -55,6 +55,25 @@ works too in most browsers.
 | `H` | hide the toolbar; the Show tools pill or `H` brings it back |
 | Settings | the share link, Light, Dark or System appearance (dark by default), captions on screen, and every key command |
 
+**Direct mode.** The switch at the top, or `Tab`, trades the rail for a timeline,
+the way Blender switches workspaces. The camera stops drifting, so it only moves
+when you move it.
+
+| | |
+|---|---|
+| `K` or `+` | keep what the camera sees as a keyframe, at the playhead |
+| Drag the line | scrub; the camera follows |
+| Drag a dot | retime that keyframe; hover one to see its picture |
+| Pick a dot | its easing (Smooth, Linear, Ease in, Ease out), Use this view, Delete |
+| `Space` | play the camera between the keyframes |
+| `←` `→` | previous or next keyframe |
+| `P` | preview: the shot alone, start to end, nothing else on screen |
+| `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Clear |
+
+The camera moves on Catmull-Rom curves through the keyframes, each with its own
+easing. Export video records the shot at its length, the same way loops are
+recorded. The shot is kept in this browser.
+
 **Blender-style navigation.** If your hands know Blender, they know this:
 
 | | |
