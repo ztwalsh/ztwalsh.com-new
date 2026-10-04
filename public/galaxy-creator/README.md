@@ -55,6 +55,36 @@ works too in most browsers.
 | `H` | hide the toolbar; the Show tools pill or `H` brings it back |
 | Settings | the share link, Light, Dark or System appearance (dark by default), captions on screen, and every key command |
 
+**Direct mode.** The two small icons in the top right corner (sliders for Create,
+film for Direct), or `Tab`, trade the rail for a timeline, the way Blender switches
+workspaces. The camera stops drifting, so it only moves
+when you move it.
+
+| | |
+|---|---|
+| `K` or `+` | keep what the camera sees as a keyframe, at the playhead |
+| Drag the line | scrub; the camera follows |
+| Drag a dot | retime that keyframe; hover one to see its picture |
+| Pick a dot | its easing (Smooth, Linear, Ease in, Ease out), Use this view, Delete |
+| `Space` | play the camera between the keyframes |
+| `←` `→` | previous or next keyframe |
+| `P` | preview: the shot alone, start to end, nothing else on screen |
+| Start over (↺) | clears the timeline at once; Undo appears for a few seconds |
+| Saved shots (bookmark) | save the shot with its galaxy and name it; reopen, rename or delete saved shots (Undo after opening over a shot or deleting one) |
+| `L`, in Direct | copy a shot link: the galaxy and its keyframes |
+| `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Start over |
+
+The camera moves on Catmull-Rom curves through the keyframes, each with its own
+easing. Export video records the shot at its length, the same way loops are
+recorded. The working shot is kept in this browser.
+
+Saved shots live in this browser too (`localStorage`, key `galaxy-shots`): the
+keyframes, every galaxy setting, and the first frame's picture. Opening one
+restores its galaxy as well. A shot link adds `&s=…` to the share link, about 40
+characters per keyframe, so it works on any device with no server; opening one
+goes straight to Direct, and whatever shot that browser had going is put in
+Saved shots first.
+
 **Blender-style navigation.** If your hands know Blender, they know this:
 
 | | |
