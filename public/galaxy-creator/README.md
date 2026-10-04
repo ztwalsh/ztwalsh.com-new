@@ -55,8 +55,9 @@ works too in most browsers.
 | `H` | hide the toolbar; the Show tools pill or `H` brings it back |
 | Settings | the share link, Light, Dark or System appearance (dark by default), captions on screen, and every key command |
 
-**Direct mode.** The switch at the top, or `Tab`, trades the rail for a timeline,
-the way Blender switches workspaces. The camera stops drifting, so it only moves
+**Direct mode.** The two small icons in the top right corner (sliders for Create,
+film for Direct), or `Tab`, trade the rail for a timeline, the way Blender switches
+workspaces. The camera stops drifting, so it only moves
 when you move it.
 
 | | |

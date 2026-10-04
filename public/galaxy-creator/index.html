@@ -93,6 +93,7 @@
   }
   #cap-title { top: calc(20px + env(safe-area-inset-top, 0px)); left: 20px; letter-spacing: 0.02em; }
   #cap-title i { font-style: normal; color: rgba(255,255,255,0.5); font-weight: 400; margin-left: 6px; }
+  #cap-kind { display: none; }
   #cap-info { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 20px; color: rgba(255,255,255,0.58); font-weight: 400; }
   #cap-type { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 20px; color: rgba(255,255,255,0.75); }
   body.clean .cap { opacity: 0; }
@@ -362,8 +363,26 @@
     *, *::after { transition-duration: 0.12s !important; transition-delay: 0s !important; transition-timing-function: ease !important; }
   }
   /* Direct mode: the bits every timeline sketch shares. */
-  .modes { position: fixed; z-index: 20; top: 14px; left: 50%; translate: -50% 0; padding: 4px; border-radius: 16px; transition: opacity 0.35s var(--spring-smooth), filter 0.35s var(--spring-smooth); }
-  .modes .seg { grid-template-columns: repeat(2, 1fr); width: 196px; }
+  /* Create | Direct: two quiet icons in the top right, on the galaxy itself (always dark). */
+  .modes {
+    position: fixed; z-index: 20; top: calc(13px + env(safe-area-inset-top, 0px)); right: 14px;
+    display: flex; gap: 2px; padding: 2px; border-radius: 999px;
+    transition: opacity 0.35s var(--spring-smooth), filter 0.35s var(--spring-smooth), background 0.25s;
+  }
+  .modes:hover { background: rgba(255, 255, 255, 0.06); }
+  .modes button {
+    position: relative; width: 32px; height: 30px; padding: 0 0 2px; border: 0; border-radius: 999px; background: none; cursor: pointer;
+    display: grid; place-items: center; color: rgba(255, 255, 255, 0.42); transition: color 0.25s; -webkit-tap-highlight-color: transparent;
+  }
+  .modes button:hover { color: rgba(255, 255, 255, 0.75); }
+  .modes button[aria-checked="true"] { color: rgba(255, 255, 255, 0.95); }
+  .modes button svg { width: 17px; height: 17px; }
+  .modes button .fill { opacity: 0; transition: opacity 0.25s; }
+  .modes button[aria-checked="true"] .fill { opacity: 1; }
+  .modes button:focus-visible { outline: 1px solid rgba(255, 255, 255, 0.6); outline-offset: 1px; }
+  .modes i { position: absolute; bottom: 1px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: #fff; pointer-events: none; transition: left var(--t-snappy) var(--spring-snappy); }
+  /* The playground's way back moves left, out of the toggle's corner. */
+  body:has(.modes) .backbar { right: auto; left: 16px; }
   .dchrome, .backbar { transition: opacity 0.35s var(--spring-smooth), filter 0.35s var(--spring-smooth), transform 0.35s var(--spring-smooth); }
   body.previewing .dchrome, body.previewing .backbar, body.previewing #toast, body.previewing .tip {
     opacity: 0 !important; filter: blur(6px); pointer-events: none !important;
@@ -546,10 +565,9 @@
   @media (max-width: 700px) {
     /* The dock takes the bottom edge, so the type moves up beside the title. */
     #cap-info { display: none; }
-    #cap-type { bottom: auto; top: calc(20px + env(safe-area-inset-top, 0px)); }
-    /* The Create | Direct switch takes the top centre, so the captions sit just below it. */
-    #cap-title, #cap-type { top: calc(70px + env(safe-area-inset-top, 0px)); }
-    .modes { top: calc(14px + env(safe-area-inset-top, 0px)); }
+    /* The mode toggle has the top right corner, so the type joins the title. */
+    #cap-type { display: none; }
+    #cap-kind { display: inline; }
   }
 </style>
 </head>
@@ -558,7 +576,7 @@
 <canvas id="stage" aria-label="Galaxy Creator: a tunable three-dimensional galaxy of stars, gas and dust"></canvas>
 <p class="sr-only" id="phase" aria-live="polite"></p>
 
-<div class="cap" id="cap-title">Galaxy Creator<i id="cap-seed"></i></div>
+<div class="cap" id="cap-title">Galaxy Creator<i id="cap-seed"></i><i id="cap-kind"></i></div>
 <div class="cap" id="cap-info"><span id="cap-count"></span> stars · drag to orbit · scroll to zoom</div>
 <div class="cap" id="cap-type"></div>
 
@@ -744,7 +762,7 @@
       const pos = at === 'right' ? { x: r.right + 10, y: r.top + r.height / 2 - t.height / 2 }
         : at === 'top' ? { x: r.left + r.width / 2 - t.width / 2, y: r.top - t.height - 10 }
         : { x: r.left + r.width / 2 - t.width / 2, y: r.bottom + 10 };
-      tip.style.left = pos.x + 'px'; tip.style.top = pos.y + 'px';
+      tip.style.left = Math.max(8, Math.min(innerWidth - t.width - 8, pos.x)) + 'px'; tip.style.top = pos.y + 'px';   // kept on screen
       if (!still()) tip.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'scale(0.94)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 220, easing: EASE.pop });
       tip.hidden = false;
     };
@@ -1459,6 +1477,8 @@
     refresh: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
     restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/>'),
     saved: svg('<path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"/>'),
+    sliders: svg('<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
+    film: svg('<rect class="fill" x="3.5" y="5.5" width="17" height="13" rx="3" fill="currentColor" fill-opacity=".14" stroke="none"/><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M8 5.5v13M16 5.5v13M3.5 10h4.5M3.5 14h4.5M16 10h4.5M16 14h4.5"/>'),
     pencil: svg('<path d="M14.5 5.5l4 4M4 20l1-5L15.5 4.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L9 19Z"/>'),
   });
   ICON.record = Kit.ICON.record; ICON.stop = Kit.ICON.stop;
@@ -1784,20 +1804,25 @@
     return { bar, show, openLib };
   }
 
-  // The Create | Direct switch at the top of the screen.
+  // Create | Direct: two small icons in the top right corner, as quiet as the captions.
+  // The current one is bright with a dot beneath it; nothing else on screen moves.
   function modeSwitch(initial, onChange) {
     const box = document.createElement('div');
-    box.className = 'modes card';
-    box.innerHTML = '<div class="seg" role="radiogroup" aria-label="Mode"><button type="button" role="radio" data-m="create">Create</button><button type="button" role="radio" data-m="direct">Direct</button></div>';
+    box.className = 'modes';
+    box.setAttribute('role', 'radiogroup'); box.setAttribute('aria-label', 'Mode');
+    box.innerHTML = `<button type="button" role="radio" data-m="create" data-tip aria-label="Create (Tab)">${ICON.sliders}</button><button type="button" role="radio" data-m="direct" data-tip aria-label="Direct (Tab)">${ICON.film}</button><i></i>`;
     document.body.append(box);
-    const seg = box.querySelector('.seg');
-    const btns = () => Array.from(seg.querySelectorAll('button'));
+    Kit.tooltips(box, 'bottom');
+    const dot = box.querySelector('i');
     let mode = initial;
-    const pill = Kit.pillTrack(seg, btns, (b) => b.dataset.m === mode);
-    const sync = (a) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.m === mode))); pill.place(a); };
-    requestAnimationFrame(() => sync(false));
-    const set = (m) => { if (m === mode) return; mode = m; sync(true); onChange(m); };
-    btns().forEach((b) => b.addEventListener('click', () => set(b.dataset.m)));
+    const sync = () => box.querySelectorAll('button').forEach((b) => {
+      const on = b.dataset.m === mode;
+      b.setAttribute('aria-checked', String(on));
+      if (on) dot.style.left = (b.offsetLeft + b.offsetWidth / 2) + 'px';
+    });
+    requestAnimationFrame(sync);
+    const set = (m) => { if (m === mode) return; mode = m; sync(); onChange(m); };
+    box.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => set(b.dataset.m)));
     return { el: box, set, get: () => mode, toggle: () => set(mode === 'create' ? 'direct' : 'create') };
   }
 
@@ -3062,6 +3087,7 @@
       $('cap-type').textContent = name; $('cap-seed').textContent = '#' + S.seed;
       $('cap-count').textContent = starCount().toLocaleString('en-US');
     }
+    $('cap-kind').textContent = '· ' + name;
     $('phase').textContent = name;
   }
   function applyCaptions() { document.body.classList.toggle('clean', !S.captions || query.has('embed')); }
