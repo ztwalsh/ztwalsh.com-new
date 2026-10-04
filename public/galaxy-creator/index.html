@@ -426,6 +426,27 @@
     padding: 5px 5px 5px 16px; border-radius: 999px; display: flex; align-items: center; gap: 12px; font-weight: 500;
   }
   #dundo .chip { border-radius: 999px; }
+  #dlib {
+    position: fixed; z-index: 12; left: 50%; translate: -50% 0; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    width: min(440px, calc(100vw - 32px)); padding: 16px; border-radius: 22px; display: grid; gap: 12px;
+  }
+  #dlib .lh { display: flex; align-items: baseline; justify-content: space-between; }
+  #dlib .lh b { font-size: 15px; font-weight: 600; }
+  #dlib .la { display: flex; gap: 6px; flex-wrap: wrap; }
+  #dlib .chip:disabled { opacity: 0.4; cursor: default; }
+  #dlib .ll { display: grid; gap: 2px; max-height: min(320px, 45vh); overflow-y: auto; scrollbar-width: none; margin: 0 -6px; }
+  #dlib .li { display: flex; align-items: center; gap: 2px; padding: 0 4px 0 0; border-radius: 14px; transition: background 0.2s; }
+  #dlib .li:hover, #dlib .li.cur { background: var(--chrome-2); }
+  #dlib .lo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 6px; border: 0; background: none; text-align: left; cursor: pointer; border-radius: 12px; }
+  #dlib .lo img, #dlib .lo i { width: 72px; height: 40px; border-radius: 9px; object-fit: cover; flex: none; background: var(--chrome-3); display: block; }
+  #dlib .ln { min-width: 0; display: grid; gap: 2px; }
+  #dlib .ln b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #dlib .ln em { font-style: normal; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  #dlib .ln input { font: inherit; font-weight: 600; color: var(--ink); background: var(--chrome); border: 0; border-radius: 7px; padding: 3px 6px; margin: -3px -6px; box-shadow: 0 0 0 1.5px var(--ink); outline: none; width: 100%; user-select: text; -webkit-user-select: text; }
+  #dlib .ib.sm { width: 32px; height: 32px; color: var(--ink-3); }
+  #dlib .ib.sm:hover { color: var(--ink); }
+  #dlib .empty-hint { padding: 14px 8px; text-align: center; }
+  body.tools-off #dlib, body.bare #dlib { opacity: 0 !important; pointer-events: none !important; }
   #dpeek { position: fixed; z-index: 15; padding: 6px; border-radius: 16px; pointer-events: none; }
   #dpeek img { display: block; width: 176px; height: 99px; object-fit: cover; border-radius: 11px; background: var(--chrome-2); }
   #dpeek span { display: block; padding: 5px 4px 1px; font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; font-weight: 500; }
@@ -441,7 +462,7 @@
   @media (max-width: 700px) {
     #dbar { width: var(--dock-w, calc(100vw - 32px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 0 6px; gap: 2px; }
     #dbar .tc { min-width: 0; font-size: 11.5px; }
-    #dbar .tc span, #dbar .tc .len { display: none; }
+    #dbar .over { display: none !important; }   /* Start over stays in the ⋯ menu */
     #dbar .track { margin: 0 8px; }
     #dopts { width: var(--dock-w, calc(100vw - 32px)); flex-wrap: wrap; padding: 8px 8px 8px 14px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
     #dopts .seg { width: 100%; order: 5; }
@@ -1297,9 +1318,32 @@
         flyover: () => [at(0, { dist: 0.9, pitch: 0.12, yaw: c.yaw }), at(0.5, { dist: 0.55, pitch: 0.05, yaw: c.yaw + 0.6 }, 'linear'), at(1, { dist: 1.1, pitch: 0.2, yaw: c.yaw + 1.2 }, 'linear')],
       };
       d.keys = SHOTS[name]();
-      d.selected = null;
+      d.selected = null; d.libId = null;
       emit();
-      for (const k of d.keys) { G.setCamera(k.cam); await new Promise((r) => requestAnimationFrame(() => r())); await thumb(k); emit(); }
+      await regen();
+      d.seek(0);
+    };
+    // Pictures for every key: put the camera there, let a frame draw, take the picture.
+    async function regen() {
+      for (const k of d.keys.slice()) {
+        G.setCamera(k.cam);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await thumb(k); emit();
+      }
+    }
+    // A shot as plain data (no pictures), and back. Loading makes the pictures again.
+    d.libId = null;                                              // the saved shot this one came from
+    d.data = () => ({ length: d.length, keys: d.keys.map(({ t, cam, ease }) => ({ t, cam, ease })) });
+    d.load = async (o, libId) => {
+      stop();
+      d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
+      d.keys = (o.keys || []).filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({
+        id: nextId++, t: Math.max(0, Math.min(d.length, k.t)), cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: null,
+      }));
+      sort();
+      d.selected = null; d.t = 0; d.libId = libId || null;
+      emit();
+      await regen();
       d.seek(0);
     };
     d.SHOTS = [['approach', 'Approach'], ['orbit', 'Orbit'], ['reveal', 'Reveal'], ['flyover', 'Flyover']];
@@ -1370,6 +1414,7 @@
       if (k === 'k' || k === 'K' || k === 'i' || k === 'I') { d.add(); return true; }
       if ((k === 'Delete' || k === 'Backspace') && d.selected) { d.remove(d.selected); return true; }
       if (k === 'p' || k === 'P') { d.preview(); return true; }
+      if ((k === 'l' || k === 'L') && d.keys.length) { copyShotLink(d); return true; }
       if (k === 'ArrowLeft' || k === 'ArrowRight') { d.step(k === 'ArrowRight' ? 1 : -1); return true; }
       if (k === 'Escape' && d.selected) { d.select(null); return true; }
       return false;
@@ -1413,6 +1458,8 @@
     trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7"/>'),
     refresh: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
     restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/>'),
+    saved: svg('<path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"/>'),
+    pencil: svg('<path d="M14.5 5.5l4 4M4 20l1-5L15.5 4.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L9 19Z"/>'),
   });
   ICON.record = Kit.ICON.record; ICON.stop = Kit.ICON.stop;
 
@@ -1445,12 +1492,55 @@
   const shotItems = (d) => ['Start from a shot'].concat(d.SHOTS.map(([v, t]) => [t, () => d.shot(v)]));
   const lengthItems = (d) => ['Length'].concat([6, 12, 20, 30].map((L) => [`${L} seconds${d.length === L ? '  ✓' : ''}`, () => d.setLength(L)]));
 
+  // ---- shot links: the keyframes ride in the share link, after the galaxy -------------------------
+  // #g=…&s=1~<length>~<key>~<key>…, each key t·ease·yaw·pitch·roll·x·y·z·log(dist), scaled to integers.
+  const EASE_KEYS = ['smooth', 'linear', 'in', 'out'];
+  function encodeShot(d) {
+    return ['1', d.length].concat(d.keys.map((k) => [Math.round(k.t * 100), Math.max(0, EASE_KEYS.indexOf(k.ease))]
+      .concat([k.cam.yaw, k.cam.pitch, k.cam.roll, k.cam.focus[0], k.cam.focus[1], k.cam.focus[2], Math.log(k.cam.dist)].map((v) => Math.round(v * 1000))).join('.'))).join('~');
+  }
+  function decodeShot(str) {
+    const parts = String(str).split('~');
+    if (parts[0] !== '1' || parts.length < 3) return null;
+    const keys = parts.slice(2).map((p) => p.split('.').map(Number)).filter((f) => f.length === 9 && f.every(isFinite)).map((f) => ({
+      t: f[0] / 100, ease: EASE_KEYS[f[1]] || 'smooth',
+      cam: { yaw: f[2] / 1000, pitch: f[3] / 1000, roll: f[4] / 1000, focus: [f[5] / 1000, f[6] / 1000, f[7] / 1000], dist: Math.exp(f[8] / 1000) },
+    }));
+    return keys.length ? { length: +parts[1], keys } : null;
+  }
+  const fromHash = (hash) => { const m = /(?:^#|&)s=([^&]+)/.exec(hash || ''); return m ? decodeShot(decodeURIComponent(m[1])) : null; };
+  const shotLink = (d) => d.G.link() + (d.keys.length ? '&s=' + encodeShot(d) : '');
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+    const t = document.createElement('textarea');
+    t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.append(t); t.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    t.remove();
+    return ok;
+  }
+  async function copyShotLink(d) {
+    if (!d.keys.length) { toast('Add a keyframe first'); return; }
+    toast(await copyText(shotLink(d)) ? 'Shot link copied' : 'Could not copy the link', 'tick');
+  }
+
+  // ---- saved shots: a small library in this browser ------------------------------------------------
+  // Each entry keeps the keys, the galaxy they were made with, and the first frame's picture.
+  const LIB = 'galaxy-shots';
+  const library = {
+    read() { try { const a = JSON.parse(localStorage.getItem(LIB) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } },
+    write(a) { try { localStorage.setItem(LIB, JSON.stringify(a)); return true; } catch (e) { toast('Not enough room to save in this browser'); return false; } },
+  };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
   // ---- the dot track: Direct mode's timeline -------------------------------------------------
   // One slim pill like a video scrubber: play, a line with a dot for every keyframe,
   // the time, + and a menu. Hover a dot for its picture; pick one for its options.
   function dotTrack(d) {
     const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
-    const bar = el('section', 'card dchrome', `<button class="ib sm play" type="button" data-tip aria-label="Play (Space)"></button><div class="track"></div><span class="tc"></span><button class="ib sm add" type="button" data-tip aria-label="Keyframe (K)">${ICON.create}</button><button class="ib sm over" type="button" data-tip aria-label="Start over" hidden>${ICON.restart}</button><button class="ib sm more" type="button" data-tip aria-label="Shots, length, export">${ICON.more}</button>`);
+    const bar = el('section', 'card dchrome', `<button class="ib sm play" type="button" data-tip aria-label="Play (Space)"></button><div class="track"></div><span class="tc"></span><button class="ib sm add" type="button" data-tip aria-label="Keyframe (K)">${ICON.create}</button><button class="ib sm over" type="button" data-tip aria-label="Start over" hidden>${ICON.restart}</button><button class="ib sm lib" type="button" data-tip aria-label="Saved shots">${ICON.saved}</button><button class="ib sm more" type="button" data-tip aria-label="Shots, length, export">${ICON.more}</button>`);
     bar.id = 'dbar'; bar.setAttribute('aria-label', 'Timeline');
     const peek = el('div', 'card', '<img alt=""><span></span>'); peek.id = 'dpeek'; peek.hidden = true;
     const opts = el('div', 'card dchrome'); opts.id = 'dopts'; opts.hidden = true;
@@ -1461,13 +1551,15 @@
     bar.querySelector('.add').onclick = () => d.add();
     bar.querySelector('.over').onclick = () => startOver();
     bar.querySelector('.more').onclick = (e) => menu(e.currentTarget, shotItems(d).concat(['-'], lengthItems(d), ['-',
-      ['Preview', d.preview, 'P'], ['Export video', d.export], ['Start over', () => startOver()]]));
+      ['Preview', d.preview, 'P'], ['Export video', d.export], ['Copy shot link', () => copyShotLink(d), 'L'], ['Start over', () => startOver()]]));
+    bar.querySelector('.lib').onclick = () => (lib.hidden ? openLib() : closeLib());
 
-    // Start over clears at once; a small pill offers the way back for a few seconds.
-    const undo = el('div', 'card dchrome', '<span>Shot cleared</span><button class="chip" type="button">Undo</button>');
+    // Undo for a few seconds after anything that throws work away: Start over, opening a
+    // saved shot over this one, deleting a saved shot.
+    const undo = el('div', 'card dchrome', '<span></span><button class="chip" type="button">Undo</button>');
     undo.id = 'dundo'; undo.hidden = true;
     document.body.append(undo);
-    let undoTimer = 0;
+    let undoTimer = 0, undoFn = null, undoGone = null;
     const hideUndo = () => {
       clearTimeout(undoTimer);
       if (undo.hidden) return;
@@ -1475,16 +1567,115 @@
       undo.animate([{ opacity: 1, transform: 'none', filter: 'blur(0px)' }, { opacity: 0, transform: 'translateY(6px) scale(0.97)', filter: 'blur(4px)' }], { duration: 170, easing: EASE.exit, fill: 'forwards' });
       undoTimer = setTimeout(() => { undo.hidden = true; undo.getAnimations().forEach((x) => x.cancel()); }, 180);
     };
-    undo.querySelector('button').onclick = () => { d.undo(); hideUndo(); };
-    function startOver() {
-      if (!d.keys.length) return;
-      d.clear();
+    undo.querySelector('button').onclick = () => { const f = undoFn; undoFn = null; hideUndo(); if (f) f(); };
+    function showUndo(text, fn, gone) {
+      if (undoGone) undoGone();
+      undoFn = fn; undoGone = gone || null;
+      undo.firstChild.textContent = text;
       undo.getAnimations().forEach((x) => x.cancel());
       undo.hidden = false;
       if (!still()) undo.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 320, easing: EASE.pop });
       clearTimeout(undoTimer);
-      undoTimer = setTimeout(() => { hideUndo(); d.undoable = null; }, 6000);
+      undoTimer = setTimeout(() => { hideUndo(); undoFn = null; if (undoGone) { undoGone(); undoGone = null; } }, 6000);
     }
+    function startOver() {
+      if (!d.keys.length) return;
+      d.clear(); d.libId = null;
+      showUndo('Shot cleared', () => d.undo(), () => { d.undoable = null; });
+    }
+
+    // Saved shots: a card above the bar. Save (or update), name, reopen, rename, delete.
+    const lib = el('div', 'card dchrome'); lib.id = 'dlib'; lib.hidden = true;
+    document.body.append(lib);
+    let renaming = null;
+    function renderLib() {
+      const all = library.read();
+      const cur = all.find((x) => x.id === d.libId);
+      lib.innerHTML = `<div class="lh"><b>Saved shots</b><span class="tc">${all.length || ''}</span></div>
+        <div class="la">
+          <button class="chip ink" data-a="save" type="button"${d.keys.length ? '' : ' disabled'}>${ICON.saved}<span>${cur ? 'Update “' + esc(cur.name) + '”' : 'Save shot'}</span></button>
+          ${cur ? `<button class="chip" data-a="new" type="button">Save as new</button>` : ''}
+          <button class="chip" data-a="link" type="button"${d.keys.length ? '' : ' disabled'}>${ICON.link}<span>Copy link</span></button>
+        </div>
+        <div class="ll">${all.length ? all.map((x) => `<div class="li${x.id === d.libId ? ' cur' : ''}" data-id="${x.id}">
+          <button class="lo" type="button" aria-label="Open ${esc(x.name)}">${x.cover ? `<img src="${x.cover}" alt="">` : '<i></i>'}<span class="ln">${x.id === renaming ? `<input value="${esc(x.name)}" aria-label="Shot name" maxlength="60">` : `<b>${esc(x.name)}</b>`}<em>${x.shot.keys.length} keys · ${x.shot.length} s</em></span></button>
+          <button class="ib sm" data-a="ren" type="button" aria-label="Rename">${ICON.pencil}</button>
+          <button class="ib sm" data-a="del" type="button" aria-label="Delete">${ICON.trash}</button>
+        </div>`).join('') : '<div class="empty-hint">Nothing saved yet. Make a shot, then save it here.</div>'}</div>`;
+      lib.querySelector('[data-a=save]').onclick = () => save(!cur);
+      const asNew = lib.querySelector('[data-a=new]'); if (asNew) asNew.onclick = () => save(true);
+      lib.querySelector('[data-a=link]').onclick = () => copyShotLink(d);
+      lib.querySelectorAll('.li').forEach((row) => {
+        const id = row.dataset.id;
+        row.querySelector('.lo').onclick = (e) => { if (e.target.tagName !== 'INPUT') open(id); };
+        row.querySelector('[data-a=ren]').onclick = () => { renaming = id; renderLib(); };
+        row.querySelector('[data-a=del]').onclick = () => remove(id);
+        const input = row.querySelector('input');
+        if (input) {
+          input.focus(); input.select();
+          const done = (keep) => {
+            if (renaming !== id) return;
+            renaming = null;
+            const name = input.value.trim();
+            if (keep && name) { const a = library.read(); const x = a.find((y) => y.id === id); if (x) { x.name = name; library.write(a); } }
+            renderLib();
+          };
+          input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); });
+          input.addEventListener('blur', () => done(true));
+        }
+      });
+    }
+    function save(asNew) {
+      if (!d.keys.length) return;
+      const a = library.read();
+      const entry = { shot: d.data(), galaxy: d.G.getState(), cover: d.keys[0].thumb || null, at: Date.now() };
+      let x = !asNew && a.find((y) => y.id === d.libId);
+      if (x) Object.assign(x, entry);
+      else {
+        let n = a.length + 1;
+        while (a.some((y) => y.name === 'Shot ' + n)) n++;
+        x = Object.assign({ id: uid(), name: 'Shot ' + n }, entry);
+        a.unshift(x);
+        renaming = x.id;                                         // name it straight away
+      }
+      if (!library.write(a)) return;
+      d.libId = x.id;
+      renderLib();
+      toast(asNew ? 'Shot saved' : 'Shot updated', 'tick');
+    }
+    async function open(id) {
+      const x = library.read().find((y) => y.id === id);
+      if (!x) return;
+      const before = d.keys.length && d.libId !== id ? { shot: d.data(), galaxy: d.G.getState(), libId: d.libId } : null;
+      closeLib();
+      d.G.apply(x.galaxy);
+      const loading = d.load(x.shot, x.id);
+      if (before) showUndo(`Opened “${x.name}”`, () => { d.G.apply(before.galaxy); d.load(before.shot, before.libId); });
+      await loading;
+    }
+    function remove(id) {
+      const a = library.read(), i = a.findIndex((y) => y.id === id);
+      if (i < 0) return;
+      const [x] = a.splice(i, 1);
+      library.write(a);
+      if (d.libId === id) d.libId = null;
+      renderLib();
+      showUndo(`Deleted “${x.name}”`, () => { const b = library.read(); b.splice(Math.min(i, b.length), 0, x); library.write(b); if (!lib.hidden) renderLib(); });
+    }
+    function openLib() {
+      d.pause(); d.select(null); renaming = null;
+      renderLib();
+      lib.hidden = false;
+      if (!still()) lib.animate([{ opacity: 0, transform: 'translateY(10px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 340, easing: EASE.pop });
+    }
+    function closeLib() {
+      if (lib.hidden) return;
+      if (still()) { lib.hidden = true; return; }
+      lib.animate([{ opacity: 1, transform: 'none', filter: 'blur(0px)' }, { opacity: 0, transform: 'translateY(8px) scale(0.97)', filter: 'blur(4px)' }], { duration: 170, easing: EASE.exit, fill: 'forwards' });
+      setTimeout(() => { lib.hidden = true; lib.getAnimations().forEach((x) => x.cancel()); }, 180);
+    }
+    document.addEventListener('pointerdown', (e) => { if (!lib.hidden && !lib.contains(e.target) && !bar.querySelector('.lib').contains(e.target)) closeLib(); }, true);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lib.hidden) closeLib(); });
 
     const pct = (t) => (t / d.length * 100) + '%';
     track.addEventListener('pointerdown', (e) => {
@@ -1550,6 +1741,7 @@
       if (!k || d.playing || d.recording || bar.hidden) { opts.hidden = true; optsFor = null; return; }
       const i = d.index(k.id), key = `${k.id}:${i}:${k.t}:${!!k.thumb}`;
       if (optsFor === key) return;
+      closeLib();
       const wasHidden = opts.hidden;
       optsFor = key;
       opts.innerHTML = `${k.thumb ? `<img src="${k.thumb}" alt="">` : ''}<b>Keyframe ${i + 1}</b><span class="tc">${fmt(k.t)}</span>`;
@@ -1568,7 +1760,7 @@
       track.querySelector('.done').style.width = pct(d.t);
       bar.classList.toggle('recording', !!d.recording);
       bar.querySelector('.over').hidden = !d.keys.length;
-      if (d.keys.length && !undo.hidden) hideUndo();
+
       tc.innerHTML = d.recording ? `<b>Recording</b> ${Math.floor(d.recording.k * 100)}%` : `<b>${fmt(d.t)}</b> / ${fmt(d.length)}`;
       play.innerHTML = d.recording ? ICON.stop : d.playing ? ICON.pause : ICON.play;
       play.setAttribute('aria-label', d.recording ? 'Stop recording (Esc)' : d.playing ? 'Pause (Space)' : 'Play (Space)');
@@ -1578,7 +1770,7 @@
     // Shown in Direct mode, put away in Create.
     function show(on) {
       const els = [bar];
-      if (!on) { opts.hidden = true; peek.hidden = true; undo.hidden = true; optsFor = null; }
+      if (!on) { opts.hidden = true; peek.hidden = true; undo.hidden = true; lib.hidden = true; optsFor = null; }
       if (on === !bar.hidden) return;
       if (still()) { bar.hidden = !on; if (on) strip(); return; }
       if (on) {
@@ -1589,7 +1781,7 @@
         a.onfinish = () => { bar.hidden = true; };
       }
     }
-    return { bar, show };
+    return { bar, show, openLib };
   }
 
   // The Create | Direct switch at the top of the screen.
@@ -1609,7 +1801,7 @@
     return { el: box, set, get: () => mode, toggle: () => set(mode === 'create' ? 'direct' : 'create') };
   }
 
-  window.Director = { start, create, keyHandler, dotTrack, modeSwitch, fmt, EASES, EASE_NAMES, easeSeg, timeAt, still, EASE, ICON, menu, shotItems, lengthItems };
+  window.Director = { start, create, keyHandler, dotTrack, fromHash, encodeShot, decodeShot, library, modeSwitch, fmt, EASES, EASE_NAMES, easeSeg, timeAt, still, EASE, ICON, menu, shotItems, lengthItems };
 })();
 </script>
 <script>
@@ -3148,6 +3340,20 @@
       goal = null; yawVel = 0; pitchVel = 0;
     },
     hold(v) { held = v === undefined ? !held : !!v; return held; },
+    // A whole galaxy as plain data, and back: for saved shots, which reopen with the
+    // galaxy they were made with. Applying switches type at once, with no morph.
+    getState() { const o = Object.assign({}, S); delete o.captions; return o; },
+    apply(o) {
+      if (!o) return;
+      const seed = S.seed;
+      for (const k in BASE) if (k !== 'captions' && k in o && typeof o[k] === typeof BASE[k]) S[k] = o[k];
+      SLIDERS.forEach((d) => { const v = +S[d[1]]; S[d[1]] = clamp(isFinite(v) ? v : BASE[d[1]], d[3], d[4]); });
+      if (S.type !== 'Cycle' && TYPES.indexOf(S.type) < 0) S.type = 'Spiral';
+      const i = TYPES.indexOf(S.type);
+      if (i >= 0) { mFrom = mTo = i; mK = 0; morphing = false; } else holdT = 0;
+      if (S.seed !== seed) grow();
+      S.preset = matchPreset(); applyColour(); applyCaptions(); updateCaptions(); persist();
+    },
     // Where the camera is coming to rest: skip the rest of any glide, momentum or zoom
     // ease and put it there now, so a keyframe keeps the view you meant, not one mid-move.
     settle() {
@@ -3326,6 +3532,18 @@
     track.show(on);
   }
   const modes = Director.modeSwitch('create', setMode);
+  // A shot link (#g=…&s=…) opens straight into Direct with its keyframes. Whatever shot
+  // this browser had going is kept in Saved shots first, so nothing is lost.
+  const linked = Director.fromHash(location.hash);
+  if (linked) {
+    if (D.keys.length) {
+      const a = Director.library.read();
+      a.unshift({ id: Date.now().toString(36), name: 'Before the link · ' + new Date().toLocaleDateString(), shot: D.data(), galaxy: G.getState(), cover: D.keys[0].thumb || null, at: Date.now() });
+      Director.library.write(a);
+    }
+    modes.set('direct');
+    D.load(linked).then(() => Kit.toast('Shot opened from the link', 'tick'));
+  }
 
   Kit.bindKeys(G, {
     key: (e) => {
