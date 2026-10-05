@@ -437,6 +437,9 @@
   #dbar .dot:hover { transform: scale(1.25); box-shadow: inset 0 0 0 2px var(--ink); }
   #dbar .dot.sel { background: var(--ink); box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 3px var(--chrome), 0 0 0 4.5px var(--ink); transform: scale(1.1); }
   #dbar .dot.drag { cursor: grabbing; transform: scale(1.4); }
+  /* A key that changes the galaxy (not just the camera) carries a small centre. */
+  #dbar .dot.chg::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--ink-2); }
+  #dbar .dot.sel.chg::before { background: var(--chrome); }
   #dbar .ph { position: absolute; top: 50%; width: 4px; height: 22px; margin: -11px 0 0 -2px; border-radius: 4px; background: var(--ink); pointer-events: none; box-shadow: 0 0 0 2px var(--chrome); }
   #dbar .empty-hint { position: absolute; inset: 0 0 0 12px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; white-space: nowrap; overflow: hidden; }
   #dbar .tc { min-width: 92px; text-align: right; }
@@ -476,6 +479,7 @@
   #dopts b { font-weight: 600; white-space: nowrap; }
   #dopts img { width: 64px; height: 36px; object-fit: cover; border-radius: 9px; margin-left: -8px; display: block; flex: none; }
   #dopts .tc { margin-right: 4px; }
+  #dopts .chg { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: var(--chrome-2); }
   #dopts .seg { width: 300px; }
   #dopts .ib.sm { width: 32px; height: 32px; flex: none; }
   @media (max-width: 700px) {
@@ -1191,6 +1195,29 @@
   const flat = (c) => [c.yaw, c.pitch, c.roll, c.focus[0], c.focus[1], c.focus[2], Math.log(c.dist)];
   const unflat = (v) => ({ yaw: v[0], pitch: v[1], roll: v[2], focus: [v[3], v[4], v[5]], dist: Math.exp(v[6]) });
 
+  // Galaxy settings a keyframe keeps: everything but the camera's own zoom, the idle drift
+  // and the palette's name. Numbers and colours blend between keys; the rest switch at a key.
+  const BLEND = ['twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'bright', 'bloom', 'sat'];
+  const COLOURS = ['old', 'young', 'gasA', 'gasB'];
+  const STEP = ['type', 'arms', 'seed', 'spikes', 'companions'];
+  const SET_KEYS = BLEND.concat(COLOURS, STEP);
+  const SET_LABELS = { twist: 'Twist', core: 'Core', spread: 'Spread', stars: 'Stars', size: 'Star size', nebula: 'Nebula', dust: 'Dust', spin: 'Spin', bright: 'Brightness', bloom: 'Bloom', sat: 'Saturation', type: 'Type', arms: 'Arms', seed: 'Seed', spikes: 'Spikes', companions: 'Companions' };
+  const pickSet = (o) => { const r = {}; SET_KEYS.forEach((k) => { if (o && k in o) r[k] = o[k]; }); return r; };
+  const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const rgbHex = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const mixHex = (a, b, u) => { const A = hexRgb(a), B = hexRgb(b); return rgbHex(A.map((v, i) => v + (B[i] - v) * u)); };
+  // The settings that differ between two keys, as words for the keyframe strip.
+  function changes(a, b) {
+    const out = [];
+    SET_KEYS.forEach((k) => {
+      if (COLOURS.includes(k)) return;
+      const x = a[k], y = b[k];
+      if (typeof x === 'number' ? Math.abs(x - y) > 1e-3 : x !== y) out.push(SET_LABELS[k]);
+    });
+    if (COLOURS.some((k) => a[k] !== b[k])) out.push('Colours');
+    return out;
+  }
+
   let nextId = 1;
   function create(G, store) {
     const d = { keys: [], length: 12, t: 0, playing: false, selected: null, recording: null, G };
@@ -1200,7 +1227,7 @@
         const o = JSON.parse(localStorage.getItem(store) || 'null');
         if (o && Array.isArray(o.keys)) {
           d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
-          d.keys = o.keys.filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({ id: nextId++, t: k.t, cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: k.thumb || null }));
+          d.keys = o.keys.filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({ id: nextId++, t: k.t, cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: k.thumb || null, set: k.set ? pickSet(k.set) : pickSet(G.getState()) }));
         }
       } catch (e) {}
     }
@@ -1208,14 +1235,14 @@
     const save = () => {
       if (!store) return;
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => { try { localStorage.setItem(store, JSON.stringify({ length: d.length, keys: d.keys.map(({ t, cam, ease, thumb }) => ({ t, cam, ease, thumb })) })); } catch (e) {} }, 300);
+      saveTimer = setTimeout(() => { try { localStorage.setItem(store, JSON.stringify({ length: d.length, keys: d.keys.map(({ t, cam, ease, thumb, set }) => ({ t, cam, ease, thumb, set })) })); } catch (e) {} }, 300);
     };
     const subs = new Set();
     d.on = (f) => { subs.add(f); f(d); };
     let lastSig = '';
     const emit = () => {
       subs.forEach((f) => f(d));
-      const sig = d.length + JSON.stringify(d.keys.map((k) => [k.t, k.ease, !!k.thumb, k.cam.yaw, k.cam.dist]));
+      const sig = d.length + JSON.stringify(d.keys.map((k) => [k.t, k.ease, !!k.thumb, k.cam.yaw, k.cam.dist, k.set]));
       if (sig !== lastSig) { lastSig = sig; save(); }
     };
     const sort = () => d.keys.sort((a, b) => a.t - b.t);
@@ -1234,12 +1261,31 @@
       const A = flat(a.cam), B = flat(b.cam), C = flat(c.cam), E = flat(e.cam);
       return unflat(B.map((_, j) => cr(A[j], B[j], C[j], E[j], u)));
     };
+    // The galaxy at time t: numbers and colours blend with the same easing as the camera;
+    // type, arms, seed and the switches hold until the next key.
+    d.sampleSet = (t) => {
+      const K = d.keys.filter((k) => k.set);
+      if (!K.length) return null;
+      if (t <= K[0].t) return K[0].set;
+      if (t >= K[K.length - 1].t) return K[K.length - 1].set;
+      let i = 0;
+      while (K[i + 1].t < t) i++;
+      const b = K[i], c = K[i + 1];
+      const u = EASES[c.ease]((t - b.t) / Math.max(1e-6, c.t - b.t));
+      const o = Object.assign({}, b.set);
+      BLEND.forEach((k) => { if (typeof b.set[k] === 'number' && typeof c.set[k] === 'number') o[k] = b.set[k] + (c.set[k] - b.set[k]) * u; });
+      COLOURS.forEach((k) => { if (b.set[k] && c.set[k] && b.set[k] !== c.set[k]) o[k] = mixHex(b.set[k], c.set[k], u); });
+      return o;
+    };
     d.seek = (t, quiet) => {
       d.t = Math.max(0, Math.min(d.length, t));
       const c = d.sample(d.t);
       if (c) G.setCamera(c);
+      const s = d.sampleSet(d.t);
+      if (s && G.setLive) G.setLive(s, d.playing);
       if (!quiet) emit();
     };
+    d.changes = (k) => { const i = d.index(k.id); return i > 0 && k.set && d.keys[i - 1].set ? changes(d.keys[i - 1].set, k.set) : []; };
 
     // A thumbnail of what the camera sees, small enough to sit on a timeline.
     async function thumb(k) {
@@ -1268,18 +1314,19 @@
       const cam = grab(d.t, k);
       G.setCamera(cam);                                          // show exactly what is kept
       const isNew = !k;
-      if (k) k.cam = cam;
-      else { k = { id: nextId++, t: d.t, cam, ease: 'smooth', thumb: null }; d.keys.push(k); sort(); }
+      const set = pickSet(G.getState());                         // the galaxy as it is now, too
+      if (k) { k.cam = cam; k.set = set; }
+      else { k = { id: nextId++, t: d.t, cam, ease: 'smooth', thumb: null, set }; d.keys.push(k); sort(); }
       d.selected = k.id;
+      // A new last key moves the playhead on a little, at once, so the next K makes the next
+      // key instead of replacing this one. The camera stays put until you move it.
+      if (isNew && k === d.keys[d.keys.length - 1] && d.t < d.length) { d.t = Math.min(d.length, d.t + Math.min(3, d.length / 4)); d.selected = null; }
       emit();
       await thumb(k);
-      // A new last key moves the playhead on a little, so the next K makes the next key
-      // instead of replacing this one. The camera stays put until you move it.
-      if (isNew && k === d.keys[d.keys.length - 1] && d.t < d.length) { d.t = Math.min(d.length, d.t + Math.min(3, d.length / 4)); d.selected = null; }
       emit();
       return k;
     };
-    d.update = async (id) => { const k = d.key(id); if (!k) return; k.cam = grab(k.t, k); G.setCamera(k.cam); emit(); await thumb(k); emit(); };
+    d.update = async (id) => { const k = d.key(id); if (!k) return; k.cam = grab(k.t, k); k.set = pickSet(G.getState()); G.setCamera(k.cam); emit(); await thumb(k); emit(); };
     d.remove = (id) => { d.keys = d.keys.filter((k) => k.id !== id); if (d.selected === id) d.selected = null; emit(); };
     d.move = (id, t) => { const k = d.key(id); if (!k) return; k.t = Math.max(0, Math.min(d.length, t)); sort(); emit(); };
     d.ease = (id, e) => { const k = d.key(id); if (k) { k.ease = e; emit(); } };
@@ -1328,7 +1375,8 @@
     d.shot = async (name) => {
       stop();
       const c = G.camera(), L = d.length;
-      const at = (t, o, ease) => ({ id: nextId++, t: t * L, ease: ease || 'smooth', thumb: null, cam: Object.assign({}, c, { focus: [0, 0, 0] }, o) });
+      const now = pickSet(G.getState());
+      const at = (t, o, ease) => ({ id: nextId++, t: t * L, ease: ease || 'smooth', thumb: null, set: now, cam: Object.assign({}, c, { focus: [0, 0, 0] }, o) });
       const SHOTS = {
         approach: () => [at(0, { dist: 16, yaw: c.yaw - 0.9, pitch: Math.min(1.2, c.pitch + 0.3) }), at(0.55, { dist: Math.max(c.dist, 2.4), yaw: c.yaw - 0.2 }, 'out'), at(1, { dist: Math.max(0.5, c.dist * 0.45) }, 'smooth')],
         orbit: () => [0, 1, 2, 3, 4].map((i) => at(i / 4, { yaw: c.yaw + i * TAU / 4 }, 'linear')),
@@ -1345,18 +1393,19 @@
     async function regen() {
       for (const k of d.keys.slice()) {
         G.setCamera(k.cam);
+        if (k.set && G.setLive) G.setLive(k.set, false);         // the picture shows that key's galaxy
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         await thumb(k); emit();
       }
     }
     // A shot as plain data (no pictures), and back. Loading makes the pictures again.
     d.libId = null;                                              // the saved shot this one came from
-    d.data = () => ({ length: d.length, keys: d.keys.map(({ t, cam, ease }) => ({ t, cam, ease })) });
+    d.data = () => ({ length: d.length, keys: d.keys.map(({ t, cam, ease, set }) => ({ t, cam, ease, set })) });
     d.load = async (o, libId) => {
       stop();
       d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
       d.keys = (o.keys || []).filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({
-        id: nextId++, t: Math.max(0, Math.min(d.length, k.t)), cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: null,
+        id: nextId++, t: Math.max(0, Math.min(d.length, k.t)), cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: null, set: pickSet(Object.assign(G.getState(), k.set || {})),
       }));
       sort();
       d.selected = null; d.t = 0; d.libId = libId || null;
@@ -1387,7 +1436,7 @@
       stop(); d.select(null);
       d.recording = { k: 0 }; emit();
       try {
-        const { blob, ext } = await G.recordPath(d.length, (t) => d.sample(t), (k) => { d.recording.k = k; d.t = k * d.length; emit(); });
+        const { blob, ext } = await G.recordPath(d.length, (t) => Object.assign({}, d.sample(t), { set: d.sampleSet(t) }), (k) => { d.recording.k = k; d.t = k * d.length; emit(); });
         d.recording = null; emit();
         await Kit.download(blob, `galaxy-shot-${G.state.seed}-${d.length}s.${ext}`);
         toast('Shot saved', 'tick');
@@ -1513,22 +1562,40 @@
   const lengthItems = (d) => ['Length'].concat([6, 12, 20, 30].map((L) => [`${L} seconds${d.length === L ? '  ✓' : ''}`, () => d.setLength(L)]));
 
   // ---- shot links: the keyframes ride in the share link, after the galaxy -------------------------
-  // #g=…&s=1~<length>~<key>~<key>…, each key t·ease·yaw·pitch·roll·x·y·z·log(dist), scaled to integers.
+  // #g=…&s=1~<length>~<key>~<key>…, each key t·ease·yaw·pitch·roll·x·y·z·log(dist), scaled to integers,
+  // then, if its galaxy differs from the link's own (#g=), a tenth part: name:value pairs joined by !.
   const EASE_KEYS = ['smooth', 'linear', 'in', 'out'];
+  const encVal = (k, v) => (COLOURS.includes(k) ? v.slice(1) : typeof v === 'boolean' ? (v ? 1 : 0) : typeof v === 'string' ? v : Math.round(v * (k === 'seed' || k === 'arms' ? 1 : 100)));
+  const decVal = (k, v, base) => (COLOURS.includes(k) ? (/^[0-9a-f]{6}$/i.test(v) ? '#' + v.toLowerCase() : base[k]) : typeof base[k] === 'boolean' ? v === '1' : typeof base[k] === 'string' ? v : (isFinite(+v) ? +v / (k === 'seed' || k === 'arms' ? 1 : 100) : base[k]));
   function encodeShot(d) {
-    return ['1', d.length].concat(d.keys.map((k) => [Math.round(k.t * 100), Math.max(0, EASE_KEYS.indexOf(k.ease))]
-      .concat([k.cam.yaw, k.cam.pitch, k.cam.roll, k.cam.focus[0], k.cam.focus[1], k.cam.focus[2], Math.log(k.cam.dist)].map((v) => Math.round(v * 1000))).join('.'))).join('~');
+    const base = pickSet(d.G.getState());
+    return ['1', d.length].concat(d.keys.map((k) => {
+      const f = [Math.round(k.t * 100), Math.max(0, EASE_KEYS.indexOf(k.ease))]
+        .concat([k.cam.yaw, k.cam.pitch, k.cam.roll, k.cam.focus[0], k.cam.focus[1], k.cam.focus[2], Math.log(k.cam.dist)].map((v) => Math.round(v * 1000)));
+      const diff = k.set ? SET_KEYS.filter((n) => n in k.set && encVal(n, k.set[n]) !== encVal(n, base[n])).map((n) => n + ':' + encVal(n, k.set[n])) : [];
+      if (diff.length) f.push(diff.join('!'));
+      return f.join('.');
+    })).join('~');
   }
-  function decodeShot(str) {
+  // base: the galaxy the link opens with, which each key's differences apply to.
+  function decodeShot(str, base) {
     const parts = String(str).split('~');
     if (parts[0] !== '1' || parts.length < 3) return null;
-    const keys = parts.slice(2).map((p) => p.split('.').map(Number)).filter((f) => f.length === 9 && f.every(isFinite)).map((f) => ({
-      t: f[0] / 100, ease: EASE_KEYS[f[1]] || 'smooth',
-      cam: { yaw: f[2] / 1000, pitch: f[3] / 1000, roll: f[4] / 1000, focus: [f[5] / 1000, f[6] / 1000, f[7] / 1000], dist: Math.exp(f[8] / 1000) },
-    }));
+    const keys = parts.slice(2).map((p) => p.split('.')).filter((f) => (f.length === 9 || f.length === 10) && f.slice(0, 9).every((v) => isFinite(+v))).map((f) => {
+      const n = f.slice(0, 9).map(Number);
+      const k = {
+        t: n[0] / 100, ease: EASE_KEYS[n[1]] || 'smooth',
+        cam: { yaw: n[2] / 1000, pitch: n[3] / 1000, roll: n[4] / 1000, focus: [n[5] / 1000, n[6] / 1000, n[7] / 1000], dist: Math.exp(n[8] / 1000) },
+      };
+      if (base) {
+        k.set = pickSet(base);
+        if (f[9]) f[9].split('!').forEach((pair) => { const [name, v] = pair.split(':'); if (SET_KEYS.includes(name) && v !== undefined) k.set[name] = decVal(name, v, base); });
+      }
+      return k;
+    });
     return keys.length ? { length: +parts[1], keys } : null;
   }
-  const fromHash = (hash) => { const m = /(?:^#|&)s=([^&]+)/.exec(hash || ''); return m ? decodeShot(decodeURIComponent(m[1])) : null; };
+  const fromHash = (hash, base) => { const m = /(?:^#|&)s=([^&]+)/.exec(hash || ''); return m ? decodeShot(decodeURIComponent(m[1]), base) : null; };
   const shotLink = (d) => d.G.link() + (d.keys.length ? '&s=' + encodeShot(d) : '');
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
@@ -1560,7 +1627,7 @@
   // the time, + and a menu. Hover a dot for its picture; pick one for its options.
   function dotTrack(d) {
     const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
-    const bar = el('section', 'card dchrome', `<button class="ib sm play" type="button" data-tip aria-label="Play (Space)"></button><div class="track"></div><span class="tc"></span><button class="ib sm add" type="button" data-tip aria-label="Keyframe (K)">${ICON.create}</button><button class="ib sm over" type="button" data-tip aria-label="Start over" hidden>${ICON.restart}</button><button class="ib sm lib" type="button" data-tip aria-label="Saved shots">${ICON.saved}</button><button class="ib sm more" type="button" data-tip aria-label="Shots, length, export">${ICON.more}</button>`);
+    const bar = el('section', 'card dchrome', `<button class="ib sm play" type="button" data-tip aria-label="Play (Space)"></button><div class="track"></div><span class="tc"></span><button class="ib sm add" type="button" data-tip aria-label="Keyframe: the view and the galaxy (K)">${ICON.create}</button><button class="ib sm over" type="button" data-tip aria-label="Start over" hidden>${ICON.restart}</button><button class="ib sm lib" type="button" data-tip aria-label="Saved shots">${ICON.saved}</button><button class="ib sm more" type="button" data-tip aria-label="Shots, length, export">${ICON.more}</button>`);
     bar.id = 'dbar'; bar.setAttribute('aria-label', 'Timeline');
     const peek = el('div', 'card', '<img alt=""><span></span>'); peek.id = 'dpeek'; peek.hidden = true;
     const opts = el('div', 'card dchrome'); opts.id = 'dopts'; opts.hidden = true;
@@ -1725,7 +1792,7 @@
       track.innerHTML = '<div class="line"></div><div class="done"></div>' +
         (K.length ? '' : `<div class="empty-hint">${matchMedia('(pointer: coarse)').matches ? 'Tap + to keep this view' : 'Frame a view, then press K'}</div>`) +
         '<div class="ph"></div>' +
-        K.map((k) => `<div class="dot${k.id === d.selected ? ' sel' : ''}" data-id="${k.id}" style="left:${pct(k.t)}"></div>`).join('');
+        K.map((k) => `<div class="dot${k.id === d.selected ? ' sel' : ''}${d.changes(k).length ? ' chg' : ''}" data-id="${k.id}" style="left:${pct(k.t)}"></div>`).join('');
       track.querySelectorAll('.dot').forEach((dot) => {
         dot.addEventListener('pointerenter', () => { if (!drag && !d.recording && +dot.dataset.id !== d.selected) showPeek(dot); });
         dot.addEventListener('pointerleave', () => { if (!drag) peek.hidden = true; });
@@ -1759,22 +1826,24 @@
     function strip() {
       const k = d.key(d.selected);
       if (!k || d.playing || d.recording || bar.hidden) { opts.hidden = true; optsFor = null; return; }
-      const i = d.index(k.id), key = `${k.id}:${i}:${k.t}:${!!k.thumb}`;
+      const ch = d.changes(k);
+      const i = d.index(k.id), key = `${k.id}:${i}:${k.t}:${!!k.thumb}:${ch.join()}`;
       if (optsFor === key) return;
       closeLib();
       const wasHidden = opts.hidden;
       optsFor = key;
-      opts.innerHTML = `${k.thumb ? `<img src="${k.thumb}" alt="">` : ''}<b>Keyframe ${i + 1}</b><span class="tc">${fmt(k.t)}</span>`;
+      opts.innerHTML = `${k.thumb ? `<img src="${k.thumb}" alt="">` : ''}<b>Keyframe ${i + 1}</b><span class="tc">${fmt(k.t)}</span>` +
+        (ch.length ? `<span class="chg" title="${esc(ch.join(', '))}">${esc(ch.length > 2 ? ch.slice(0, 2).join(', ') + ' +' + (ch.length - 2) : ch.join(', '))}</span>` : '');
       if (i > 0) opts.append(easeSeg(d, k));
       const btn = (icon, label, fn) => { const b = el('button', 'ib sm', ICON[icon]); b.type = 'button'; b.setAttribute('data-tip', ''); b.setAttribute('aria-label', label); b.onclick = fn; return b; };
-      opts.append(btn('refresh', 'Use this view', () => d.update(k.id)), btn('trash', 'Delete (⌫)', () => d.remove(k.id)));
+      opts.append(btn('refresh', 'Update: this view and galaxy', () => d.update(k.id)), btn('trash', 'Delete (⌫)', () => d.remove(k.id)));
       Kit.tooltips(opts, 'top');
       opts.hidden = false;
       if (wasHidden && !still()) opts.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 320, easing: EASE.pop });
     }
 
     d.on(() => {
-      const s = JSON.stringify([d.length, d.selected, d.keys.map((k) => [k.id, k.t, !!k.thumb])]);
+      const s = JSON.stringify([d.length, d.selected, d.keys.map((k) => [k.id, k.t, !!k.thumb, d.changes(k).length])]);
       if (s !== sig && !(drag && drag.moved)) { sig = s; build(); }
       track.querySelector('.ph').style.left = pct(d.t);
       track.querySelector('.done').style.width = pct(d.t);
@@ -1826,7 +1895,7 @@
     return { el: box, set, get: () => mode, toggle: () => set(mode === 'create' ? 'direct' : 'create') };
   }
 
-  window.Director = { start, create, keyHandler, dotTrack, fromHash, encodeShot, decodeShot, library, modeSwitch, fmt, EASES, EASE_NAMES, easeSeg, timeAt, still, EASE, ICON, menu, shotItems, lengthItems };
+  window.Director = { start, create, keyHandler, dotTrack, fromHash, encodeShot, decodeShot, library, changes, pickSet, modeSwitch, fmt, EASES, EASE_NAMES, easeSeg, timeAt, still, EASE, ICON, menu, shotItems, lengthItems };
 })();
 </script>
 <script>
@@ -3225,6 +3294,7 @@
     const t = now - r.t0;
     if (t >= r.T) { r.stop(); return false; }
     const c = r.camAt(t, r.T);
+    if (c.set) setLive(c.set, true);
     yaw = c.yaw; pitch = clamp(c.pitch, -PITCH_MAX, PITCH_MAX); roll = c.roll; dist = c.dist;
     for (let i = 0; i < 3; i++) focus[i] = c.focus[i];
     S.zoom = clamp((Math.log(dist) - Math.log(DIST_FAR)) / (Math.log(DIST_NEAR) - Math.log(DIST_FAR)), 0, 1);
@@ -3241,6 +3311,29 @@
     r.ctx.drawImage(canvas, 0, 0, r.rc.width, r.rc.height);
     if (r.onProgress) r.onProgress(t / r.T);
     return true;
+  }
+
+  // ---- live settings, for a director's keyframes ------------------------------------------
+  // Sets galaxy settings for this frame only: nothing is saved, nothing rebuilt unless the seed
+  // changes. A new type morphs while a shot plays, and switches at once while scrubbing.
+  const LIVE_COLOURS = ['old', 'young', 'gasA', 'gasB'];
+  function setLive(o, playing) {
+    if (!o) return;
+    let colours = false;
+    for (const k in o) {
+      if (!(k in BASE) || k === 'captions' || k === 'zoom' || k === 'orbit' || k === 'preset' || k === 'type' || k === 'seed') continue;
+      if (typeof o[k] !== typeof BASE[k]) continue;
+      if (LIVE_COLOURS.includes(k)) { if (S[k] !== o[k] && /^#[0-9a-f]{6}$/i.test(o[k])) { S[k] = o[k]; colours = true; } continue; }
+      S[k] = o[k];
+    }
+    if (colours) applyColour();
+    if (typeof o.seed === 'number' && o.seed !== S.seed) { S.seed = o.seed; grow(); updateCaptions(); }
+    if (typeof o.type === 'string' && o.type !== S.type) {
+      S.type = o.type;
+      const i = TYPES.indexOf(o.type);
+      if (i >= 0) { if (playing) morphTo(i, PICK_MORPH); else { mFrom = mTo = i; mK = 0; morphing = false; updateCaptions(); } }
+      else holdT = 0;
+    }
   }
 
   // ---- share links -------------------------------------------------------------------------
@@ -3369,6 +3462,7 @@
     // A whole galaxy as plain data, and back: for saved shots, which reopen with the
     // galaxy they were made with. Applying switches type at once, with no morph.
     getState() { const o = Object.assign({}, S); delete o.captions; return o; },
+    setLive,                             // (settings, playing): this frame only, unsaved
     apply(o) {
       if (!o) return;
       const seed = S.seed;
@@ -3556,11 +3650,17 @@
     document.body.classList.toggle('direct', on);
     G.hold(on);
     track.show(on);
+    // Back from Create with the galaxy changed: say how to keep it in the shot.
+    if (on && D.keys.length) {
+      const at = D.sampleSet(D.t);
+      if (at && Director.changes(at, Director.pickSet(G.getState())).length) Kit.toast(`Galaxy changed · K keeps it at ${Director.fmt(D.t)}`);
+    }
   }
   const modes = Director.modeSwitch('create', setMode);
+  window.galaxyDirector = D;                                    // for an embedding page, and for tests
   // A shot link (#g=…&s=…) opens straight into Direct with its keyframes. Whatever shot
   // this browser had going is kept in Saved shots first, so nothing is lost.
-  const linked = Director.fromHash(location.hash);
+  const linked = Director.fromHash(location.hash, G.getState());   // the link's galaxy is already applied
   if (linked) {
     if (D.keys.length) {
       const a = Director.library.read();

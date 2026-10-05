@@ -62,10 +62,10 @@ when you move it.
 
 | | |
 |---|---|
-| `K` or `+` | keep what the camera sees as a keyframe, at the playhead |
+| `K` or `+` | keep a keyframe at the playhead: what the camera sees and the galaxy's settings |
 | Drag the line | scrub; the camera follows |
 | Drag a dot | retime that keyframe; hover one to see its picture |
-| Pick a dot | its easing (Smooth, Linear, Ease in, Ease out), Use this view, Delete |
+| Pick a dot | what it changes, its easing (Smooth, Linear, Ease in, Ease out), Update (this view and galaxy), Delete |
 | `Space` | play the camera between the keyframes |
 | `←` `→` | previous or next keyframe |
 | `P` | preview: the shot alone, start to end, nothing else on screen |
@@ -75,13 +75,20 @@ when you move it.
 | `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Start over |
 
 The camera moves on Catmull-Rom curves through the keyframes, each with its own
-easing. Export video records the shot at its length, the same way loops are
+easing.
+
+Keyframes keep the galaxy too. To change it mid-shot, pick a keyframe (or park the
+playhead), switch to Create, change anything (nebula, colours, type, stars), switch
+back and press `K` or Update. Numbers and colours blend between keyframes with the
+same easing as the camera; type, arms, seed, spikes and companions change at the
+keyframe (a new type morphs into place while the shot plays). A dot with a small
+centre marks a keyframe that changes the galaxy, not just the camera. Export video records the shot at its length, the same way loops are
 recorded. The working shot is kept in this browser.
 
 Saved shots live in this browser too (`localStorage`, key `galaxy-shots`): the
 keyframes, every galaxy setting, and the first frame's picture. Opening one
 restores its galaxy as well. A shot link adds `&s=…` to the share link, about 40
-characters per keyframe, so it works on any device with no server; opening one
+characters per keyframe plus whatever its galaxy changes, so it works on any device with no server; opening one
 goes straight to Direct, and whatever shot that browser had going is put in
 Saved shots first.
 
