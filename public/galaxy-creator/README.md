@@ -12,15 +12,23 @@ serve a static file can serve it.
 
 ```
 galaxy-creator/
-├── index.html         the piece, self-contained
-├── geist.woff2        the one typeface it uses
+├── index.html         the landing page: the live galaxy behind the name, and Get started
+├── create/
+│   └── index.html     the app itself, self-contained
+├── geist.woff2        the one typeface both use
 ├── preview.png        1200×630 share image
 └── README.md          this file
 ```
 
+The landing page shows the live galaxy (the app, embedded with `?embed`) in the
+house look, without touching a visitor's saved galaxy, and links to
+`create/index.html`. Share links that arrive at the landing page are sent on to the
+app with their `#g=` and `&s=` intact. Links use `index.html` explicitly, since a
+Next.js `public/` folder doesn't serve folder indexes.
+
 The one outside request is Google Analytics. Because this is a static file, a
 framework's own analytics never runs for it, so the tag is in the page itself.
-Near the top of `index.html`:
+Near the top of `index.html` and `create/index.html`:
 
 ```js
 window.ANALYTICS_ID = 'G-8H02CWQTGC';   // '' removes it entirely
@@ -29,7 +37,8 @@ window.ANALYTICS_ID = 'G-8H02CWQTGC';   // '' removes it entirely
 ## Run it
 
 On ztwalsh.com it lives in the Next.js app's `public/galaxy-creator/` and is
-served at `/galaxy-creator/`. Anywhere else, open `index.html` from any static
+served at `/galaxy-creator/index.html` (the app at
+`/galaxy-creator/create/index.html`). Anywhere else, serve the folder from any static
 server:
 
 ```
@@ -62,10 +71,10 @@ when you move it.
 
 | | |
 |---|---|
-| `K` or `+` | keep what the camera sees as a keyframe, at the playhead |
+| `K` or `+` | keep a keyframe at the playhead: what the camera sees and the galaxy's settings |
 | Drag the line | scrub; the camera follows |
 | Drag a dot | retime that keyframe; hover one to see its picture |
-| Pick a dot | its easing (Smooth, Linear, Ease in, Ease out), Use this view, Delete |
+| Pick a dot | what it changes, its easing (Smooth, Linear, Ease in, Ease out), Update (this view and galaxy), Delete |
 | `Space` | play the camera between the keyframes |
 | `←` `→` | previous or next keyframe |
 | `P` | preview: the shot alone, start to end, nothing else on screen |
@@ -75,13 +84,20 @@ when you move it.
 | `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Start over |
 
 The camera moves on Catmull-Rom curves through the keyframes, each with its own
-easing. Export video records the shot at its length, the same way loops are
+easing.
+
+Keyframes keep the galaxy too. To change it mid-shot, pick a keyframe (or park the
+playhead), switch to Create, change anything (nebula, colours, type, stars), switch
+back and press `K` or Update. Numbers and colours blend between keyframes with the
+same easing as the camera; type, arms, seed, spikes and companions change at the
+keyframe (a new type morphs into place while the shot plays). A dot with a small
+centre marks a keyframe that changes the galaxy, not just the camera. Export video records the shot at its length, the same way loops are
 recorded. The working shot is kept in this browser.
 
 Saved shots live in this browser too (`localStorage`, key `galaxy-shots`): the
 keyframes, every galaxy setting, and the first frame's picture. Opening one
 restores its galaxy as well. A shot link adds `&s=…` to the share link, about 40
-characters per keyframe, so it works on any device with no server; opening one
+characters per keyframe plus whatever its galaxy changes, so it works on any device with no server; opening one
 goes straight to Direct, and whatever shot that browser had going is put in
 Saved shots first.
 
@@ -169,7 +185,7 @@ const HOME_URL   = '/';        // where the panel's back link goes
 const HOME_LABEL = '← back';   // what it says; HOME_URL = '' removes it
 ```
 
-The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md). It is designed in `playground/` (`kit.css`, `kit.js`, `left-rail-flyout.html`) and copied into this page with `python3 tools/sync-toolbar.py`.
+The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md). It is designed in `playground/` (`kit.css`, `kit.js`, `director.css`, `director.js`, `left-rail-flyout.html`) and copied into `create/index.html` with `python3 tools/sync-toolbar.py`.
 
 The opening state is the `BASE` object near the top of the script, and the six
 colour palettes are in `PRESETS` just above it. A visitor's own changes are
