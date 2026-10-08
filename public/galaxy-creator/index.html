@@ -2,6 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  /* Resolve every relative path (the font, the app, the galaxy) from this page's own
+     folder, however the address arrives: /galaxy-creator, /galaxy-creator/ or
+     /galaxy-creator/index.html. Without this, a host that drops "index.html" would
+     send them all one folder too high. */
+  (function () {
+    var p = location.pathname;
+    var dir = /\/[^/]*\.html?$/.test(p) ? p.replace(/[^/]*$/, '') : p.replace(/\/?$/, '/');
+    var b = document.createElement('base'); b.href = dir; document.head.appendChild(b);
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Galaxy Creator</title>
 <meta name="description" content="Create a galaxy from nothing. Direct it like a film. Share it as an 8K still, a video, or a link.">
