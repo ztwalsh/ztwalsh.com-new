@@ -12,15 +12,23 @@ serve a static file can serve it.
 
 ```
 galaxy-creator/
-├── index.html         the piece, self-contained
-├── geist.woff2        the one typeface it uses
+├── index.html         the landing page: the live galaxy behind the name, and Get started
+├── create/
+│   └── index.html     the app itself, self-contained
+├── geist.woff2        the one typeface both use
 ├── preview.png        1200×630 share image
 └── README.md          this file
 ```
 
+The landing page shows the live galaxy (the app, embedded with `?embed`) in the
+house look, without touching a visitor's saved galaxy, and links to
+`create/index.html`. Share links that arrive at the landing page are sent on to the
+app with their `#g=` and `&s=` intact. Links use `index.html` explicitly, since a
+Next.js `public/` folder doesn't serve folder indexes.
+
 The one outside request is Google Analytics. Because this is a static file, a
 framework's own analytics never runs for it, so the tag is in the page itself.
-Near the top of `index.html`:
+Near the top of `index.html` and `create/index.html`:
 
 ```js
 window.ANALYTICS_ID = 'G-8H02CWQTGC';   // '' removes it entirely
@@ -29,7 +37,8 @@ window.ANALYTICS_ID = 'G-8H02CWQTGC';   // '' removes it entirely
 ## Run it
 
 On ztwalsh.com it lives in the Next.js app's `public/galaxy-creator/` and is
-served at `/galaxy-creator/`. Anywhere else, open `index.html` from any static
+served at `/galaxy-creator/index.html` (the app at
+`/galaxy-creator/create/index.html`). Anywhere else, serve the folder from any static
 server:
 
 ```
@@ -176,7 +185,7 @@ const HOME_URL   = '/';        // where the panel's back link goes
 const HOME_LABEL = '← back';   // what it says; HOME_URL = '' removes it
 ```
 
-The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md). It is designed in `playground/` (`kit.css`, `kit.js`, `left-rail-flyout.html`) and copied into this page with `python3 tools/sync-toolbar.py`.
+The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md). It is designed in `playground/` (`kit.css`, `kit.js`, `director.css`, `director.js`, `left-rail-flyout.html`) and copied into `create/index.html` with `python3 tools/sync-toolbar.py`.
 
 The opening state is the `BASE` object near the top of the script, and the six
 colour palettes are in `PRESETS` just above it. A visitor's own changes are
