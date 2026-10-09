@@ -1124,10 +1124,10 @@
   function section(G, id) {
     const box = document.createElement('div'); box.className = 'ctl';
     const add = (...els) => els.forEach((e) => box.append(e));
-    if (id === 'galaxy') add(typeSeg(G), ...['arms', 'twist', 'core', 'spread'].map((k) => slider(G, k)));
-    if (id === 'matter') add(...['stars', 'size', 'nebula', 'dust'].map((k) => slider(G, k)));
+    if (id === 'galaxy') add(typeSeg(G), ...['arms', 'twist', 'core', 'spread', 'halo'].map((k) => slider(G, k)));
+    if (id === 'matter') add(...['stars', 'size', 'nebula', 'dust', 'clump', 'form'].map((k) => slider(G, k)));
     if (id === 'motion') add(...['spin', 'orbit', 'zoom'].map((k) => slider(G, k)));
-    if (id === 'light') add(...['bright', 'bloom', 'sat'].map((k) => slider(G, k)), switchEl(G, 'spikes', 'Diffraction spikes'), switchEl(G, 'companions', 'Companion galaxies'));
+    if (id === 'light') add(...['bright', 'bloom', 'sat', 'sky'].map((k) => slider(G, k)), switchEl(G, 'spikes', 'Diffraction spikes'), switchEl(G, 'companions', 'Companion galaxies'));
     if (id === 'colour') add(colourControls(G));
     if (id === 'create') add(createControls(G));
     if (id === 'settings') add(settingsControls(G));
@@ -1208,11 +1208,11 @@
 
   // Galaxy settings a keyframe keeps: everything but the camera's own zoom, the idle drift
   // and the palette's name. Numbers and colours blend between keys; the rest switch at a key.
-  const BLEND = ['twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'bright', 'bloom', 'sat'];
+  const BLEND = ['twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'bright', 'bloom', 'sat', 'halo', 'clump', 'form', 'sky'];
   const COLOURS = ['old', 'young', 'gasA', 'gasB'];
   const STEP = ['type', 'arms', 'seed', 'spikes', 'companions'];
   const SET_KEYS = BLEND.concat(COLOURS, STEP);
-  const SET_LABELS = { twist: 'Twist', core: 'Core', spread: 'Spread', stars: 'Stars', size: 'Star size', nebula: 'Nebula', dust: 'Dust', spin: 'Spin', bright: 'Brightness', bloom: 'Bloom', sat: 'Saturation', type: 'Type', arms: 'Arms', seed: 'Seed', spikes: 'Spikes', companions: 'Companions' };
+  const SET_LABELS = { halo: 'Halo', clump: 'Clusters', form: 'Star formation', sky: 'Sky', twist: 'Twist', core: 'Core', spread: 'Spread', stars: 'Stars', size: 'Star size', nebula: 'Nebula', dust: 'Dust', spin: 'Spin', bright: 'Brightness', bloom: 'Bloom', sat: 'Saturation', type: 'Type', arms: 'Arms', seed: 'Seed', spikes: 'Spikes', companions: 'Companions' };
   const pickSet = (o) => { const r = {}; SET_KEYS.forEach((k) => { if (o && k in o) r[k] = o[k]; }); return r; };
   const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const rgbHex = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
@@ -1958,6 +1958,10 @@
     size: 1.0,
     nebula: 0.8,
     dust: 0.7,
+    halo: 0.5,             // the smooth glow around the bulge
+    clump: 0.55,           // how much young stars gather into clusters
+    form: 0.7,             // star formation: the pink HII knots
+    sky: 1.0,              // the background stars and far galaxies
     spin: 0.5,
     orbit: 0.06,
     zoom: 0.24,
@@ -1982,6 +1986,7 @@
   // A share link (#g=…) carries every setting and the camera. It wins over what
   // this browser saved, and only becomes this visitor's own once they change it.
   const LINK_KEYS = ['arms', 'twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'orbit', 'zoom', 'bright', 'bloom', 'sat'];
+  const LINK_KEYS_2 = ['halo', 'clump', 'form', 'sky'];   // version 2 adds these after the camera
   const LINK_TYPES = ['Spiral', 'Barred', 'Elliptical', 'Ring', 'Irregular', 'Cycle'];
   const linkScale = (k) => (k === 'zoom' ? 1000 : 100);
   let shared = null;
@@ -1989,7 +1994,7 @@
     const m = /(?:^#|&)g=([^&]+)/.exec(location.hash);
     if (!m) return;
     const f = decodeURIComponent(m[1]).split('.');
-    if (f[0] !== '1' || f.length !== 26) return;
+    if (!((f[0] === '1' && f.length === 26) || (f[0] === '2' && f.length === 30))) return;
     const n = (i) => { const v = parseFloat(f[i]); return isFinite(v) ? v : null; };
     const t = LINK_TYPES[n(1)];
     if (t) S.type = t;
@@ -2005,6 +2010,7 @@
     }
     if (n(18) > 0) S.seed = Math.round(n(18));
     const v = [19, 20, 21, 22, 23, 24, 25].map((i) => n(i) === null ? 0 : n(i));
+    if (f[0] === '2') LINK_KEYS_2.forEach((k, i) => { const x = n(26 + i); if (x !== null) S[k] = x / 100; });
     shared = { yaw: v[0] / 1000, pitch: v[1] / 1000, roll: v[2] / 1000, focus: [v[3] / 1000, v[4] / 1000, v[5] / 1000], gt: v[6] / 100 };
   })();
   if (!hadSaved && reduceMotion()) { S.spin = 0; S.orbit = 0; }
@@ -2018,7 +2024,7 @@
 
   const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   const MAX_STARS = COARSE ? 160000 : 420000;
-  const HAZE_N = 16000, NEB_N = 3200, DUST_N = 6000, BG_N = 16000, FAR_GAL_N = 70;
+  const HAZE_N = 16000, NEB_N = 3600, DUST_N = 8000, BG_N = 56000, FAR_GAL_N = 420, HALO_N = 2400;
   const COMP_STARS = 8000, COMP_HAZE = 2400;
   const FOV = 50 * PI / 180;
   const ROLL = 0.6;
@@ -2055,8 +2061,8 @@
   // stars, the spikes and every cloud layer, so they always agree.
   const GALAXY = `
     const float TAU = 6.28318530718;
-    uniform float uT, uArms, uTwist, uCore, uSpread, uSeed;
-    uniform int uKind;            // 0 stars, 1 haze, 2 nebula, 3 dust
+    uniform float uT, uArms, uTwist, uCore, uSpread, uSeed, uClump;
+    uniform int uKind;            // 0 stars, 1 haze, 2 nebula, 3 dust, 4 halo glow
     uniform vec3 uOld, uYoung;
     in vec4 aU;                   // four uniform randoms
     in vec4 aG;                   // three gaussian randoms and a uniform one
@@ -2065,9 +2071,11 @@
     vec3 h3(float n) { return fract(sin(vec3(n, n + 1.31, n + 2.71)) * vec3(43758.5453, 22578.1459, 19642.349)); }
     float gs(float a, float b) { return sqrt(-2.0 * log(max(a, 1e-6))) * cos(TAU * b); }
     vec2 rot(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
-    float omega(float a) { return 1.0 / sqrt(a * a + 0.025); }   // a flat rotation curve
+    float omega(float a) { return 1.0 / sqrt(a * a + 0.025); }   // a planar rotation curve
 
-    struct Star { vec3 p; vec3 col; float lum; float arm; };
+    // planar: 1 for material that lies in a disk (whose normal is n), 0 for round populations.
+    struct Star { vec3 p; vec3 col; float lum; float arm; float planar; vec3 n; };
+    const vec3 UP = vec3(0.0, 1.0, 0.0);
 
     float e1() { return aG.w; }
     float e2() { return h1(aG.w * 91.7 + aU.z * 13.3); }
@@ -2093,7 +2101,7 @@
       o.p = p;
       o.col = mix(vec3(1.0, 0.93, 0.8), uOld, 0.4 + 0.6 * clamp(r / 0.4, 0.0, 1.0));
       o.lum = baseLum() * 1.1;
-      o.arm = 0.0;
+      o.arm = 0.0; o.planar = 0.0; o.n = UP;
       return o;
     }
     Star halo() {
@@ -2101,7 +2109,20 @@
       float r = 0.15 - 0.45 * log(1.0 - aU.y * 0.97);
       o.p = normalize(aG.xyz + vec3(1e-5)) * r * vec3(1.0, 0.75, 1.0);
       o.p.xz = rot(o.p.xz, uT * 0.1);
-      o.col = oldCol(); o.lum = baseLum() * 0.55; o.arm = 0.0;
+      o.col = oldCol(); o.lum = baseLum() * 0.55; o.arm = 0.0; o.planar = 0.0; o.n = UP;
+      return o;
+    }
+    // The smooth stellar envelope around the bulge (the Sombrero's glow): big soft sprites
+    // in a Plummer sphere, widest for ellipticals.
+    Star haloGlow(int id) {
+      Star o;
+      float ah = id == 2 ? 0.22 + 0.18 * uSpread : id == 3 ? 0.06 : id == 4 ? 0.12 : 0.07 + 0.11 * uCore;
+      float u = max(aU.y * 0.985, 1e-4);
+      float r = min(ah / sqrt(pow(u, -0.6667) - 1.0), 2.2);
+      vec3 sq = id == 2 ? vec3(1.0, 0.62, 0.82) : id == 4 ? vec3(1.6, 0.5, 0.8) : vec3(1.0, 0.7, 1.0);
+      o.p = normalize(aG.xyz + vec3(1e-5)) * r * sq;
+      o.col = mix(vec3(1.0, 0.9, 0.78), uOld, 0.45);
+      o.lum = 1.0; o.arm = 0.0; o.planar = 0.0; o.n = UP;
       return o;
     }
 
@@ -2111,40 +2132,58 @@
       float bulgeF = 0.08 + 0.24 * uCore;
       if (uKind < 2 && pop < bulgeF) return bulge(0.05 + 0.12 * uCore, barred);
       if (uKind == 0 && pop < bulgeF + 0.025) return halo();
-      bool young = uKind >= 2 || e1() < 0.3;
+      bool young = uKind >= 2 || e1() < (uKind == 1 ? 0.2 : 0.3);   // haze is mostly the smooth old disk
       bool lane = uKind == 3 && e1() < 0.2;                     // a smooth sheet of dust: the lane seen edge-on
       bool flocc = uKind == 3 && !lane && e1() < 0.5;            // broken filaments scattered across the disk
       Star o;
-      float a = young ? 0.22 + 0.9 * sqrt(aU.y) * (0.75 + 0.25 * aU.y) : 0.03 - 0.3 * log(1.0 - aU.y * 0.982);
+      // Young stars live in the arms from about 0.2 out, thinning exponentially past ~0.9 rather than
+      // stopping at an edge, which would pile up into a bright rim seen edge-on.
+      float a = young ? 0.2 + 0.3 * pow(-log(1.0 - aU.y * 0.985), 0.85) : 0.03 - (uKind == 1 ? 0.38 : 0.3) * log(1.0 - aU.y * 0.982);
       if (uKind == 3) a += 0.06;
       float bar = barred ? 0.34 : 0.0;
       bool inBar = a < bar;
       if (inBar && young) a = bar + (a - bar) * 0.3 + 0.02;      // the bar holds little star formation
       inBar = a < bar;
       float n = inBar ? 2.0 : uArms;
-      float phi = uTwist * 5.5 * log(1.0 + max(a - bar, 0.0) * 6.0);
       float pat = 0.3 * uT;                                      // the arms turn slower than the stars
-      float e = inBar ? 0.6 : 0.2;
+      // The bar's orbits round off toward its tips, so it melts into the disk instead of ending
+      // in a cliff that reads as a bright box seen edge-on.
+      float e = inBar ? mix(0.5, 0.2, smoothstep(0.35 * bar, bar, a)) : 0.2;
       float M;
-      if (flocc) a = 0.12 + 0.95 * sqrt(aU.y);
+      bool clustered = false;
+      float cs = 0.0;
+      if (flocc) a = 0.12 + 0.32 * pow(-log(1.0 - aU.y * 0.985), 0.85);
       if (lane || flocc) {
         M = TAU * aU.z + omega(a) * uT;
       } else if (young) {
         float k = floor(e2() * n);
         float g = gs(e3(), e2());
-        M = (TAU * k + g * 0.5) / n;
+        M = (TAU * k + g * (uKind == 1 ? 0.9 : 0.5)) / n;          // the arms' haze is broader than their stars
         if (uKind == 3) M = (TAU * k + 0.55 + g * 0.16) / n;     // dust: a narrow lane along the inner edge
+        else if (uKind != 1 && !inBar && h1(aU.z * 37.1 + aG.w * 5.3) < uClump) {   // haze stays smooth
+          // Young stars are born together: put this one in one of the arm's clusters. Nebulae
+          // use the same clusters, so the pink knots sit on the blue ones.
+          float c = floor(e3() * 64.0);
+          float hc = h1(c * 7.13 + k * 3.7 + uSeed);
+          a = 0.22 + 0.3 * pow(-log(1.0 - hc * 0.97), 0.85);
+          M = (TAU * k + gs(h1(c * 5.71 + k + uSeed), h1(c * 2.93 + uSeed)) * 0.42) / n;
+          cs = 0.006 + 0.016 * h1(c * 1.37 + uSeed);
+          clustered = true;
+        }
       } else {
         M = TAU * aU.z + (omega(a) - 0.3) * uT;
       }
+      float phi = uTwist * 5.5 * log(1.0 + max(a - bar, 0.0) * 6.0);
       float s = young ? 0.0 : 0.6 * smoothstep(0.12, 0.45, a);
       float th = M - (s / n) * sin(n * M);                       // stars linger near apocentre
       float r = a * (1.0 + e * cos(n * th));
       float ang = th - phi + pat;
       float thick = (0.012 + 0.05 * uSpread) * (young ? 0.45 : 1.0) * (lane ? 0.4 : 1.0) * (1.0 + 0.7 * a);
       vec3 p = vec3(r * cos(ang), aG.y * thick, r * sin(ang));
-      p.xz += aG.xz * uSpread * (0.012 + 0.07 * a) * (young ? 0.55 : 1.0);
+      if (clustered) p += aG.xyz * cs * vec3(1.0, 0.35, 1.0);
+      else p.xz += aG.xz * uSpread * (0.012 + 0.07 * a) * (young ? (uKind == 1 ? 1.1 : 0.55) : 1.0);
       o.p = p;
+      o.planar = 1.0; o.n = UP;
       o.arm = lane ? -1.0 : young ? 1.0 : pow(0.5 + 0.5 * cos(n * th), 4.0);
       o.col = young ? youngCol() : mix(oldCol(), uYoung, smoothstep(0.45, 1.25, a) * 0.8);
       o.lum = baseLum() * (young ? 1.9 : 1.0);
@@ -2161,13 +2200,13 @@
         p.xz += aG.xz * 0.03 * (1.0 + uSpread);
         p.yz = rot(p.yz, 0.42);
         o.arm = 1.0; o.col = youngCol(); o.lum = baseLum();
-        o.p = p;
+        o.p = p; o.planar = 1.0; o.n = vec3(0.0, cos(0.42), sin(0.42));
         return o;
       }
-      if (aU.x < 0.05) {                                         // globular clusters
+      if (aU.x < 0.03 && uKind == 0) {                           // globular clusters: tight knots of stars, no haze
         float k = floor(e2() * 46.0);
         vec3 c = normalize(h3(k * 12.9 + uSeed) - 0.5) * (0.3 + 0.9 * h1(k * 3.3 + uSeed));
-        p = c * vec3(1.0, 0.7, 0.85) + aG.xyz * 0.012;
+        p = c * vec3(1.0, 0.7, 0.85) + aG.xyz * 0.006;
       } else {
         // A Plummer sphere: a soft core and an edge that fades instead of stopping.
         float ah = 0.16 + 0.16 * uSpread;
@@ -2179,7 +2218,7 @@
       o.p = p;
       o.col = mix(vec3(1.0, 0.92, 0.8), oldCol(), clamp(length(p) / 0.5, 0.2, 1.0));
       o.lum = baseLum();
-      o.arm = 0.0;
+      o.arm = 0.0; o.planar = 0.0; o.n = UP;
       return o;
     }
 
@@ -2207,7 +2246,7 @@
       o.p = p;
       o.col = young ? youngCol() : oldCol();
       o.lum = baseLum() * (young ? 1.8 : 0.8);
-      o.arm = young ? 1.0 : 0.0;
+      o.arm = young ? 1.0 : 0.0; o.planar = 1.0; o.n = UP;
       return o;
     }
 
@@ -2234,11 +2273,12 @@
       o.p = p;
       o.col = young ? youngCol() : oldCol();
       o.lum = baseLum() * (young ? 1.7 : 1.0);
-      o.arm = young ? 1.0 : 0.0;
+      o.arm = young ? 1.0 : 0.0; o.planar = 0.0; o.n = UP;
       return o;
     }
 
     Star galaxy(int id) {
+      if (uKind == 4) return haloGlow(id);
       if (id == 0) return disk(false);
       if (id == 1) return disk(true);
       if (id == 2) return elliptical();
@@ -2258,6 +2298,8 @@
         a.col = mix(a.col, b.col, uK);
         a.lum = mix(a.lum, b.lum, uK);
         a.arm = mix(a.arm, b.arm, uK);
+        a.planar = mix(a.planar, b.planar, uK);
+        a.n = normalize(mix(a.n, b.n, uK));
       }
       a.p = a.p * uScale + uOffset;
       return a;
@@ -2364,49 +2406,94 @@
     precision highp float;
     ${GALAXY}
     uniform mat4 uView, uProj;
-    uniform float uGain, uStretch, uHazeSize;
+    uniform float uGain, uStretch, uHazeSize, uForm;
     uniform vec3 uGasA, uGasB;
     out vec2 vUv;
     out vec3 vCol;
     out vec3 vCol2;
     out float vSeed;
     out float vA;
+    out float vFlat;
+    // Each cloud is a small 3D ellipsoid, projected: disk material lies in its disk (long
+    // along the orbit, narrow across it, thin through it), round material stays round. So a
+    // disk seen edge-on collapses into a thin bright line, as real ones do, instead of a slab.
     void main() {
       vec2 corner = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1)) * 2.0 - 1.0;
       Star s = pick();
       vec4 c = uView * vec4(s.p, 1.0);
-      float size, stretch;
-      float rnd = e2();
-      bool starCloud = rnd > 0.62;                                 // blue star clouds are broad, HII knots are small
-      if (uKind == 1) { size = 0.07 + 0.08 * clamp(length(s.p - uOffset) / uScale, 0.0, 1.2) + 0.02 * aU.w; size *= uHazeSize; stretch = 1.6; }
-      else if (uKind == 2) { size = starCloud ? 0.03 + 0.05 * aU.w : 0.006 + 0.014 * aU.w * aU.w * aU.w; stretch = starCloud ? 2.5 : 1.0 + 0.8 * rnd; }
-      else { size = 0.009 + 0.022 * aU.w; stretch = 3.0 + 3.0 * rnd; }
+      float rnd = h1(aU.z * 91.7 + aG.x * 13.1 + aU.w * 5.3);     // not e2(): disk() spent that on choosing the arm
+      float knotP = clamp(0.38 + 0.3 * uForm, 0.0, 0.85);
+      bool starCloud = rnd > knotP;                               // blue star clouds are broad, HII knots are small
+      float size, along, across, thru;                            // size, then the ellipsoid's three axes as multiples
+      float planar = s.planar;
+      if (uKind == 1) {
+        size = (0.05 + 0.07 * clamp(length(s.p - uOffset) / uScale, 0.0, 1.2) + 0.02 * aU.w) * uHazeSize;
+        along = planar > 0.5 ? 1.0 + 0.6 * uStretch : 1.0; across = s.arm > 0.5 ? 0.5 : 0.8; thru = 0.1 + 0.45 * uSpread;
+      } else if (uKind == 4) {
+        size = 0.12 + 0.3 * aU.w; along = 1.0; across = 1.0; thru = 1.0; planar = 0.0;
+      } else if (uKind == 2) {
+        if (starCloud) { size = 0.035 + 0.05 * aU.w; along = 1.8; across = 0.8; thru = 0.25; }
+        else { size = (0.005 + 0.013 * aU.w * aU.w * aU.w) * (0.7 + 0.45 * uForm); along = 1.0 + 0.6 * rnd; across = 1.0; thru = 0.8; planar = 0.0; }
+      } else {
+        size = 0.008 + 0.02 * aU.w; along = 3.0 + 3.0 * rnd; across = 0.6; thru = s.arm < 0.0 ? 0.08 : 0.18;
+      }
       size *= uScale;
-      vec3 q = s.p - uOffset;
-      vec3 tan = normalize(vec3(-q.z, 0.0, q.x) + vec3(1e-5));
-      vec2 tv = (mat3(uView) * tan).xy;
-      float tl = length(tv);
-      vec2 maj = tl > 1e-3 ? tv / tl : vec2(1.0, 0.0);
-      vec2 mnr = vec2(-maj.y, maj.x);
-      float st = mix(1.0, stretch, clamp(tl, 0.0, 1.0) * uStretch);
-      c.xy += (corner.x * maj * st + corner.y * mnr) * size;
+      vec2 ax1, ax2;
+      mat3 V = mat3(uView);
+      mat2 C;
+      if (planar > 0.5) {
+        vec3 q = s.p - uOffset;
+        vec3 nrm = normalize(s.n);
+        vec3 tw = cross(nrm, q);
+        tw = length(tw) > 1e-6 ? normalize(tw) : vec3(1.0, 0.0, 0.0);
+        vec3 rw = cross(tw, nrm);
+        vec2 A = (V * tw).xy * size * along, B = (V * rw).xy * size * across, D = (V * nrm).xy * size * thru;
+        C = outerProduct(A, A) + outerProduct(B, B) + outerProduct(D, D);
+        // Keep the light it carries: a sliver seen edge-on is brighter per pixel, as the
+        // line of sight runs through more of it.
+        float area = sqrt(max(determinant(C), 1e-20));
+        vA = clamp(size * size * along * across / area, 1.0, 2.2);
+      } else {
+        C = mat2(size * size * along * along, 0.0, 0.0, size * size);
+        if (along > 1.0) {                                        // round clouds may still lean along the orbit
+          vec3 q = s.p - uOffset;
+          vec3 tw = normalize(cross(UP, q) + vec3(1e-5));
+          vec2 tv = (V * tw).xy;
+          float tl = length(tv);
+          vec2 m = tl > 1e-3 ? tv / tl : vec2(1.0, 0.0);
+          float st = mix(1.0, along, clamp(tl, 0.0, 1.0));
+          C = outerProduct(m, m) * size * size * st * st + outerProduct(vec2(-m.y, m.x), vec2(-m.y, m.x)) * size * size;
+        }
+        vA = 1.0;
+      }
+      // Its axes on screen: the ellipse's eigenvectors.
+      float tr = C[0][0] + C[1][1], det = C[0][0] * C[1][1] - C[0][1] * C[1][0];
+      float disc = sqrt(max(tr * tr * 0.25 - det, 0.0));
+      float l1 = tr * 0.5 + disc, l2 = max(tr * 0.5 - disc, size * size * 1e-3);
+      vec2 e1 = abs(C[0][1]) > 1e-12 ? normalize(vec2(l1 - C[1][1], C[0][1])) : (C[0][0] >= C[1][1] ? vec2(1.0, 0.0) : vec2(0.0, 1.0));
+      vec2 e2v = vec2(-e1.y, e1.x);
+      float r1 = sqrt(l1), r2 = sqrt(l2);
+      c.xy += corner.x * e1 * r1 + corner.y * e2v * r2;
       gl_Position = uProj * c;
       float z = -c.z;
       // A cloud that fills the screen costs a full screen of fill and shows
       // nothing, so fade it out as it grows and drop it once it is huge.
-      float frac = size * st / max(z, 1e-4) * uProj[1][1];
-      vA = smoothstep(size * 0.4, size * 2.5, z) * (1.0 - smoothstep(0.18, 0.5, frac)) * uGain;
-      if (s.arm < 0.0) {                                         // a thin sheet only darkens much when seen edge-on
-        vec3 nrm = mat3(uView) * vec3(0.0, 1.0, 0.0);
+      // Judge by area, not length: a sliver seen edge-on can be long and still cheap.
+      float frac = sqrt(r1 * r2) / max(z, 1e-4) * uProj[1][1];
+      vA *= smoothstep(size * 0.4, size * 2.5, z) * (1.0 - smoothstep(0.22, 0.6, frac)) * uGain;
+      if (s.arm < 0.0) {                                         // the dust sheet only darkens much when seen edge-on
+        vec3 nrm = V * normalize(s.n);
         float edge = 1.0 - abs(dot(nrm, normalize(c.xyz)));
         vA *= mix(0.12, 1.0, edge * edge * edge);
       }
       if (vA < 1e-4) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
       vUv = corner;
+      vFlat = planar;
       vSeed = aU.z * 61.0 + aG.w * 17.0;
-      if (uKind == 1) { vCol = s.col * min(s.lum, 1.3); vCol2 = vCol; }
-      else if (starCloud) { vCol = mix(uGasB, uYoung, 0.5) * 0.35; vCol2 = uYoung * 0.3; }
-      else { vCol = uGasA * 1.3; vCol2 = mix(uGasA, vec3(1.0, 0.85, 0.9), 0.6) * 1.3; }
+      if (uKind == 1) { vCol = s.col * min(s.lum, 1.3) * (s.arm > 0.5 ? 0.5 : 1.0); vCol2 = vCol; }   // let the arms' stars, not their haze, carry them
+      else if (uKind == 4) { vCol = s.col; vCol2 = vCol; }
+      else if (starCloud) { vCol = mix(uGasB, uYoung, 0.5) * 0.11; vCol2 = uYoung * 0.09; }
+      else { vCol = uGasA * 1.3 * (0.4 + 0.75 * uForm); vCol2 = mix(uGasA, vec3(1.0, 0.85, 0.9), 0.6) * 1.3 * (0.4 + 0.75 * uForm); }
     }
   `;
   const CLOUD_FRAG = `#version 300 es
@@ -2417,6 +2504,7 @@
     in vec3 vCol2;
     in float vSeed;
     in float vA;
+    in float vFlat;
     out vec4 fragColor;
     float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
     float vnoise(vec2 p) {
@@ -2424,71 +2512,145 @@
       f = f * f * (3.0 - 2.0 * f);
       return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), f.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), f.x), f.y);
     }
-    float fbm(vec2 p) {
+    float fbm(vec2 p, int oct) {
       float s = 0.0, a = 0.5;
-      for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+      for (int i = 0; i < 6; i++) { if (i >= oct) break; s += a * vnoise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
       return s;
     }
     void main() {
       float r2 = dot(vUv, vUv);
       if (r2 > 1.0) discard;
       if (uKind == 1) {
-        fragColor = vec4(vCol * exp(-r2 * 4.0) * vA, 1.0);
+        // Unresolved starlight, mottled a little so the disk reads as grain, not airbrush.
+        float m = vFlat > 0.5 ? 0.7 + 0.6 * vnoise(vUv * 2.2 + vec2(vSeed, vSeed * 0.61)) : 1.0;
+        fragColor = vec4(vCol * exp(-r2 * 4.0) * m * vA, 1.0);
+        return;
+      }
+      if (uKind == 4) {                                          // the halo: smooth and wide
+        float k = exp(-r2 * 3.2) * (1.0 - r2);
+        fragColor = vec4(vCol * k * vA, 1.0);
         return;
       }
       vec2 q = vUv * 1.7 + vec2(vSeed, vSeed * 0.37);
-      float n = fbm(q);
       float base = (1.0 - r2) * (1.0 - r2);
       if (uKind == 2) {
+        float n = fbm(q, 4);
         float d = base * smoothstep(0.32, 0.85, n + base * 0.3);
-        float m = fbm(q * 1.7 + 4.0);
-        vec3 col = mix(vCol, vCol2, smoothstep(0.35, 0.75, m)) * d + vec3(1.0, 0.9, 0.95) * pow(d, 4.0) * 0.6;
+        float m = fbm(q * 1.7 + 4.0, 3);
+        vec3 col = mix(vCol, vCol2, smoothstep(0.35, 0.75, m)) * d + vec3(1.0, 0.9, 0.95) * pow(d, 4.0) * dot(vCol, vec3(0.2));   // a hot core, only as bright as its cloud
         fragColor = vec4(col * vA, 1.0);
       } else {
+        // Dust: thin dark filaments (ridged noise) over a softer veil, so lanes break into
+        // strands and feathers the way they do in the Whirlpool and Andromeda.
+        float n = fbm(q, 5);
         float ridge = 1.0 - abs(n * 2.0 - 1.0);
-        float d = base * smoothstep(0.55, 0.9, ridge * 0.85 + n * 0.45);
-        float a = clamp(d * vA, 0.0, 0.98);
+        ridge = ridge * ridge;
+        float fine = fbm(q * 3.1 + 7.3, 3);
+        float d = base * (smoothstep(0.42, 0.85, ridge * 0.8 + fine * 0.35) + 0.25 * smoothstep(0.35, 0.7, n));
+        float a = clamp(d * vA, 0.0, 0.985);
         // Dust takes more blue than red, so what gets through it browns and reddens.
-        fragColor = vec4(1.0 - a * vec3(0.8, 0.9, 1.0), 1.0);
+        fragColor = vec4(1.0 - a * vec3(0.78, 0.9, 1.0), 1.0);
       }
     }
   `;
 
-  // The sky behind: distant stars and a scatter of far galaxies, at infinity.
+  // The sky behind: distant stars and far galaxies, at infinity. Stars follow a real
+  // brightness spread (a few bright, a great many faint) and take their colour from their
+  // temperature; the brightest carry a soft halo, and spikes when the lens has them.
   const BG_VERT = `#version 300 es
     precision highp float;
     in vec4 aB;       // direction, brightness
     in vec4 aC;       // colour, kind (0 star, else a far galaxy's size in px)
-    in vec2 aE;       // far galaxy: angle, axis ratio
+    in vec2 aE;       // star: sprite size in px · far galaxy: angle, axis ratio
+    in vec2 aF;       // far galaxy: 0 elliptical, 1 spiral, 2 edge-on; and a seed
     uniform mat4 uView, uProj;
-    uniform float uDpr, uGain;
+    uniform float uDpr, uGain, uSpikes;
     out vec3 vCol;
-    out vec3 vShape;
+    out vec4 vShape;  // angle, axis ratio, kind (-1 star), seed
+    out float vSpike;
     void main() {
       vec3 d = mat3(uView) * aB.xyz;
       gl_Position = uProj * vec4(d * 80.0, 1.0);
-      float isGal = step(0.5, aC.w);
-      gl_PointSize = mix(1.6 * uDpr, aC.w * uDpr, isGal);
-      vCol = aC.rgb * aB.w * uGain;
-      vShape = vec3(aE, isGal);
+      bool gal = aC.w > 0.5;
+      float spike = gal ? 0.0 : uSpikes * smoothstep(1.4, 4.0, aB.w);
+      gl_PointSize = (gal ? aC.w : aE.x * (1.0 + 1.6 * spike)) * uDpr;
+      vCol = aC.rgb * (gal ? aB.w : pow(aB.w, 0.85)) * uGain;   // a gentler spread lets the faint ones show
+      vShape = gal ? vec4(aE, aF) : vec4(0.0, 1.0, -1.0, 0.0);
+      vSpike = spike;
     }
   `;
   const BG_FRAG = `#version 300 es
     precision highp float;
     in vec3 vCol;
-    in vec3 vShape;
+    in vec4 vShape;
+    in float vSpike;
     out vec4 fragColor;
     void main() {
       vec2 c = gl_PointCoord * 2.0 - 1.0;
-      if (vShape.z > 0.5) {
-        float ca = cos(vShape.x), sa = sin(vShape.x);
-        c = vec2(ca * c.x - sa * c.y, sa * c.x + ca * c.y);
-        c.y /= vShape.y;
+      if (vShape.z < -0.5) {
+        // A star: a tight core, a faint wide halo, and for the brightest a thin cross.
+        float d = dot(c, c);
+        if (d > 1.0) discard;
+        float sc = 1.0 + 1.6 * vSpike;                           // the sprite grew to hold the spikes
+        float dd = d * sc * sc;
+        float k = exp(-dd * 9.0) + exp(-dd * 2.2) * 0.07;
+        if (vSpike > 0.0) {
+          float w = 0.02;
+          float cross = exp(-c.x * c.x / (w * w)) + exp(-c.y * c.y / (w * w));
+          k += cross * pow(max(0.0, 1.0 - sqrt(d)), 2.5) * 0.35 * vSpike;
+        }
+        fragColor = vec4(vCol * k, 1.0);
+        return;
       }
-      float d = dot(c, c);
-      if (d > 1.0) discard;
-      float k = vShape.z > 0.5 ? exp(-d * 5.0) + exp(-d * 40.0) : exp(-d * 6.0);
-      fragColor = vec4(vCol * k, 1.0);
+      // A far galaxy, turned and squashed to its own angle and tilt.
+      float ca = cos(vShape.x), sa = sin(vShape.x);
+      c = vec2(ca * c.x - sa * c.y, sa * c.x + ca * c.y);
+      vec2 e = vec2(c.x, c.y / vShape.y);
+      float r = length(e);
+      if (r > 1.0) discard;
+      float core = exp(-r * r * 60.0);
+      vec3 warm = vec3(1.0, 0.82, 0.6);
+      vec3 col;
+      if (vShape.z < 0.5) {                                      // elliptical: smooth, warm, a soft edge
+        col = mix(vCol, warm * dot(vCol, vec3(0.33)), 0.6) * (exp(-r * 4.5) + core * 1.5);
+      } else if (vShape.z < 1.5) {                               // spiral: a warm bulge, a bluer disk with two arms
+        float th = atan(e.y, e.x);
+        float arms = 0.45 + 0.55 * pow(0.5 + 0.5 * cos(2.0 * th - 7.0 * log(r + 0.05) + vShape.w * 6.0), 2.0);
+        col = vCol * exp(-r * 3.2) * arms * (1.0 - core) + warm * dot(vCol, vec3(0.33)) * core * 2.2;
+      } else {                                                   // edge-on: a sliver with a dark lane through it
+        float lane = 1.0 - 0.75 * exp(-c.y * c.y / (vShape.y * vShape.y * 0.08));
+        col = vCol * exp(-r * 3.0) * lane + warm * dot(vCol, vec3(0.33)) * core * 1.6;
+      }
+      fragColor = vec4(col * (1.0 - smoothstep(0.75, 1.0, r)), 1.0);
+    }
+  `;
+
+  // The band's unresolved light, worked out per pixel from the view direction: a soft
+  // glow along its plane, broken into clouds, warmer at its heart, with a darker rift.
+  const BAND_FRAG = `#version 300 es
+    precision highp float;
+    uniform mat4 uView, uProj;
+    uniform vec3 uN;
+    uniform float uGain;
+    in vec2 vUv;
+    out vec4 fragColor;
+    float h3(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+    float n3(vec3 p) {
+      vec3 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+                 mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+    }
+    float fbm(vec3 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * n3(p); p = p * 2.07 + 3.1; a *= 0.5; } return s; }
+    void main() {
+      vec2 ndc = vUv * 2.0 - 1.0;
+      vec3 d = normalize(transpose(mat3(uView)) * vec3(ndc.x / uProj[0][0], ndc.y / uProj[1][1], -1.0));
+      float lat = dot(d, uN);
+      float core = exp(-lat * lat / 0.0072), wide = exp(-lat * lat / 0.05);
+      float c = smoothstep(0.3, 0.8, fbm(d * 3.5));
+      float rift = 1.0 - 0.75 * smoothstep(0.5, 0.72, fbm(d * 6.0 + 11.0)) * exp(-lat * lat / 0.003);
+      vec3 col = mix(vec3(0.72, 0.78, 1.0), vec3(1.0, 0.86, 0.66), core);
+      fragColor = vec4(col * (core * (0.3 + c) + wide * 0.18 * (0.5 + c)) * rift * uGain, 1.0);
     }
   `;
 
@@ -2588,16 +2750,18 @@
     return p;
   }
   const uni = (p, names) => { const U = {}; names.forEach((n) => { U[n] = gl.getUniformLocation(p, n); }); return U; };
-  const GAL_U = ['uT', 'uArms', 'uTwist', 'uCore', 'uSpread', 'uSeed', 'uKind', 'uOld', 'uYoung', 'uFrom', 'uTo', 'uK', 'uView', 'uProj', 'uOffset', 'uScale'];
+  const GAL_U = ['uT', 'uArms', 'uTwist', 'uCore', 'uSpread', 'uSeed', 'uClump', 'uKind', 'uOld', 'uYoung', 'uFrom', 'uTo', 'uK', 'uView', 'uProj', 'uOffset', 'uScale'];
 
   const starProg = link(STAR_VERT, STAR_FRAG);
   const SU = uni(starProg, GAL_U.concat(['uFocalPx', 'uSize', 'uDpr', 'uGain']));
   const spikeProg = link(SPIKE_VERT, SPIKE_FRAG);
   const KU = uni(spikeProg, GAL_U.concat(['uGain', 'uCount', 'uDpr', 'uRes']));
   const cloudProg = link(CLOUD_VERT, CLOUD_FRAG);
-  const CU = uni(cloudProg, GAL_U.concat(['uGain', 'uStretch', 'uHazeSize', 'uGasA', 'uGasB']));
+  const CU = uni(cloudProg, GAL_U.concat(['uGain', 'uStretch', 'uHazeSize', 'uGasA', 'uGasB', 'uForm']));
   const bgProg = link(BG_VERT, BG_FRAG);
-  const BU = uni(bgProg, ['uView', 'uProj', 'uDpr', 'uGain']);
+  const BU = uni(bgProg, ['uView', 'uProj', 'uDpr', 'uGain', 'uSpikes']);
+  const bandProg = link(QUAD_VERT, BAND_FRAG);
+  const NU = uni(bandProg, ['uView', 'uProj', 'uN', 'uGain']);
   const compProg = link(QUAD_VERT, COMP_FRAG);
   const MU = uni(compProg, ['uStars', 'uGlow', 'uDust']);
   const downProg = link(QUAD_VERT, DOWN_FRAG);
@@ -2665,29 +2829,49 @@
     nebGeo = galaxyBuffer(cloudProg, cloud(NEB_N), 1, false);
     dustGeo = galaxyBuffer(cloudProg, cloud(DUST_N), 1, false);
   }
+  // The band's frame: its normal, and two directions in its plane.
+  const BAND_N = (() => { const v = [0.32, 0.82, 0.47], l = Math.hypot(...v); return v.map((x) => x / l); })();
+  const BAND_U = (() => { const v = [BAND_N[1], -BAND_N[0], 0], l = Math.hypot(...v); return v.map((x) => x / l); })();
+  const BAND_V = [BAND_N[1] * BAND_U[2] - BAND_N[2] * BAND_U[1], BAND_N[2] * BAND_U[0] - BAND_N[0] * BAND_U[2], BAND_N[0] * BAND_U[1] - BAND_N[1] * BAND_U[0]];
   function growSky() {
     const rand = rng(424242);
     const N = BG_N + FAR_GAL_N;
-    const data = new Float32Array(N * 10);
+    const data = new Float32Array(N * 12);
+    // Star colours by temperature, roughly as the eye sees them: cool orange, sunlike,
+    // white, blue-white. Most visible stars are sunlike or cooler.
+    const TEMP = [[1.0, 0.6, 0.36], [1.0, 0.78, 0.56], [1.0, 0.92, 0.82], [0.92, 0.94, 1.0], [0.7, 0.8, 1.0]];
+    const pickTemp = (t) => (t < 0.18 ? 0 : t < 0.45 ? 1 : t < 0.72 ? 2 : t < 0.88 ? 3 : 4);
     for (let i = 0; i < N; i++) {
-      const k = i * 10;
+      const k = i * 12;
       const z = rand() * 2 - 1, a = rand() * TAU, r = Math.sqrt(1 - z * z);
       data[k] = r * Math.cos(a); data[k + 1] = z; data[k + 2] = r * Math.sin(a);
-      const gal = i >= BG_N;
-      const t = rand();
-      // Mostly white, some blue, some gold.
-      const col = t < 0.3 ? [0.55, 0.72, 1.0] : t < 0.48 ? [1.0, 0.72, 0.42] : t < 0.54 ? [1.0, 0.5, 0.32] : [0.92, 0.94, 1.0];
-      if (gal) {
-        const h = rand();
-        const gc = h < 0.5 ? [1.0, 0.85, 0.7] : h < 0.8 ? [0.75, 0.85, 1.0] : [1.0, 0.7, 0.9];
-        data[k + 3] = 0.12 + 0.25 * rand();
+      // A third of the stars crowd a tilted band, the way our own galaxy's disk fills the sky.
+      const inBand = i < BG_N && rand() < 0.4;
+      if (inBand) {
+        const lat = 0.13 * Math.sqrt(-2 * Math.log(Math.max(rand(), 1e-6))) * Math.cos(TAU * rand()) * (rand() < 0.3 ? 2.2 : 1);
+        const cl = Math.cos(lat), sl = Math.sin(lat), ca = Math.cos(a), sa = Math.sin(a);
+        for (let j = 0; j < 3; j++) data[k + j] = cl * (ca * BAND_U[j] + sa * BAND_V[j]) + sl * BAND_N[j];
+      }
+      if (i >= BG_N) {
+        // A far galaxy: mostly small and faint; ellipticals warm, spirals bluer, a few edge-on.
+        const h = rand(), kind = h < 0.38 ? 0 : h < 0.82 ? 1 : 2;
+        const gc = kind === 0 ? [1.0, 0.84, 0.66] : [0.82 + 0.18 * rand(), 0.86, 1.0];
+        data[k + 3] = 0.07 + 0.3 * Math.pow(rand(), 2);
         data[k + 4] = gc[0]; data[k + 5] = gc[1]; data[k + 6] = gc[2];
-        data[k + 7] = 5 + 9 * Math.pow(rand(), 2);
-        data[k + 8] = rand() * PI; data[k + 9] = 0.2 + 0.6 * rand();
+        data[k + 7] = 3 + 12 * Math.pow(rand(), 3);
+        data[k + 8] = rand() * PI;
+        data[k + 9] = kind === 2 ? 0.1 + 0.08 * rand() : kind === 0 ? 0.45 + 0.5 * rand() : 0.3 + 0.65 * rand();
+        data[k + 10] = kind; data[k + 11] = rand();
       } else {
-        data[k + 3] = 0.06 + 2.0 * Math.pow(rand(), 5);
-        data[k + 4] = col[0]; data[k + 5] = col[1]; data[k + 6] = col[2];
-        data[k + 7] = 0; data[k + 8] = 0; data[k + 9] = 1;
+        // Brightness on a steep power law: thousands of faint stars for every bright one.
+        const b = Math.min(8, 0.055 / Math.pow(Math.max(rand(), 1e-4), 0.62)) * (inBand ? 0.75 : 1);
+        const c = TEMP[pickTemp(b > 1.5 ? rand() * 0.6 + (rand() < 0.5 ? 0 : 0.4) : rand())];
+        const j = 0.94 + 0.06 * rand();
+        data[k + 3] = b;
+        data[k + 4] = c[0] * j; data[k + 5] = c[1] * j; data[k + 6] = c[2];
+        data[k + 7] = 0;
+        data[k + 8] = 1.3 + 2.6 * Math.sqrt(Math.min(b, 4) / 4) + (b > 1.5 ? 4 : 0);   // sprite px: room for the halo
+        data[k + 9] = 0; data[k + 10] = 0; data[k + 11] = 0;
       }
     }
     const vao = gl.createVertexArray();
@@ -2695,9 +2879,10 @@
     const vbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-    attrib(bgProg, 'aB', 4, 40, 0, 0);
-    attrib(bgProg, 'aC', 4, 40, 16, 0);
-    attrib(bgProg, 'aE', 2, 40, 32, 0);
+    attrib(bgProg, 'aB', 4, 48, 0, 0);
+    attrib(bgProg, 'aC', 4, 48, 16, 0);
+    attrib(bgProg, 'aE', 2, 48, 32, 0);
+    attrib(bgProg, 'aF', 2, 48, 40, 0);
     gl.bindVertexArray(null);
     bgGeo = { vao, vbo, n: N };
   }
@@ -2940,6 +3125,7 @@
     gl.uniform1f(U.uTwist, S.twist);
     gl.uniform1f(U.uCore, S.core);
     gl.uniform1f(U.uSpread, comp ? comp.spread : S.spread);
+    gl.uniform1f(U.uClump, comp ? 0 : S.clump);
     gl.uniform1f(U.uSeed, (S.seed % 1000) * 0.137);
     gl.uniform1i(U.uKind, kind);
     gl.uniform3fv(U.uOld, col.old);
@@ -2955,6 +3141,7 @@
   // How much gas each type carries: ellipticals are nearly spent.
   const typeMix = (arr) => { const k = morphing ? smoother(mK) : 0; return arr[mFrom] + (arr[mTo] - arr[mFrom]) * k; };
   const GAS_BY_TYPE = [1, 1, 0.12, 0.8, 0.6];
+  const HALO_BY_TYPE = [1, 1, 1.7, 0.5, 0.3];
   const STRETCH_BY_TYPE = [1, 1, 1, 1, 0.25];
   const HAZE_BY_TYPE = [1, 1, 1, 0.35, 0.8];
   const DUST_BY_TYPE = [1, 1, 0.35, 0.6, 0.3];
@@ -2996,9 +3183,18 @@
       gl.uniform1f(CU.uHazeSize, 1);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, COMP_HAZE);
     });
-    const nebN = Math.round(NEB_N * clamp(S.nebula, 0, 1) * Math.min(1, gasK));
+    // The halo: a wide, smooth envelope of old light around the bulge.
+    const haloK = S.halo * typeMix(HALO_BY_TYPE);
+    if (haloK > 0.01) {
+      galaxyUniforms(CU, 4, view, proj);
+      gl.uniform1f(CU.uGain, 0.0011 * haloK);
+      gl.bindVertexArray(hazeGeo.vao);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, HALO_N);
+    }
+    const nebN = Math.round(NEB_N * clamp(Math.max(S.nebula, S.form * 0.8), 0, 1) * Math.min(1, gasK));
     if (nebN > 0) {
       galaxyUniforms(CU, 2, view, proj);
+      gl.uniform1f(CU.uForm, S.form);
       gl.uniform1f(CU.uGain, 0.5 * (0.5 + 0.5 * S.nebula) * Math.min(1.2, gasK));
       gl.bindVertexArray(nebGeo.vao);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nebN);
@@ -3012,7 +3208,7 @@
     if (dustN > 0) {
       gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
       galaxyUniforms(CU, 3, view, proj);
-      gl.uniform1f(CU.uGain, 0.4 * (0.4 + 0.6 * S.dust));
+      gl.uniform1f(CU.uGain, 0.6 * (0.4 + 0.6 * S.dust));
       gl.bindVertexArray(dustGeo.vao);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, dustN);
     }
@@ -3023,11 +3219,19 @@
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.blendFunc(gl.ONE, gl.ONE);
+    gl.useProgram(bandProg);
+    gl.uniformMatrix4fv(NU.uView, false, view);
+    gl.uniformMatrix4fv(NU.uProj, false, proj);
+    gl.uniform3fv(NU.uN, BAND_N);
+    gl.uniform1f(NU.uGain, 0.035 * S.sky);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.useProgram(bgProg);
     gl.uniformMatrix4fv(BU.uView, false, view);
     gl.uniformMatrix4fv(BU.uProj, false, proj);
     gl.uniform1f(BU.uDpr, px);
-    gl.uniform1f(BU.uGain, 1.4);
+    gl.uniform1f(BU.uGain, 2.0 * S.sky);
+    gl.uniform1f(BU.uSpikes, S.spikes ? 1 : 0);
     gl.bindVertexArray(bgGeo.vao);
     gl.drawArrays(gl.POINTS, 0, bgGeo.n);
 
@@ -3349,7 +3553,7 @@
 
   // ---- share links -------------------------------------------------------------------------
   function shareLink() {
-    const f = ['1', LINK_TYPES.indexOf(S.type)];
+    const f = ['2', LINK_TYPES.indexOf(S.type)];
     LINK_KEYS.forEach((k) => f.push(Math.round(S[k] * linkScale(k))));
     f.push((S.spikes ? 1 : 0) | (S.companions ? 2 : 0));
     const p = matchPreset();
@@ -3358,6 +3562,7 @@
     const wrap = Math.atan2(Math.sin(yaw), Math.cos(yaw));
     [wrap, pitch, roll, focus[0], focus[1], focus[2]].forEach((v) => f.push(Math.round(v * 1000)));
     f.push(Math.round(gt * 100));
+    LINK_KEYS_2.forEach((k) => f.push(Math.round(S[k] * 100)));
     return location.origin + location.pathname + '#g=' + f.join('.');
   }
 
@@ -3370,16 +3575,20 @@
     ['galaxy', 'twist', 'Twist', 0, 1.5, 0.01, fix2],
     ['galaxy', 'core', 'Core', 0, 1, 0.01, pct],
     ['galaxy', 'spread', 'Spread', 0, 1, 0.01, pct],
+    ['galaxy', 'halo', 'Halo', 0, 1.5, 0.01, pct],
     ['matter', 'stars', 'Stars', 0.1, 1, 0.01, pct],
     ['matter', 'size', 'Star size', 0.3, 3, 0.05, fix2],
     ['matter', 'nebula', 'Nebula', 0, 1.5, 0.01, pct],
     ['matter', 'dust', 'Dust', 0, 1.5, 0.01, pct],
+    ['matter', 'clump', 'Clusters', 0, 1, 0.01, pct],
+    ['matter', 'form', 'Star formation', 0, 1.5, 0.01, pct],
     ['motion', 'spin', 'Spin', 0, 3, 0.01, fix2],
     ['motion', 'orbit', 'Drift', 0, 1, 0.01, fix2],
     ['motion', 'zoom', 'Zoom', 0, 1, 0.001, fmtZoom],
     ['light', 'bright', 'Brightness', 0.2, 2.5, 0.01, fix2],
     ['light', 'bloom', 'Bloom', 0, 3, 0.01, fix2],
     ['light', 'sat', 'Saturation', 0, 2, 0.01, fix2],
+    ['light', 'sky', 'Sky', 0, 2, 0.01, fix2],
   ];
 
   function setZoom(v) { S.zoom = clamp(v, 0, 1); persist(); }
