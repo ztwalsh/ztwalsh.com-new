@@ -130,6 +130,13 @@ and M110 beside Andromeda. The default view follows the classic M31 plates: a
 steep tilt, turned onto the diagonal, with a gold core, a blue rim, dark-brown
 dust filaments and small pink star-forming knots.
 
+**Realism dials.** *Halo* sets the smooth stellar glow around the core (the
+Sombrero's envelope). *Clusters* gathers young stars into the knots they are born
+in along the arms. *Star formation* sets how many pink HII regions and blue star
+clouds light the arms. *Sky* sets the brightness of the background: distant
+stars on a real brightness spread, coloured by temperature, a faint band where
+our own galaxy's disk would cross the sky, and a few hundred far-off galaxies.
+
 **Surprise me** rolls the type, the shape, the gas, the palette and the seed.
 
 **Share and capture.** The link carries every setting, the palette, the seed and the camera
@@ -165,8 +172,10 @@ dust are born on the arm crests, with the dust gathering on the inner edge.
 
 The frame is drawn in floating point, in these layers:
 
-1. Stars, plus a sky of distant stars and far-off galaxies.
-2. A half-resolution layer of unresolved starlight and emission nebulae.
+1. Stars, plus a sky of distant stars, a soft Milky Way band and far-off galaxies.
+2. A half-resolution layer of unresolved starlight, the halo and emission nebulae.
+   Each cloud is a small 3D ellipsoid projected to the screen, so disk material
+   lies in its plane and thins to a line edge-on while the bulge and halo stay round.
 3. A transmittance layer for dust. It absorbs more blue than red, so the light
    that gets through is reddened, and the thin dust sheet only darkens much
    when you see it edge-on.
