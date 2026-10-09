@@ -182,6 +182,12 @@ The frame is drawn in floating point, in these layers:
 4. Bloom, ACES filmic tone mapping, saturation, a touch of lens fringing,
    vignette and grain.
 
+**Keeping it light.** It draws at most 60 frames a second, skipping every other
+refresh on 120 Hz screens. It watches its own frame time: after a couple of
+slow seconds it renders at a lower resolution, in steps, and after a long
+smooth stretch it tries one step back up. The sky's band is baked once into
+a panorama, so each frame only looks it up.
+
 The few hundred brightest stars get six-point diffraction spikes, fixed to the
 screen the way a telescope's would be.
 

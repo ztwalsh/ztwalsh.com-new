@@ -2024,7 +2024,7 @@
 
   const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   const MAX_STARS = COARSE ? 160000 : 420000;
-  const HAZE_N = 16000, NEB_N = 3600, DUST_N = 8000, BG_N = 56000, FAR_GAL_N = 420, HALO_N = 2400;
+  const HAZE_N = 16000, NEB_N = 3600, DUST_N = 8000, BG_N = 56000, FAR_GAL_N = 420, HALO_N = 1000;
   const COMP_STARS = 8000, COMP_HAZE = 2400;
   const FOV = 50 * PI / 180;
   const ROLL = 0.6;
@@ -2491,7 +2491,7 @@
       // nothing, so fade it out as it grows and drop it once it is huge.
       // Judge by area, not length: a sliver seen edge-on can be long and still cheap.
       float frac = sqrt(r1 * r2) / max(z, 1e-4) * uProj[1][1];
-      vA *= smoothstep(size * 0.4, size * 2.5, z) * (1.0 - smoothstep(0.22, 0.6, frac)) * uGain;
+      vA *= smoothstep(size * 0.4, size * 2.5, z) * (1.0 - smoothstep(0.16, 0.42, frac)) * uGain;
       if (s.arm < 0.0) {                                         // the dust sheet only darkens much when seen edge-on
         vec3 nrm = V * normalize(s.n);
         float edge = 1.0 - abs(dot(nrm, normalize(c.xyz)));
@@ -2636,15 +2636,11 @@
     }
   `;
 
-  // The band's unresolved light, worked out per pixel from the view direction: a soft
-  // glow along its plane, broken into clouds, warmer at its heart, with a darker rift.
-  const BAND_FRAG = `#version 300 es
-    precision highp float;
-    uniform mat4 uView, uProj;
+  // The band's unresolved light: a soft glow along its plane, broken into clouds, warmer
+  // at its heart, with a darker rift. It never changes, so it is baked once into a panorama
+  // and each frame only looks it up.
+  const BAND_FN = `
     uniform vec3 uN;
-    uniform float uGain;
-    in vec2 vUv;
-    out vec4 fragColor;
     float h3(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
     float n3(vec3 p) {
       vec3 i = floor(p), f = fract(p);
@@ -2653,15 +2649,37 @@
                  mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
     }
     float fbm(vec3 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * n3(p); p = p * 2.07 + 3.1; a *= 0.5; } return s; }
-    void main() {
-      vec2 ndc = vUv * 2.0 - 1.0;
-      vec3 d = normalize(transpose(mat3(uView)) * vec3(ndc.x / uProj[0][0], ndc.y / uProj[1][1], -1.0));
+    vec3 band(vec3 d) {
       float lat = dot(d, uN);
       float core = exp(-lat * lat / 0.0072), wide = exp(-lat * lat / 0.05);
       float c = smoothstep(0.3, 0.8, fbm(d * 3.5));
       float rift = 1.0 - 0.75 * smoothstep(0.5, 0.72, fbm(d * 6.0 + 11.0)) * exp(-lat * lat / 0.003);
       vec3 col = mix(vec3(0.72, 0.78, 1.0), vec3(1.0, 0.86, 0.66), core);
-      fragColor = vec4(col * (core * (0.3 + c) + wide * 0.18 * (0.5 + c)) * rift * uGain, 1.0);
+      return col * (core * (0.3 + c) + wide * 0.18 * (0.5 + c)) * rift;
+    }
+  `;
+  const BAND_BAKE_FRAG = `#version 300 es
+    precision highp float;
+    ${BAND_FN}
+    in vec2 vUv;
+    out vec4 fragColor;
+    void main() {
+      float lon = (vUv.x * 2.0 - 1.0) * 3.14159265, lat = (vUv.y - 0.5) * 3.14159265;
+      fragColor = vec4(band(vec3(cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon))) * 0.5, 1.0);
+    }
+  `;
+  const BAND_FRAG = `#version 300 es
+    precision highp float;
+    uniform mat4 uView, uProj;
+    uniform sampler2D uBand;
+    uniform float uGain;
+    in vec2 vUv;
+    out vec4 fragColor;
+    void main() {
+      vec2 ndc = vUv * 2.0 - 1.0;
+      vec3 d = normalize(transpose(mat3(uView)) * vec3(ndc.x / uProj[0][0], ndc.y / uProj[1][1], -1.0));
+      vec2 uv = vec2(atan(d.z, d.x) / 6.2831853 + 0.5, asin(clamp(d.y, -1.0, 1.0)) / 3.14159265 + 0.5);
+      fragColor = vec4(textureLod(uBand, uv, 0.0).rgb * 2.0 * uGain, 1.0);
     }
   `;
 
@@ -2772,7 +2790,8 @@
   const bgProg = link(BG_VERT, BG_FRAG);
   const BU = uni(bgProg, ['uView', 'uProj', 'uDpr', 'uGain', 'uSpikes']);
   const bandProg = link(QUAD_VERT, BAND_FRAG);
-  const NU = uni(bandProg, ['uView', 'uProj', 'uN', 'uGain']);
+  const NU = uni(bandProg, ['uView', 'uProj', 'uBand', 'uGain']);
+  const bakeProg = link(QUAD_VERT, BAND_BAKE_FRAG);
   const compProg = link(QUAD_VERT, COMP_FRAG);
   const MU = uni(compProg, ['uStars', 'uGlow', 'uDust']);
   const downProg = link(QUAD_VERT, DOWN_FRAG);
@@ -2918,11 +2937,30 @@
     return { tex, fbo, w, h };
   }
   const freeTarget = (t) => { if (t) { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fbo); } };
+  // Bake the sky's band once: a 2:1 panorama, wrapping around in longitude.
+  const bandTex = target(2048, 1024);
+  {
+    gl.bindTexture(gl.TEXTURE_2D, bandTex.tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, bandTex.fbo);
+    gl.viewport(0, 0, bandTex.w, bandTex.h);
+    gl.disable(gl.BLEND);
+    gl.useProgram(bakeProg);
+    gl.uniform3fv(gl.getUniformLocation(bakeProg, 'uN'), BAND_N);
+    gl.bindVertexArray(quadVao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
   let RT = null;
 
   let dpr = 1, W = 1, H = 1;
+  // Render scale: drops a step when frames run slow, so a busy GPU gets a softer picture
+  // instead of a choppy one (and the rest of the computer keeps its share).
+  const SCALES = [1, 0.85, 0.7, 0.58, 0.5];
+  let scaleI = 0;
   function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const native = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.max(Math.min(native, 0.75), native * SCALES[scaleI]);
     W = Math.max(1, Math.round(window.innerWidth));
     H = Math.max(1, Math.round(window.innerHeight));
     canvas.width = Math.floor(W * dpr);
@@ -3198,7 +3236,7 @@
     const haloK = S.halo * typeMix(HALO_BY_TYPE);
     if (haloK > 0.01) {
       galaxyUniforms(CU, 4, view, proj);
-      gl.uniform1f(CU.uGain, 0.0011 * haloK);
+      gl.uniform1f(CU.uGain, 0.0011 * 2.4 * haloK);   // fewer, brighter sprites: the same glow for less fill
       gl.bindVertexArray(hazeGeo.vao);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, HALO_N);
     }
@@ -3233,7 +3271,7 @@
     gl.useProgram(bandProg);
     gl.uniformMatrix4fv(NU.uView, false, view);
     gl.uniformMatrix4fv(NU.uProj, false, proj);
-    gl.uniform3fv(NU.uN, BAND_N);
+    bindTex(0, bandTex.tex, NU.uBand);
     gl.uniform1f(NU.uGain, 0.035 * S.sky);
     gl.bindVertexArray(quadVao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -3332,9 +3370,34 @@
     gl.uniform1i(loc, unit);
   }
 
+  // Watch the frame time. Several slow seconds in a row step the scale down; a long
+  // smooth stretch tries one step back up, and a step that proves too slow is not retried.
+  const perf = { ema: 1 / 60, t: 0, slow: 0, fast: 0, ceil: 0, rose: -1e9 };
+  function watchPerf(dt) {
+    if (rec || document.hidden || dt > 1) return;                  // a pause, not a slow frame
+    perf.ema += (Math.min(dt, 0.1) - perf.ema) * 0.05;
+    perf.t += dt;
+    if (perf.t < 1) return;
+    perf.t = 0;
+    perf.slow = perf.ema > 1 / 48 ? perf.slow + 1 : 0;
+    perf.fast = perf.ema < 1 / 57 ? perf.fast + 1 : 0;
+    if (perf.slow >= 2 && scaleI < SCALES.length - 1) {
+      if (clock - perf.rose < 8) perf.ceil = scaleI + 1;           // the last step up did not hold
+      scaleI++;
+    } else if (perf.fast >= 20 && scaleI > perf.ceil) {
+      scaleI--; perf.rose = clock;
+    } else return;
+    perf.slow = perf.fast = 0; perf.ema = 1 / 60;
+    resize();
+  }
+
   function frame(ts) {
     const now = ts / 1000;
+    // 60 frames a second is plenty for a slow-turning galaxy; on 120 Hz screens skip every
+    // other refresh rather than doubling the work.
+    if (!rec && last && now - last < 0.0125) { requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, last ? now - last : 0.016);
+    watchPerf(last ? now - last : 0.016);
     last = now;
     clock += dt;
     if (rec && recFrame(now)) { requestAnimationFrame(frame); return; }
@@ -3645,6 +3708,7 @@
   let capTimer = 0;
   window.galaxy = {
     state: S,
+    get renderScale() { return SCALES[scaleI]; },
     base: BASE,
     sliders: SLIDERS.map(([group, key, label, min, max, step, fmt]) => ({ group, key, label, min, max, step, format: fmt })),
     types: TYPES.concat(['Cycle']),
