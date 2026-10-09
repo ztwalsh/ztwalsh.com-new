@@ -2096,11 +2096,13 @@
       float r = ah * s / (1.0 - s);
       vec3 p = normalize(aG.xyz + vec3(1e-5)) * r;
       p.y *= 0.68;
-      if (barred) { p.x *= 2.1; p.z *= 0.75; p.xz = rot(p.xz, 0.32 * uT); }
+      if (barred) { p *= 0.17 * tanh(r / 0.17) / max(r, 1e-5); p.x *= 3.2; p.z *= 0.6; p.y *= 0.8; p.xz = rot(p.xz, 0.3 * uT); }   // the bar: long and turning with the arms
       else p.xz = rot(p.xz, uT * 0.7 / (r + 0.2));
       o.p = p;
       o.col = mix(vec3(1.0, 0.93, 0.8), uOld, 0.4 + 0.6 * clamp(r / 0.4, 0.0, 1.0));
-      o.lum = baseLum() * 1.1;
+      // A bulge is unresolved light: its stars stay faint and its haze carries the glow,
+      // so it reads as the Sombrero's smooth bowl, not a cloud of sparks.
+      o.lum = baseLum() * (uKind == 0 ? (barred ? 0.9 : 0.55) : 1.4);   // a bar keeps its stars: it is what shows it
       o.arm = 0.0; o.planar = 0.0; o.n = UP;
       return o;
     }
@@ -2127,45 +2129,54 @@
     }
 
     // Spiral and barred spiral: density-wave orbits.
+    float ygam(float u, float v) { return 0.06 + 0.19 * -log(max((1.0 - u * 0.985) * (1.0 - v * 0.985), 1e-6)); }
     Star disk(bool barred) {
       float pop = aU.x;
-      float bulgeF = 0.08 + 0.24 * uCore;
+      float bulgeF = (0.08 + 0.24 * uCore) * (barred ? 0.75 : 1.0);
       if (uKind < 2 && pop < bulgeF) return bulge(0.05 + 0.12 * uCore, barred);
       if (uKind == 0 && pop < bulgeF + 0.025) return halo();
-      bool young = uKind >= 2 || e1() < (uKind == 1 ? 0.2 : 0.3);   // haze is mostly the smooth old disk
+      bool young = uKind >= 2 || e1() < (uKind == 1 ? 0.2 : 0.26);  // most light is the smooth old disk
       bool lane = uKind == 3 && e1() < 0.2;                     // a smooth sheet of dust: the lane seen edge-on
       bool flocc = uKind == 3 && !lane && e1() < 0.5;            // broken filaments scattered across the disk
       Star o;
       // Young stars live in the arms from about 0.2 out, thinning exponentially past ~0.9 rather than
       // stopping at an edge, which would pile up into a bright rim seen edge-on.
-      float a = young ? 0.2 + 0.3 * pow(-log(1.0 - aU.y * 0.985), 0.85) : 0.03 - (uKind == 1 ? 0.38 : 0.3) * log(1.0 - aU.y * 0.982);
-      if (uKind == 3) a += 0.06;
+      // Young material rises smoothly from the centre (a gamma profile): a hard inner edge
+      // would project edge-on into a flat-topped box over the core.
+      float a = young ? ygam(aU.y, h1(aU.y * 53.1 + aG.z * 7.7)) : 0.03 - (uKind == 1 ? 0.38 : 0.34) * log(1.0 - aU.y * 0.982);
+      if (uKind == 3) a = 0.06 + (a - 0.06) * 1.4;              // dust reaches as far as the starlight, so its edge fades
       float bar = barred ? 0.34 : 0.0;
+      // A share of young stars is scattered between the arms, as in real disks; without it the
+      // arms are lone tubes, and edge-on each wrap reads as a bright ring.
+      bool field = uKind == 0 && young && h1(aU.y * 71.3 + aG.x * 3.7) < 0.6;
       bool inBar = a < bar;
-      if (inBar && young) a = bar + (a - bar) * 0.3 + 0.02;      // the bar holds little star formation
+      if (inBar && young) a = bar + abs(a - bar) * 0.5 + 0.02;   // the bar holds little star formation: it starts at its tips
       inBar = a < bar;
       float n = inBar ? 2.0 : uArms;
       float pat = 0.3 * uT;                                      // the arms turn slower than the stars
       // The bar's orbits round off toward its tips, so it melts into the disk instead of ending
       // in a cliff that reads as a bright box seen edge-on.
-      float e = inBar ? mix(0.5, 0.2, smoothstep(0.35 * bar, bar, a)) : 0.2;
+      float e = inBar ? mix(0.6, 0.25, smoothstep(0.7 * bar, bar, a)) : young && !field && !lane && !flocc ? 0.2 : 0.03;   // smooth populations' orbits must not cross, or they fold into caustic rings
       float M;
       bool clustered = false;
       float cs = 0.0;
-      if (flocc) a = 0.12 + 0.32 * pow(-log(1.0 - aU.y * 0.985), 0.85);
-      if (lane || flocc) {
+      if (flocc) a = ygam(aU.y, h1(aU.y * 41.3 + aG.x * 5.1)) * 0.9;
+      // The lane runs most of the disk's length and fades at both ends, so edge-on it is one
+      // long dark band, not a box over the core.
+      if (lane) a = 0.06 + 0.42 * pow(-log(1.0 - aU.y * 0.985), 0.9);
+      if (lane || flocc || field) {
         M = TAU * aU.z + omega(a) * uT;
       } else if (young) {
         float k = floor(e2() * n);
         float g = gs(e3(), e2());
-        M = (TAU * k + g * (uKind == 1 ? 0.9 : 0.5)) / n;          // the arms' haze is broader than their stars
+        M = (TAU * k + g * (uKind == 1 ? 0.9 : 0.62)) / n;         // the arms' haze is broader than their stars
         if (uKind == 3) M = (TAU * k + 0.55 + g * 0.16) / n;     // dust: a narrow lane along the inner edge
         else if (uKind != 1 && !inBar && h1(aU.z * 37.1 + aG.w * 5.3) < uClump) {   // haze stays smooth
           // Young stars are born together: put this one in one of the arm's clusters. Nebulae
           // use the same clusters, so the pink knots sit on the blue ones.
           float c = floor(e3() * 64.0);
           float hc = h1(c * 7.13 + k * 3.7 + uSeed);
-          a = 0.22 + 0.3 * pow(-log(1.0 - hc * 0.97), 0.85);
+          a = ygam(hc, h1(c * 3.91 + k * 1.7 + uSeed));
           M = (TAU * k + gs(h1(c * 5.71 + k + uSeed), h1(c * 2.93 + uSeed)) * 0.42) / n;
           cs = 0.006 + 0.016 * h1(c * 1.37 + uSeed);
           clustered = true;
@@ -2173,12 +2184,12 @@
       } else {
         M = TAU * aU.z + (omega(a) - 0.3) * uT;
       }
-      float phi = uTwist * 5.5 * log(1.0 + max(a - bar, 0.0) * 6.0);
-      float s = young ? 0.0 : 0.6 * smoothstep(0.12, 0.45, a);
+      float phi = uTwist * (barred ? 3.4 : 5.5) * log(1.0 + max(a - bar, 0.0) * 6.0);   // a bar's arms open wide from its tips
+      float s = young ? 0.0 : inBar ? 0.6 : 0.25 * smoothstep(0.12, 0.45, a);   // bar stars linger at its ends
       float th = M - (s / n) * sin(n * M);                       // stars linger near apocentre
       float r = a * (1.0 + e * cos(n * th));
       float ang = th - phi + pat;
-      float thick = (0.012 + 0.05 * uSpread) * (young ? 0.45 : 1.0) * (lane ? 0.4 : 1.0) * (1.0 + 0.7 * a);
+      float thick = (0.012 + 0.05 * uSpread) * (young ? 0.55 : 1.0) * (lane ? 0.4 : 1.0) * (1.0 + 0.7 * a);
       vec3 p = vec3(r * cos(ang), aG.y * thick, r * sin(ang));
       if (clustered) p += aG.xyz * cs * vec3(1.0, 0.35, 1.0);
       else p.xz += aG.xz * uSpread * (0.012 + 0.07 * a) * (young ? (uKind == 1 ? 1.1 : 0.55) : 1.0);
@@ -2186,7 +2197,7 @@
       o.planar = 1.0; o.n = UP;
       o.arm = lane ? -1.0 : young ? 1.0 : pow(0.5 + 0.5 * cos(n * th), 4.0);
       o.col = young ? youngCol() : mix(oldCol(), uYoung, smoothstep(0.45, 1.25, a) * 0.8);
-      o.lum = baseLum() * (young ? 1.9 : 1.0);
+      o.lum = baseLum() * (young ? 1.25 : 1.0);
       return o;
     }
 
@@ -2668,7 +2679,7 @@
     out vec4 fragColor;
     void main() {
       vec3 T = texture(uDust, vUv).rgb;
-      vec3 c = texture(uStars, vUv).rgb * mix(vec3(1.0), T * T, 0.97) + texture(uGlow, vUv).rgb * T;
+      vec3 c = texture(uStars, vUv).rgb * mix(vec3(1.0), pow(T, vec3(1.5)), 0.97) + texture(uGlow, vUv).rgb * T;
       fragColor = vec4(c, 1.0);
     }
   `;
@@ -3208,7 +3219,7 @@
     if (dustN > 0) {
       gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
       galaxyUniforms(CU, 3, view, proj);
-      gl.uniform1f(CU.uGain, 0.6 * (0.4 + 0.6 * S.dust));
+      gl.uniform1f(CU.uGain, 0.5 * (0.4 + 0.6 * S.dust));
       gl.bindVertexArray(dustGeo.vao);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, dustN);
     }
