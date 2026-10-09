@@ -108,9 +108,9 @@
   #sky { width: 128%; height: 116%; top: -8%; }   /* wider than the screen, so the galaxy sits right of centre */
   .veil { background: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0) 55%), radial-gradient(120% 90% at 60% 40%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.5) 100%); }
   main { position: relative; z-index: 2; min-height: 100svh; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 clamp(16px, 2.4vw, 36px) clamp(10px, 1.6vw, 24px); }
-  .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 0 0.3vw clamp(18px, 2vw, 30px); }
+  .row { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 0 0.3vw clamp(18px, 2vw, 30px); }
   .sub { max-width: 34ch; text-wrap: pretty; }
-  .display { font-size: 15.6vw; letter-spacing: -0.065em; line-height: 0.8; white-space: nowrap; margin-left: -0.05em; }
+  .display { font-size: 15.6vw; letter-spacing: -0.065em; line-height: 0.8; white-space: nowrap; margin-left: -0.05em; pointer-events: none; }   /* its tight lines overlap the button above */
   .display span { display: inline; }
   @media (max-width: 700px) {
     #sky { width: 100%; height: 100%; top: -14%; }
