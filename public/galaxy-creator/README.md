@@ -137,6 +137,13 @@ clouds light the arms. *Sky* sets the brightness of the background: distant
 stars on a real brightness spread, coloured by temperature, a faint band where
 our own galaxy's disk would cross the sky, and a few hundred far-off galaxies.
 
+**Music.** A slow, generative score plays in the background: a low drone, pad
+chords drifting through D minor, distant bell tones and a breath of wind in a
+long reverb, made live with Web Audio, so there is nothing to download and it
+never repeats exactly. Browsers allow sound only after a gesture, so it fades
+in on the first click or key press. Settings → Sound turns it off, and the
+browser remembers. An embedded galaxy stays silent.
+
 **Surprise me** rolls the type, the shape, the gas, the palette and the seed.
 
 **Share and capture.** The link carries every setting, the palette, the seed and the camera

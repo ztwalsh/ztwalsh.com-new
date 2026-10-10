@@ -1116,8 +1116,20 @@
     keys.innerHTML = KEYS.map(([what, ks]) => `<div class="key"><span>${what}</span><span>${ks.map((k) => `<kbd>${k}</kbd>`).join('')}</span></div>`).join('');
     const link = button('link', 'Copy share link', 'primary');
     link.addEventListener('click', () => copyLink(G));
-    wrap.append(label('Share'), link, label('Appearance'), seg, switchEl(G, 'caps', 'Captions on screen'), label('Keys'), keys);
+    const sound = G.music && G.music.available ? [label('Sound'), musicSwitch(G)] : [];
+    wrap.append(label('Share'), link, label('Appearance'), seg, switchEl(G, 'caps', 'Captions on screen'), ...sound, label('Keys'), keys);
     return wrap;
+  }
+
+  // Music: a preference of this browser, not part of the galaxy or its share link.
+  function musicSwitch(G) {
+    const el = document.createElement('button');
+    el.type = 'button'; el.className = 'sw'; el.setAttribute('role', 'switch');
+    el.innerHTML = '<span>Music</span><i></i>';
+    const sync = () => el.setAttribute('aria-checked', String(G.music.on));
+    el.addEventListener('click', () => { G.music.set(!G.music.on); sync(); });
+    sync();
+    return el;
   }
 
   // The controls for one category.
@@ -3710,9 +3722,136 @@
 
   // The galaxy's API. The toolbar below drives it; with ?embed, so does a host page.
   const embedded = query.has('embed');
+
+  // ---- music ----------------------------------------------------------------------
+  // A slow score made live with Web Audio: a low drone, pad chords drifting through
+  // D minor (i, VI, III, VII), distant bell tones and a breath of wind, all in a long
+  // reverb. Nothing to download, and it never repeats exactly. Browsers allow sound only
+  // after a gesture, so it fades in on the first click or key press; Settings turns it
+  // off and remembers. An embedded galaxy stays silent.
+  const music = (() => {
+    const KEY = 'galaxy-music';
+    const AC = window.AudioContext || window.webkitAudioContext;
+    let on = true;
+    try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) { /* private mode: default on */ }
+    let ctx = null, master = null, pads = null, bells = null, timer = 0, nextChord = 0, nextBell = 0, ci = 0;
+    const hz = (n) => 440 * Math.pow(2, (n - 69) / 12);
+    const CHORDS = [[38, 53, 57, 60, 64], [34, 50, 53, 57, 60], [41, 52, 57, 60, 64], [36, 55, 62, 64, 67]];
+    const BELLS = [74, 77, 79, 81, 84, 86, 89];
+    const CHORD_S = 16, LEVEL = 1.3;
+
+    function noise(seconds) {
+      const b = ctx.createBuffer(2, Math.floor(ctx.sampleRate * seconds), ctx.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+      return b;
+    }
+    function build() {
+      ctx = new AC();
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -18; comp.ratio.value = 3;
+      master = ctx.createGain(); master.gain.value = 0;
+      master.connect(comp); comp.connect(ctx.destination);
+      // Reverb: seven seconds of decaying noise, a large dark hall.
+      const verb = ctx.createConvolver();
+      const ir = noise(7);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= Math.pow(1 - i / d.length, 3.2); }
+      verb.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = 0.55;
+      const dark = ctx.createBiquadFilter(); dark.type = 'lowpass'; dark.frequency.value = 3200;   // a dark hall, no hiss
+      verb.connect(dark); dark.connect(wet); wet.connect(master);
+      const bus = (dry, send) => { const g = ctx.createGain(); const d = ctx.createGain(), s = ctx.createGain(); d.gain.value = dry; s.gain.value = send; g.connect(d); g.connect(s); d.connect(master); s.connect(verb); return g; };
+      // Pads breathe through a slowly opening and closing low-pass.
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4;
+      const lfo = ctx.createOscillator(), depth = ctx.createGain();
+      lfo.frequency.value = 0.025; depth.gain.value = 420; lfo.connect(depth); depth.connect(lp.frequency); lfo.start();
+      pads = ctx.createGain(); pads.connect(lp); lp.connect(bus(0.35, 0.9));
+      bells = bus(0.18, 1.0);
+      // The drone: two detuned saws an octave apart, dark and constant.
+      const droneLp = ctx.createBiquadFilter(); droneLp.type = 'lowpass'; droneLp.frequency.value = 180;
+      const droneG = ctx.createGain(); droneG.gain.value = 0.07;
+      [[26, -5], [38, 4]].forEach(([n, cents]) => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(n); o.detune.value = cents; o.connect(droneLp); o.start(); });
+      droneLp.connect(droneG); droneG.connect(bus(0.6, 0.6));
+      // Wind: noise through a band-pass that wanders.
+      const wind = ctx.createBufferSource(); wind.buffer = noise(4); wind.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.8; bp.frequency.value = 600;
+      const wl = ctx.createOscillator(), wd = ctx.createGain(); wl.frequency.value = 0.017; wd.gain.value = 380; wl.connect(wd); wd.connect(bp.frequency); wl.start();
+      const wg = ctx.createGain(); wg.gain.value = 0.012;
+      const wlp = ctx.createBiquadFilter(); wlp.type = 'lowpass'; wlp.frequency.value = 1400;
+      wind.connect(bp); bp.connect(wlp); wlp.connect(wg); wg.connect(bus(0.4, 1.0)); wind.start();
+      nextChord = ctx.currentTime + 0.1; nextBell = ctx.currentTime + 6;
+      timer = setInterval(schedule, 500);
+      schedule();
+    }
+    function chord(t, notes) {
+      notes.forEach((n, i) => {
+        const g = ctx.createGain();
+        const peak = (i === 0 ? 0.05 : 0.028) * (0.85 + Math.random() * 0.3);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(peak, t + 5);
+        g.gain.setValueAtTime(peak, t + CHORD_S - 1);
+        g.gain.linearRampToValueAtTime(0, t + CHORD_S + 7);
+        g.connect(pads);
+        [['triangle', -6], ['sine', 7]].forEach(([type, cents]) => {
+          const o = ctx.createOscillator(); o.type = type; o.frequency.value = hz(n); o.detune.value = cents;
+          o.connect(g); o.start(t); o.stop(t + CHORD_S + 7.5);
+        });
+      });
+    }
+    function bell(t) {
+      const n = BELLS[Math.floor(Math.random() * BELLS.length)];
+      const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      const g = ctx.createGain(), v = 0.03 + Math.random() * 0.025;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 5);
+      if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; g.connect(pan); pan.connect(bells); } else g.connect(bells);
+      [[1, 1], [2.76, 0.25], [5.4, 0.08]].forEach(([k, a]) => {
+        const o = ctx.createOscillator(), og = ctx.createGain(); o.type = 'sine'; o.frequency.value = hz(n) * k; og.gain.value = a;
+        o.connect(og); og.connect(g); o.start(t); o.stop(t + 5.2);
+      });
+    }
+    function schedule() {
+      if (!ctx || ctx.state !== 'running') return;
+      const ahead = ctx.currentTime + 2;
+      while (nextChord < ahead) { chord(nextChord, CHORDS[ci++ % CHORDS.length]); nextChord += CHORD_S; }
+      while (nextBell < ahead) { bell(nextBell); nextBell += 3.5 + Math.random() * 8; }
+    }
+    function fade(to, secs) {
+      const t = ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(to, t + secs);
+    }
+    function start() {
+      if (!AC || embedded || !on) return;
+      if (!ctx) build();
+      if (ctx.state !== 'running') ctx.resume();
+      fade(LEVEL, ctx.currentTime < 1 ? 6 : 2.5);
+    }
+    function stop() {
+      if (!ctx) return;
+      fade(0, 1.2);
+      setTimeout(() => { if (!on && ctx.state === 'running') ctx.suspend(); }, 1400);
+    }
+    const kick = () => { window.removeEventListener('pointerdown', kick, true); window.removeEventListener('keydown', kick, true); start(); };
+    if (!embedded) { window.addEventListener('pointerdown', kick, true); window.addEventListener('keydown', kick, true); }
+    document.addEventListener('visibilitychange', () => {
+      if (!ctx) return;
+      if (document.hidden) ctx.suspend(); else if (on) { ctx.resume(); schedule(); }
+    });
+    return {
+      available: !!AC && !embedded,
+      get on() { return on; },
+      set(v) {
+        on = !!v;
+        try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) { /* not remembered */ }
+        if (on) start(); else stop();
+        return on;
+      },
+    };
+  })();
   let capTimer = 0;
   window.galaxy = {
     state: S,
+    music,
     get renderScale() { return SCALES[scaleI]; },
     base: BASE,
     sliders: SLIDERS.map(([group, key, label, min, max, step, fmt]) => ({ group, key, label, min, max, step, format: fmt })),
