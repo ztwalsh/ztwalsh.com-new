@@ -493,6 +493,31 @@
   #dopts .chg { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: var(--chrome-2); }
   #dopts .seg { width: 300px; }
   #dopts .ib.sm { width: 32px; height: 32px; flex: none; }
+  /* Easing: a curve thumbnail in the keyframe strip, and the editor card above it. */
+  .cv { width: 18px; height: 18px; flex: none; }
+  .cv path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  #dopts .chip.curve { gap: 6px; padding-left: 8px; }
+  #dopts .chip.curve[aria-expanded="true"] { background: var(--ink); color: var(--chrome); }
+  #dcurve { position: fixed; z-index: 13; width: min(300px, calc(100vw - 32px)); padding: 14px; border-radius: 22px; display: grid; gap: 10px; }
+  #dcurve .ch { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  #dcurve .ch b { font-weight: 600; }
+  #dcurve .ch .tc { font-variant-numeric: tabular-nums; }
+  #dcurve .graph { width: 100%; max-height: 42vh; display: block; touch-action: none; }
+  #dcurve .box { fill: var(--chrome-2); }
+  #dcurve .diag { stroke: var(--ink-3); stroke-dasharray: 3 4; opacity: 0.6; fill: none; }
+  #dcurve .arm { stroke: var(--ink-3); stroke-width: 1.5; }
+  #dcurve .curve { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+  #dcurve .end { fill: var(--ink-3); }
+  #dcurve .h { fill: var(--chrome); stroke: var(--ink); stroke-width: 2.5; cursor: grab; outline: none; transition: r 0.15s; }
+  #dcurve .h:hover, #dcurve .h:focus-visible { r: 10; }
+  #dcurve .h.drag { cursor: grabbing; fill: var(--ink); }
+  #dcurve .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  #dcurve .presets .chip { gap: 5px; padding: 5px 10px 5px 7px; font-size: 12px; }
+  #dcurve .presets .chip[aria-pressed="true"] { background: var(--ink); color: var(--chrome); }
+  #dcurve .row { display: flex; gap: 6px; }
+  #dcurve .row .chip { flex: 1; justify-content: center; }
+  #dcurve .row .chip:disabled { opacity: 0.4; }
+  body.tools-off #dcurve, body.bare #dcurve { opacity: 0 !important; pointer-events: none !important; }
   @media (max-width: 700px) {
     #dbar { width: var(--dock-w, calc(100vw - 32px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 0 6px; gap: 2px; }
     #dbar .tc { min-width: 0; font-size: 11.5px; }
@@ -1147,6 +1172,8 @@
     return box;
   }
 
+  // Is the user typing into a field? Then keys are text, not commands.
+  const typing = (t) => !!t && (t.isContentEditable || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !/^(range|color|checkbox|radio|button|submit)$/i.test(t.type)));
   // Keyboard: the galaxy hands its keys up to us; we handle the ones the
   // prototype doesn't, and toast the camera views.
   const VIEW_NAMES = { 1: ['Front view', 'Back view'], 3: ['Right view', 'Left view'], 7: ['Top view', 'Bottom view'], 9: ['Other side', 'Other side'], 0: ['Home view', 'Home view'], 5: ['Home view', 'Home view'] };
@@ -1175,6 +1202,7 @@
       const t = e.target;
       const bareKey = (e.metaKey || e.ctrlKey) && (e.key === '.' || e.code === 'Period');
       if (bareKey) e.preventDefault();
+      if (!bareKey && typing(t) && e.key !== 'Escape') return;   // typing a name: no shortcuts
       if (!bareKey && t && (t.tagName === 'INPUT' || t.getAttribute('role') === 'slider') && e.key !== 'h' && e.key !== 'Escape') return;
       if (e.key === ' ') e.preventDefault();
       onKey(e);
@@ -1191,7 +1219,7 @@
     document.body.append(b);
   }
 
-  window.Kit = { ICON, CATS, EASE, still, clamp, theme, setTheme, flash, download, shoot, copyLink, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
+  window.Kit = { ICON, CATS, EASE, still, clamp, typing, theme, setTheme, flash, download, shoot, copyLink, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
 })();
 </script>
 <script>
@@ -1211,6 +1239,44 @@
     out: (t) => 1 - Math.pow(1 - t, 3),
   };
   const EASE_NAMES = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out']];
+  // A custom easing is a cubic Bézier, as in CSS: from (0,0) to (1,1), shaped by two handles.
+  // Their heights may leave 0–1, so a move can overshoot its key and settle back.
+  function bezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = (s) => ((ax * s + bx) * s + cx) * s, Y = (s) => ((ay * s + by) * s + cy) * s, dX = (s) => (3 * ax * s + 2 * bx) * s + cx;
+    return (t) => {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      let s = t;
+      for (let i = 0; i < 8; i++) { const e = X(s) - t, g = dX(s); if (Math.abs(e) < 1e-6 || Math.abs(g) < 1e-6) break; s -= e / g; }
+      if (!(s >= 0 && s <= 1) || Math.abs(X(s) - t) > 1e-4) {         // Newton wandered off: bisect
+        let lo = 0, hi = 1; s = t;
+        for (let i = 0; i < 40; i++) { if (X(s) < t) lo = s; else hi = s; s = (lo + hi) / 2; }
+      }
+      return Y(s);
+    };
+  }
+  const CURVE_Y = [-0.6, 1.6];
+  const isCurve = (e) => Array.isArray(e) && e.length === 4 && e.every((v) => typeof v === 'number' && isFinite(v));
+  const r2 = (v) => Math.round(v * 100) / 100;
+  const cleanCurve = (e) => e.map((v, i) => r2(i % 2 ? Math.max(CURVE_Y[0], Math.min(CURVE_Y[1], v)) : Math.max(0, Math.min(1, v))));
+  const validEase = (e) => (typeof e === 'string' && EASES[e] ? e : isCurve(e) ? cleanCurve(e) : 'smooth');
+  const curveCache = new Map();
+  function easeFn(e) {
+    if (typeof e === 'string') return EASES[e] || EASES.smooth;
+    if (!isCurve(e)) return EASES.smooth;
+    const id = e.join();
+    if (!curveCache.has(id)) curveCache.set(id, bezier(e[0], e[1], e[2], e[3]));
+    return curveCache.get(id);
+  }
+  // Where the handles sit for the named easings (Smooth and the rest are exact cubics; these
+  // Béziers match them closely), and the presets the curve editor offers.
+  const EASE_CURVES = { smooth: [0.65, 0, 0.35, 1], linear: [0.25, 0.25, 0.75, 0.75], in: [0.32, 0, 0.67, 0], out: [0.33, 1, 0.68, 1] };
+  const CURVE_PRESETS = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out'], [[0.37, 0, 0.63, 1], 'Gentle'], [[0.16, 1, 0.3, 1], 'Snappy'], [[0.34, 1.56, 0.64, 1], 'Overshoot']];
+  const handlesOf = (e) => (typeof e === 'string' ? EASE_CURVES[e] || EASE_CURVES.smooth : e);
+  const sameEase = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const easeName = (e) => { const p = CURVE_PRESETS.find(([v]) => sameEase(v, e)); return p ? p[1] : 'Custom'; };
   const fmt = (t) => { const s = Math.max(0, t); return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`; };
 
   // Catmull-Rom through the neighbouring keys, so a path through several keys curves instead of kinking.
@@ -1250,7 +1316,7 @@
         const o = JSON.parse(localStorage.getItem(store) || 'null');
         if (o && Array.isArray(o.keys)) {
           d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
-          d.keys = o.keys.filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({ id: nextId++, t: k.t, cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: k.thumb || null, set: k.set ? pickSet(k.set) : pickSet(G.getState()) }));
+          d.keys = o.keys.filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({ id: nextId++, t: k.t, cam: k.cam, ease: validEase(k.ease), thumb: k.thumb || null, set: k.set ? pickSet(k.set) : pickSet(G.getState()) }));
         }
       } catch (e) {}
     }
@@ -1280,7 +1346,7 @@
       let i = 0;
       while (K[i + 1].t < t) i++;
       const a = K[Math.max(0, i - 1)], b = K[i], c = K[i + 1], e = K[Math.min(K.length - 1, i + 2)];
-      const u = EASES[c.ease]((t - b.t) / Math.max(1e-6, c.t - b.t));
+      const u = easeFn(c.ease)((t - b.t) / Math.max(1e-6, c.t - b.t));
       const A = flat(a.cam), B = flat(b.cam), C = flat(c.cam), E = flat(e.cam);
       return unflat(B.map((_, j) => cr(A[j], B[j], C[j], E[j], u)));
     };
@@ -1294,7 +1360,7 @@
       let i = 0;
       while (K[i + 1].t < t) i++;
       const b = K[i], c = K[i + 1];
-      const u = EASES[c.ease]((t - b.t) / Math.max(1e-6, c.t - b.t));
+      const u = easeFn(c.ease)((t - b.t) / Math.max(1e-6, c.t - b.t));
       const o = Object.assign({}, b.set);
       BLEND.forEach((k) => { if (typeof b.set[k] === 'number' && typeof c.set[k] === 'number') o[k] = b.set[k] + (c.set[k] - b.set[k]) * u; });
       COLOURS.forEach((k) => { if (b.set[k] && c.set[k] && b.set[k] !== c.set[k]) o[k] = mixHex(b.set[k], c.set[k], u); });
@@ -1352,7 +1418,8 @@
     d.update = async (id) => { const k = d.key(id); if (!k) return; k.cam = grab(k.t, k); k.set = pickSet(G.getState()); G.setCamera(k.cam); emit(); await thumb(k); emit(); };
     d.remove = (id) => { d.keys = d.keys.filter((k) => k.id !== id); if (d.selected === id) d.selected = null; emit(); };
     d.move = (id, t) => { const k = d.key(id); if (!k) return; k.t = Math.max(0, Math.min(d.length, t)); sort(); emit(); };
-    d.ease = (id, e) => { const k = d.key(id); if (k) { k.ease = e; emit(); } };
+    d.ease = (id, e) => { const k = d.key(id); if (k) { k.ease = validEase(e); emit(); } };
+    d.easeAll = (e) => { d.keys.forEach((k, i) => { if (i > 0) k.ease = validEase(e); }); emit(); };
     d.select = (id, jump) => { d.selected = id; const k = d.key(id); if (k && jump) d.seek(k.t, true); emit(); };
     d.setLength = (L) => { const r = L / d.length; d.keys.forEach((k) => { k.t *= r; }); d.length = L; d.t *= r; emit(); };
     d.step = (dir) => {                                          // jump to the previous or next key
@@ -1362,11 +1429,12 @@
     };
 
     // Playback runs on its own clock; the galaxy keeps spinning underneath.
-    let raf = 0, last = 0, once = null;
+    let raf = 0, last = 0, once = null, until = null;
     function tick(ts) {
       const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0;
       last = ts;
       let t = d.t + dt;
+      if (until !== null && t >= until) { d.seek(until); until = null; stop(); return; }
       if (t >= d.length) {
         if (once) { d.seek(d.length); stop(); const f = once; once = null; f(); return; }
         t = 0;
@@ -1374,7 +1442,9 @@
       d.seek(t);
       raf = requestAnimationFrame(tick);
     }
-    function stop() { d.playing = false; cancelAnimationFrame(raf); last = 0; emit(); }
+    function stop() { d.playing = false; until = null; cancelAnimationFrame(raf); last = 0; emit(); }
+    // Play just one stretch, a to b, then hold at b: how the curve editor previews a move.
+    d.playRange = (a, b) => { stop(); d.seek(a); until = b; d.playing = true; emit(); raf = requestAnimationFrame(tick); };
     d.play = () => {
       if (d.playing) return;
       if (d.keys.length < 2) { toast('Add two keyframes to play a shot'); return; }
@@ -1428,7 +1498,7 @@
       stop();
       d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
       d.keys = (o.keys || []).filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({
-        id: nextId++, t: Math.max(0, Math.min(d.length, k.t)), cam: k.cam, ease: EASES[k.ease] ? k.ease : 'smooth', thumb: null, set: pickSet(Object.assign(G.getState(), k.set || {})),
+        id: nextId++, t: Math.max(0, Math.min(d.length, k.t)), cam: k.cam, ease: validEase(k.ease), thumb: null, set: pickSet(Object.assign(G.getState(), k.set || {})),
       }));
       sort();
       d.selected = null; d.t = 0; d.libId = libId || null;
@@ -1525,6 +1595,85 @@
     return seg;
   }
 
+  // ---- the easing curve: a thumbnail for the keyframe strip, and an editor card -----------------
+  // Named easings draw as their real function; custom ones as the Bézier they are.
+  function curveD(e, X, Y, n) {
+    if (isCurve(e)) return `M${X(0)} ${Y(0)} C${X(e[0])} ${Y(e[1])} ${X(e[2])} ${Y(e[3])} ${X(1)} ${Y(1)}`;
+    const f = easeFn(e);
+    let s = '';
+    for (let i = 0; i <= n; i++) { const t = i / n; s += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f(t)).toFixed(1); }
+    return s;
+  }
+  const curveIcon = (e) => `<svg class="cv" viewBox="0 0 24 24" aria-hidden="true"><path d="${curveD(e, (v) => 4 + v * 16, (v) => 20 - v * 16, 16)}"/></svg>`;
+
+  // The editor: a graph of the move into this key (time across, progress up) with two
+  // handles to drag, presets, a preview of just this move, and Apply to all.
+  function curveEditor(d, k, onChange) {
+    const card = document.createElement('div');
+    card.className = 'card dchrome'; card.id = 'dcurve';
+    const S = 168, P = 18, ROOM = 0.3;                           // plot size, padding, overshoot room (in plot heights)
+    const W = S + 2 * P, H = S * (1 + 2 * ROOM) + 2 * P;
+    const X = (v) => P + v * S, Y = (v) => P + (ROOM + 1 - v) * S;
+    const i = d.index(k.id);
+    card.innerHTML = `
+      <div class="ch"><b>Into keyframe ${i + 1}</b><span class="tc" data-r="name"></span></div>
+      <svg class="graph" viewBox="0 0 ${W} ${H}" aria-label="Easing curve: time across, progress up">
+        <rect class="box" x="${X(0)}" y="${Y(1)}" width="${S}" height="${S}" rx="8"/>
+        <path class="diag" d="M${X(0)} ${Y(0)}L${X(1)} ${Y(1)}"/>
+        <line class="arm" data-r="a0" x1="${X(0)}" y1="${Y(0)}"/><line class="arm" data-r="a1" x1="${X(1)}" y1="${Y(1)}"/>
+        <path class="curve" data-r="curve"/>
+        <circle class="end" cx="${X(0)}" cy="${Y(0)}" r="3.5"/><circle class="end" cx="${X(1)}" cy="${Y(1)}" r="3.5"/>
+        <circle class="h" data-h="0" r="8" tabindex="0" role="slider" aria-label="First handle"/>
+        <circle class="h" data-h="1" r="8" tabindex="0" role="slider" aria-label="Second handle"/>
+      </svg>
+      <div class="presets">${CURVE_PRESETS.map(([v, t], j) => `<button type="button" class="chip" data-p="${j}">${curveIcon(v)}<span>${t}</span></button>`).join('')}</div>
+      <div class="row">
+        <button type="button" class="chip" data-a="try"${i > 0 ? '' : ' disabled'}>${ICON.play}<span>Preview move</span></button>
+        <button type="button" class="chip" data-a="all">Apply to all</button>
+      </div>`;
+    const svg = card.querySelector('svg'), $ = (r) => card.querySelector(`[data-r="${r}"]`);
+    const hs = Array.from(card.querySelectorAll('.h'));
+    let cur = handlesOf(k.ease).slice();
+    function render() {
+      $('curve').setAttribute('d', curveD(k.ease, X, Y, 48));
+      $('a0').setAttribute('x2', X(cur[0])); $('a0').setAttribute('y2', Y(cur[1]));
+      $('a1').setAttribute('x2', X(cur[2])); $('a1').setAttribute('y2', Y(cur[3]));
+      hs.forEach((h, j) => { h.setAttribute('cx', X(cur[j * 2])); h.setAttribute('cy', Y(cur[j * 2 + 1])); h.setAttribute('aria-valuetext', `${cur[j * 2].toFixed(2)}, ${cur[j * 2 + 1].toFixed(2)}`); });
+      $('name').textContent = isCurve(k.ease) && easeName(k.ease) === 'Custom' ? k.ease.join(', ') : easeName(k.ease);
+      card.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', String(sameEase(CURVE_PRESETS[+b.dataset.p][0], k.ease))));
+      if (onChange) onChange(k.ease);
+    }
+    const set = (e) => { d.ease(k.id, e); cur = handlesOf(k.ease).slice(); render(); };
+    // Drag a handle: it becomes a custom curve.
+    const toVals = (ev) => {
+      const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+      const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return [(q.x - P) / S, ROOM + 1 - (q.y - P) / S];
+    };
+    hs.forEach((h, j) => {
+      h.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault(); h.setPointerCapture(ev.pointerId); h.classList.add('drag');
+        const move = (e2) => { const [x, y] = toVals(e2); cur[j * 2] = x; cur[j * 2 + 1] = y; set(cur.slice()); };
+        const up = () => { h.classList.remove('drag'); h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); };
+        h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+      });
+      // Arrow keys nudge the focused handle (Shift for bigger steps).
+      h.addEventListener('keydown', (ev) => {
+        const step = ev.shiftKey ? 0.1 : 0.02;
+        const dx = ev.key === 'ArrowRight' ? step : ev.key === 'ArrowLeft' ? -step : 0;
+        const dy = ev.key === 'ArrowUp' ? step : ev.key === 'ArrowDown' ? -step : 0;
+        if (!dx && !dy) return;
+        ev.preventDefault(); ev.stopPropagation();
+        cur[j * 2] += dx; cur[j * 2 + 1] += dy; set(cur.slice());
+      });
+    });
+    card.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => set(CURVE_PRESETS[+b.dataset.p][0])));
+    card.querySelector('[data-a=try]').addEventListener('click', () => { const a = d.keys[d.index(k.id) - 1]; if (a) d.playRange(a.t, k.t); });
+    card.querySelector('[data-a=all]').addEventListener('click', () => { d.easeAll(k.ease); toast(`${easeName(k.ease)} on every keyframe`, 'tick'); });
+    render();
+    return card;
+  }
+
   // A drag helper: pointer x on an element, as a time on the timeline.
   function timeAt(el, d, x) { const r = el.getBoundingClientRect(); return Math.max(0, Math.min(1, (x - r.left) / r.width)) * d.length; }
 
@@ -1587,15 +1736,18 @@
   // ---- shot links: the keyframes ride in the share link, after the galaxy -------------------------
   // #g=…&s=1~<length>~<key>~<key>…, each key t·ease·yaw·pitch·roll·x·y·z·log(dist), scaled to integers,
   // then, if its galaxy differs from the link's own (#g=), a tenth part: name:value pairs joined by !.
+  // A custom curve takes ease index 4 and rides in that tenth part as e:x1,y1,x2,y2 (hundredths);
+  // older readers see an unknown index and an unknown name, and fall back to Smooth.
   const EASE_KEYS = ['smooth', 'linear', 'in', 'out'];
   const encVal = (k, v) => (COLOURS.includes(k) ? v.slice(1) : typeof v === 'boolean' ? (v ? 1 : 0) : typeof v === 'string' ? v : Math.round(v * (k === 'seed' || k === 'arms' ? 1 : 100)));
   const decVal = (k, v, base) => (COLOURS.includes(k) ? (/^[0-9a-f]{6}$/i.test(v) ? '#' + v.toLowerCase() : base[k]) : typeof base[k] === 'boolean' ? v === '1' : typeof base[k] === 'string' ? v : (isFinite(+v) ? +v / (k === 'seed' || k === 'arms' ? 1 : 100) : base[k]));
   function encodeShot(d) {
     const base = pickSet(d.G.getState());
     return ['1', d.length].concat(d.keys.map((k) => {
-      const f = [Math.round(k.t * 100), Math.max(0, EASE_KEYS.indexOf(k.ease))]
+      const f = [Math.round(k.t * 100), isCurve(k.ease) ? 4 : Math.max(0, EASE_KEYS.indexOf(k.ease))]
         .concat([k.cam.yaw, k.cam.pitch, k.cam.roll, k.cam.focus[0], k.cam.focus[1], k.cam.focus[2], Math.log(k.cam.dist)].map((v) => Math.round(v * 1000)));
       const diff = k.set ? SET_KEYS.filter((n) => n in k.set && encVal(n, k.set[n]) !== encVal(n, base[n])).map((n) => n + ':' + encVal(n, k.set[n])) : [];
+      if (isCurve(k.ease)) diff.push('e:' + k.ease.map((v) => Math.round(v * 100)).join(','));
       if (diff.length) f.push(diff.join('!'));
       return f.join('.');
     })).join('~');
@@ -1610,6 +1762,8 @@
         t: n[0] / 100, ease: EASE_KEYS[n[1]] || 'smooth',
         cam: { yaw: n[2] / 1000, pitch: n[3] / 1000, roll: n[4] / 1000, focus: [n[5] / 1000, n[6] / 1000, n[7] / 1000], dist: Math.exp(n[8] / 1000) },
       };
+      const curve = f[9] && f[9].split('!').find((pair) => pair.startsWith('e:'));
+      if (curve) { const c = curve.slice(2).split(',').map((v) => +v / 100); if (isCurve(c)) k.ease = validEase(c); }
       if (base) {
         k.set = pickSet(base);
         if (f[9]) f[9].split('!').forEach((pair) => { const [name, v] = pair.split(':'); if (SET_KEYS.includes(name) && v !== undefined) k.set[name] = decVal(name, v, base); });
@@ -1708,7 +1862,10 @@
           <button class="chip" data-a="link" type="button"${d.keys.length ? '' : ' disabled'}>${ICON.link}<span>Copy link</span></button>
         </div>
         <div class="ll">${all.length ? all.map((x) => `<div class="li${x.id === d.libId ? ' cur' : ''}" data-id="${x.id}">
-          <button class="lo" type="button" aria-label="Open ${esc(x.name)}">${x.cover ? `<img src="${x.cover}" alt="">` : '<i></i>'}<span class="ln">${x.id === renaming ? `<input value="${esc(x.name)}" aria-label="Shot name" maxlength="60">` : `<b>${esc(x.name)}</b>`}<em>${x.shot.keys.length} keys · ${x.shot.length} s</em></span></button>
+          ${x.id === renaming
+            // While naming, the row is not a button: a field inside one gets "pressed" by Space.
+            ? `<div class="lo">${x.cover ? `<img src="${x.cover}" alt="">` : '<i></i>'}<span class="ln"><input value="${esc(x.name)}" aria-label="Shot name" maxlength="60"><em>${x.shot.keys.length} keys · ${x.shot.length} s</em></span></div>`
+            : `<button class="lo" type="button" aria-label="Open ${esc(x.name)}">${x.cover ? `<img src="${x.cover}" alt="">` : '<i></i>'}<span class="ln"><b>${esc(x.name)}</b><em>${x.shot.keys.length} keys · ${x.shot.length} s</em></span></button>`}
           <button class="ib sm" data-a="ren" type="button" aria-label="Rename">${ICON.pencil}</button>
           <button class="ib sm" data-a="del" type="button" aria-label="Delete">${ICON.trash}</button>
         </div>`).join('') : '<div class="empty-hint">Nothing saved yet. Make a shot, then save it here.</div>'}</div>`;
@@ -1717,7 +1874,7 @@
       lib.querySelector('[data-a=link]').onclick = () => copyShotLink(d);
       lib.querySelectorAll('.li').forEach((row) => {
         const id = row.dataset.id;
-        row.querySelector('.lo').onclick = (e) => { if (e.target.tagName !== 'INPUT') open(id); };
+        row.querySelector('.lo').onclick = (e) => { if (renaming !== id) open(id); };
         row.querySelector('[data-a=ren]').onclick = () => { renaming = id; renderLib(); };
         row.querySelector('[data-a=del]').onclick = () => remove(id);
         const input = row.querySelector('input');
@@ -1844,20 +2001,48 @@
       });
     }
 
+    // The easing editor: a card above the strip, for the selected key.
+    let curveCard = null;
+    function openCurve(k, anchor, label) {
+      closeCurve();
+      closeLib();
+      curveCard = curveEditor(d, k, label);
+      document.body.append(curveCard);
+      const r = anchor.getBoundingClientRect(), o = opts.getBoundingClientRect(), w = curveCard.offsetWidth;
+      curveCard.style.left = Math.max(16, Math.min(innerWidth - w - 16, r.left + r.width / 2 - w / 2)) + 'px';
+      curveCard.style.bottom = (innerHeight - o.top + 10) + 'px';
+      anchor.setAttribute('aria-expanded', 'true');
+      if (!still()) curveCard.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 320, easing: EASE.pop });
+    }
+    function closeCurve() {
+      if (!curveCard) return;
+      curveCard.remove(); curveCard = null;
+      const cb = opts.querySelector('.curve'); if (cb) cb.setAttribute('aria-expanded', 'false');
+    }
+    document.addEventListener('pointerdown', (e) => { if (curveCard && !curveCard.contains(e.target) && !e.target.closest('.curve') && !e.target.closest('#dbar')) closeCurve(); }, true);
+    document.addEventListener('keydown', (e) => { if (curveCard && e.key === 'Escape') { e.stopPropagation(); closeCurve(); } }, true);
+
     // Pick a dot and a small strip of options rises above the bar.
     let optsFor = null;
     function strip() {
       const k = d.key(d.selected);
-      if (!k || d.playing || d.recording || bar.hidden) { opts.hidden = true; optsFor = null; return; }
+      if (!k || (d.playing && !curveCard) || d.recording || bar.hidden) { opts.hidden = true; optsFor = null; closeCurve(); return; }
       const ch = d.changes(k);
       const i = d.index(k.id), key = `${k.id}:${i}:${k.t}:${!!k.thumb}:${ch.join()}`;
       if (optsFor === key) return;
-      closeLib();
+      closeLib(); closeCurve();
       const wasHidden = opts.hidden;
       optsFor = key;
       opts.innerHTML = `${k.thumb ? `<img src="${k.thumb}" alt="">` : ''}<b>Keyframe ${i + 1}</b><span class="tc">${fmt(k.t)}</span>` +
         (ch.length ? `<span class="chg" title="${esc(ch.join(', '))}">${esc(ch.length > 2 ? ch.slice(0, 2).join(', ') + ' +' + (ch.length - 2) : ch.join(', '))}</span>` : '');
-      if (i > 0) opts.append(easeSeg(d, k));
+      if (i > 0) {
+        const cb = el('button', 'chip curve');
+        cb.type = 'button'; cb.setAttribute('data-tip', ''); cb.setAttribute('aria-label', 'Easing into this keyframe');
+        const label = (e) => { cb.innerHTML = curveIcon(e) + `<span>${easeName(e)}</span>`; };
+        label(k.ease);
+        cb.onclick = () => (curveCard ? closeCurve() : openCurve(k, cb, label));
+        opts.append(cb);
+      }
       const btn = (icon, label, fn) => { const b = el('button', 'ib sm', ICON[icon]); b.type = 'button'; b.setAttribute('data-tip', ''); b.setAttribute('aria-label', label); b.onclick = fn; return b; };
       opts.append(btn('refresh', 'Update: this view and galaxy', () => d.update(k.id)), btn('trash', 'Delete (⌫)', () => d.remove(k.id)));
       Kit.tooltips(opts, 'top');
@@ -1882,7 +2067,7 @@
     // Shown in Direct mode, put away in Create.
     function show(on) {
       const els = [bar];
-      if (!on) { opts.hidden = true; peek.hidden = true; undo.hidden = true; lib.hidden = true; optsFor = null; }
+      if (!on) { opts.hidden = true; peek.hidden = true; undo.hidden = true; lib.hidden = true; optsFor = null; closeCurve(); }
       if (on === !bar.hidden) return;
       if (still()) { bar.hidden = !on; if (on) strip(); return; }
       if (on) {
@@ -1918,7 +2103,7 @@
     return { el: box, set, get: () => mode, toggle: () => set(mode === 'create' ? 'direct' : 'create') };
   }
 
-  window.Director = { start, create, keyHandler, dotTrack, fromHash, encodeShot, decodeShot, library, changes, pickSet, modeSwitch, fmt, EASES, EASE_NAMES, easeSeg, timeAt, still, EASE, ICON, menu, shotItems, lengthItems };
+  window.Director = { start, create, keyHandler, dotTrack, fromHash, encodeShot, decodeShot, library, changes, pickSet, modeSwitch, fmt, EASES, EASE_NAMES, easeSeg, easeFn, easeName, curveEditor, timeAt, still, EASE, ICON, menu, shotItems, lengthItems };
 })();
 </script>
 <script>
