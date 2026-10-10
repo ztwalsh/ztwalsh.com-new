@@ -3820,19 +3820,51 @@
       master.gain.setValueAtTime(master.gain.value, t);
       master.gain.linearRampToValueAtTime(to, t + secs);
     }
+    // iPhones mute web audio when the ring/silent switch is on silent. Declaring this as
+    // media playback lifts that: the Audio Session API where Safari has it (iOS 17), and
+    // on older iOS a silent looping <audio> element, which switches the page into the
+    // playback category.
+    let keepAlive = null;
+    function silentWav() {
+      const n = 8000, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+      const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+      str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
+      v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
+      v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+      for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+      let bin = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i++) bin += String.fromCharCode(u[i]);
+      return 'data:audio/wav;base64,' + btoa(bin);
+    }
+    function playbackSession(play) {
+      try {
+        if (navigator.audioSession) { navigator.audioSession.type = play ? 'playback' : 'auto'; return; }
+        if (!/iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return;
+        if (play) {
+          if (!keepAlive) { keepAlive = new Audio(silentWav()); keepAlive.loop = true; keepAlive.setAttribute('playsinline', ''); }
+          keepAlive.play().catch(() => {});
+        } else if (keepAlive) keepAlive.pause();
+      } catch (e) { /* sound may stay muted on silent; nothing else breaks */ }
+    }
+    // Call only from a gesture (or once one has unlocked the page).
     function start() {
-      if (!AC || embedded || !on) return;
+      if (!AC || embedded || !on || document.hidden) return;
+      playbackSession(true);
       if (!ctx) build();
-      if (ctx.state !== 'running') ctx.resume();
+      if (ctx.state !== 'running') ctx.resume().then(schedule, () => {});
       fade(LEVEL, ctx.currentTime < 1 ? 6 : 2.5);
     }
     function stop() {
       if (!ctx) return;
       fade(0, 1.2);
+      playbackSession(false);
       setTimeout(() => { if (!on && ctx.state === 'running') ctx.suspend(); }, 1400);
     }
-    const kick = () => { window.removeEventListener('pointerdown', kick, true); window.removeEventListener('keydown', kick, true); start(); };
-    if (!embedded) { window.addEventListener('pointerdown', kick, true); window.addEventListener('keydown', kick, true); }
+    // Sound unlocks on a gesture. iOS counts the end of a tap, not its start, so listen to
+    // the release and to clicks as well, and keep listening: whenever the audio is not
+    // running (never started, or interrupted by a call or a locked screen), the next
+    // gesture starts it again.
+    const kick = () => { if (on && (!ctx || ctx.state !== 'running')) start(); };
+    if (!embedded) ['pointerup', 'touchend', 'click', 'keydown'].forEach((t) => window.addEventListener(t, kick, true));
     document.addEventListener('visibilitychange', () => {
       if (!ctx) return;
       if (document.hidden) ctx.suspend(); else if (on) { ctx.resume(); schedule(); }
