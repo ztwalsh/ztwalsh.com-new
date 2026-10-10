@@ -498,11 +498,10 @@
   .cv path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
   #dopts .chip.curve { gap: 6px; padding-left: 8px; }
   #dopts .chip.curve[aria-expanded="true"] { background: var(--ink); color: var(--chrome); }
-  #dcurve { position: fixed; z-index: 13; width: min(300px, calc(100vw - 32px)); padding: 14px; border-radius: 22px; display: grid; gap: 10px; }
-  #dcurve .ch { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  #dcurve .ch b { font-weight: 600; }
-  #dcurve .ch .tc { font-variant-numeric: tabular-nums; }
-  #dcurve .graph { width: 100%; max-height: 42vh; display: block; touch-action: none; }
+  #dcurve { position: fixed; z-index: 13; left: 50%; translate: -50% 0; padding: 18px 16px 16px; border-radius: 22px; display: grid; gap: 12px; }
+  #dcurve .ctl-title { padding: 0; }
+  #dcurve .ctl-title span { font-variant-numeric: tabular-nums; }
+  #dcurve .graph { width: 100%; max-height: 44vh; display: block; touch-action: none; overflow: visible; }
   #dcurve .box { fill: var(--chrome-2); }
   #dcurve .diag { stroke: var(--ink-3); stroke-dasharray: 3 4; opacity: 0.6; fill: none; }
   #dcurve .arm { stroke: var(--ink-3); stroke-width: 1.5; }
@@ -1611,14 +1610,16 @@
   function curveEditor(d, k, onChange) {
     const card = document.createElement('div');
     card.className = 'card dchrome'; card.id = 'dcurve';
-    const S = 168, P = 18, ROOM = 0.3;                           // plot size, padding, overshoot room (in plot heights)
-    const W = S + 2 * P, H = S * (1 + 2 * ROOM) + 2 * P;
-    const X = (v) => P + v * S, Y = (v) => P + (ROOM + 1 - v) * S;
+    // The plot fills the card's width and is a little shorter than wide, with a band above
+    // and below for overshoot; handles pulled further than that still draw, outside the box.
+    const SX = 300, SY = 210, P = 12, ROOM = 0.12;
+    const W = SX + 2 * P, H = SY * (1 + 2 * ROOM) + 2 * P;
+    const X = (v) => P + v * SX, Y = (v) => P + (ROOM + 1 - v) * SY;
     const i = d.index(k.id);
     card.innerHTML = `
-      <div class="ch"><b>Into keyframe ${i + 1}</b><span class="tc" data-r="name"></span></div>
+      <div class="ctl-title"><b>Into keyframe ${i + 1}</b><span data-r="name"></span></div>
       <svg class="graph" viewBox="0 0 ${W} ${H}" aria-label="Easing curve: time across, progress up">
-        <rect class="box" x="${X(0)}" y="${Y(1)}" width="${S}" height="${S}" rx="8"/>
+        <rect class="box" x="${X(0)}" y="${Y(1)}" width="${SX}" height="${SY}" rx="8"/>
         <path class="diag" d="M${X(0)} ${Y(0)}L${X(1)} ${Y(1)}"/>
         <line class="arm" data-r="a0" x1="${X(0)}" y1="${Y(0)}"/><line class="arm" data-r="a1" x1="${X(1)}" y1="${Y(1)}"/>
         <path class="curve" data-r="curve"/>
@@ -1648,7 +1649,7 @@
     const toVals = (ev) => {
       const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
       const q = pt.matrixTransform(svg.getScreenCTM().inverse());
-      return [(q.x - P) / S, ROOM + 1 - (q.y - P) / S];
+      return [(q.x - P) / SX, ROOM + 1 - (q.y - P) / SY];
     };
     hs.forEach((h, j) => {
       h.addEventListener('pointerdown', (ev) => {
@@ -2008,9 +2009,10 @@
       closeLib();
       curveCard = curveEditor(d, k, label);
       document.body.append(curveCard);
-      const r = anchor.getBoundingClientRect(), o = opts.getBoundingClientRect(), w = curveCard.offsetWidth;
-      curveCard.style.left = Math.max(16, Math.min(innerWidth - w - 16, r.left + r.width / 2 - w / 2)) + 'px';
-      curveCard.style.bottom = (innerHeight - o.top + 10) + 'px';
+      // Sit square on the keyframe strip: same left edge, same width.
+      // (Centred the way the strip is, sized from its layout box, which ignores its entry animation.)
+      curveCard.style.width = opts.offsetWidth + 'px';
+      curveCard.style.bottom = (innerHeight - opts.offsetTop + 10) + 'px';
       anchor.setAttribute('aria-expanded', 'true');
       if (!still()) curveCard.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 320, easing: EASE.pop });
     }
