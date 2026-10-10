@@ -74,7 +74,7 @@ when you move it.
 | `K` or `+` | keep a keyframe at the playhead: what the camera sees and the galaxy's settings |
 | Drag the line | scrub; the camera follows |
 | Drag a dot | retime that keyframe; hover one to see its picture |
-| Pick a dot | what it changes, its easing (Smooth, Linear, Ease in, Ease out), Update (this view and galaxy), Delete |
+| Pick a dot | what it changes, its easing curve, Update (this view and galaxy), Delete |
 | `Space` | play the camera between the keyframes |
 | `←` `→` | previous or next keyframe |
 | `P` | preview: the shot alone, start to end, nothing else on screen |
@@ -84,7 +84,12 @@ when you move it.
 | `⋯` | starting shots (Approach, Orbit, Reveal, Flyover), length (6 to 30 s), Export video, Start over |
 
 The camera moves on Catmull-Rom curves through the keyframes, each with its own
-easing.
+easing. The curve button on a keyframe opens the easing editor: a graph of the move
+into that keyframe (time across, progress up) with two handles to drag, as in CSS or
+After Effects. Raise a handle above the box and the camera overshoots the keyframe and
+settles back. Presets (Smooth, Linear, Ease in, Ease out, Gentle, Snappy, Overshoot),
+Preview move (plays just that stretch), and Apply to all. Arrow keys nudge a focused
+handle. Custom curves ride along in saved shots and shot links.
 
 Keyframes keep the galaxy too. To change it mid-shot, pick a keyframe (or park the
 playhead), switch to Create, change anything (nebula, colours, type, stars), switch
