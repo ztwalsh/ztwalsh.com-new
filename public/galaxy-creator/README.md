@@ -203,6 +203,24 @@ a panorama, so each frame only looks it up.
 The few hundred brightest stars get six-point diffraction spikes, fixed to the
 screen the way a telescope's would be.
 
+## Components and the design page
+
+The interface is built from one small component library, `playground/ui.js`. Each
+factory takes plain options and returns an element: `UI.button`, `UI.iconButton`,
+`UI.chip`, `UI.segmented`, `UI.toggle`, `UI.slider`, `UI.swatches`,
+`UI.colorPicks`, `UI.label`, `UI.keys`, `UI.panel`, `UI.menu`, `UI.curveEditor`,
+plus `UI.toast` and `UI.tooltips`. Controls that show a value read it through `get`
+and redraw with `el.sync()`, so nothing in the library knows about the galaxy;
+`kit.js` and `director.js` wire the controls to it. The same file holds the icons, the
+motion helpers, the theme switch and the easing maths.
+
+`design/index.html` shows the whole system: the colour tokens in light and dark
+(read live from `kit.css`), the galaxy palettes, type styles, radii and sizes, the
+motion springs, every icon, each component working in both themes over the night
+sky, and the larger patterns (tool rail, timeline, keyframe strip). Its source is
+`playground/components.html`; `python3 tools/sync-toolbar.py` inlines it, along with
+the toolbar into `create/index.html`.
+
 ## Configure
 
 Near the top of the script:
