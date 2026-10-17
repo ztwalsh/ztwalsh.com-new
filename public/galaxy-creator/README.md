@@ -142,6 +142,14 @@ clouds light the arms. *Sky* sets the brightness of the background: distant
 stars on a real brightness spread, coloured by temperature, a faint band where
 our own galaxy's disk would cross the sky, and a few hundred far-off galaxies.
 
+**Style.** Light › Style picks the telescope the galaxy is seen through. *James Webb*
+(the default) shows the dust as Webb's mid-infrared cameras do: glowing orange filaments,
+shells and bubbles, baked once into a face-on map and marched through as a volume (a thin
+sheet of crisp filaments at varying heights inside a puffy cloud), with Webb's eight-point
+diffraction spikes and a deep field of distant galaxies behind. *Hubble* is the visible-light
+look: dark dust lanes, a Milky Way sky and soft glow. Each brings its own palette; the choice
+rides in share links (links made before it open as Hubble), and `?hubble` opens in it.
+
 **Black hole.** The centre holds one, sized by the Black hole slider in Structure
 (off by default; 0 hides it). It is ray traced in the final composite: rays near the centre follow the
 Schwarzschild photon orbit, so the hole casts its shadow, a thin photon ring, and
@@ -257,6 +265,7 @@ URL options:
 
 - `?seed=1234` grows a specific galaxy.
 - `?clean` opens on the galaxy alone (the ⌘. view).
+- `?hubble` opens in the Hubble style.
 - `#g=…` is a share link: every setting and the camera (see Share above).
 
 ## Notes
