@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Galaxy Creator design system</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- The design system, live: every token read from kit.css, every component built by
+     ui.js, each shown in light and dark chrome over the night sky it sits on in the app.
+     tools/sync-toolbar.py inlines this page into design/index.html for the site. -->
+<style>
+/* Galaxy Creator playground kit.
+   Tokens mirror DESIGN.md (light chrome) and MOTION.md (springs), which in
+   turn mirror the live page. Prototypes link this file rather than copying
+   the values. */
+@font-face {
+  font-family: "Geist"; font-style: normal; font-weight: 100 900;
+  font-display: swap; src: url("../geist.woff2") format("woff2");
+}
+:root {
+  --chrome: #ffffff;
+  --chrome-2: #f2f2f3;
+  --chrome-3: #e7e7e9;
+  --ink: #0a0a0b;
+  --ink-2: #6c6c70;
+  --ink-3: #a3a3a8;
+  --hair: rgba(0, 0, 0, 0.07);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.18);
+  --r-card: 24px;
+  --rail-pad: 10px;
+  /* Concentric corners: an item inset by the rail's padding takes the rail's
+     radius minus that padding, so the gap around each corner is even. */
+  --r-inset: calc(var(--r-card) - var(--rail-pad));
+  --r-md: 14px;
+  --r-sm: 10px;
+  --card-pad: 20px;
+  --hit: 40px;
+  --on-ink: #ffffff;          /* text and knobs that sit on --ink */
+  --seg-pill: #ffffff;
+  --face: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.02);
+  --spring-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
+  --t-snappy: 340ms; --t-pop: 450ms; --t-smooth: 390ms;
+}
+/* A scope can set its own theme (the design page shows both side by side). */
+[data-theme="light"] {
+  --chrome: #ffffff;
+  --chrome-2: #f2f2f3;
+  --chrome-3: #e7e7e9;
+  --ink: #0a0a0b;
+  --ink-2: #6c6c70;
+  --ink-3: #a3a3a8;
+  --hair: rgba(0, 0, 0, 0.07);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.18);
+  --on-ink: #ffffff;          /* text and knobs that sit on --ink */
+  --seg-pill: #ffffff;
+  color-scheme: light;
+}
+/* Dark chrome: the same shapes and motion, inverted. Still monochrome. */
+:root[data-theme="dark"], [data-theme="dark"] {
+  --chrome: #141416;
+  --chrome-2: #232326;
+  --chrome-3: #303034;
+  --ink: #f4f4f5;
+  --ink-2: #a1a1a7;
+  --ink-3: #6e6e75;
+  --hair: rgba(255, 255, 255, 0.08);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --on-ink: #0a0a0b;
+  --seg-pill: #3a3a3f;
+  color-scheme: dark;
+}
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.35s; }
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring-snappy: linear(0, 0.047, 0.15, 0.28, 0.397, 0.527, 0.644, 0.744, 0.815, 0.882, 0.932, 0.968, 0.99, 1.007, 1.017, 1.021, 1.023, 1.022, 1.02, 1.018, 1.014, 1.011, 1.009, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 1);
+    --spring-pop: linear(0, 0.065, 0.209, 0.386, 0.565, 0.725, 0.857, 0.955, 1.022, 1.062, 1.08, 1.083, 1.076, 1.063, 1.048, 1.033, 1.02, 1.01, 1.002, 0.997, 0.994, 0.993, 0.993, 0.994, 0.995, 0.996, 0.998, 0.999, 0.999, 1, 1);
+    --spring-smooth: linear(0, 0.033, 0.106, 0.199, 0.3, 0.387, 0.482, 0.568, 0.644, 0.702, 0.759, 0.807, 0.847, 0.876, 0.903, 0.925, 0.942, 0.956, 0.966, 0.974, 0.981, 0.986, 0.99, 0.993, 0.995, 0.996, 0.998, 0.998, 0.999, 1, 1);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #000; }
+body {
+  font-family: var(--face); font-size: 12.5px; color: var(--ink);
+  -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none;
+}
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button { font: inherit; color: inherit; }
+
+/* The galaxy, full bleed behind everything. */
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
+
+/* Back to the gallery: small, low contrast, out of the way. */
+.backbar {
+  position: fixed; z-index: 30; top: 14px; right: 16px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: rgba(255, 255, 255, 0.42); letter-spacing: 0.01em;
+}
+.backbar a { color: rgba(255, 255, 255, 0.62); text-decoration: none; }
+.backbar a:hover { color: #fff; }
+
+/* Surfaces */
+.card {
+  background: var(--chrome); border-radius: var(--r-card); box-shadow: var(--lift);
+}
+
+/* Icon button with the grey active pill */
+.ib {
+  position: relative; width: var(--hit); height: var(--hit); border: 0; background: none;
+  border-radius: var(--r-inset); display: grid; place-items: center; cursor: pointer; color: var(--ink-2);
+  transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.ib:hover { color: var(--ink); }
+:where(.ib, .seg button, .btn, .sw, .swatches button, #show) { -webkit-tap-highlight-color: transparent; }
+.ib:active { transform: scale(0.9); transition-duration: 0.1s; }
+.ib[aria-pressed="true"], .ib[aria-selected="true"] { color: var(--ink); }
+.ib svg { width: 20px; height: 20px; position: relative; z-index: 1; }
+.ib .fill { opacity: 0; transition: opacity 0.2s; }
+.ib[aria-pressed="true"] .fill, .ib[aria-selected="true"] .fill { opacity: 1; }
+.pill-ind {
+  position: absolute; z-index: 0; background: var(--chrome-2); border-radius: var(--r-inset); pointer-events: none;
+  transition: left var(--t-snappy) var(--spring-snappy), right var(--t-snappy) var(--spring-snappy),
+              top var(--t-snappy) var(--spring-snappy), bottom var(--t-snappy) var(--spring-snappy),
+              opacity 0.2s;
+}
+.go-fwd > .pill-ind { transition-delay: 50ms, 0ms, 50ms, 0ms, 0ms; }
+.go-back > .pill-ind { transition-delay: 0ms, 50ms, 0ms, 50ms, 0ms; }
+
+/* Tooltip label */
+.tip {
+  position: absolute; z-index: 40; pointer-events: none; white-space: nowrap;
+  background: var(--ink); color: var(--on-ink); font-size: 11.5px; font-weight: 500;
+  padding: 5px 9px; border-radius: 8px;
+}
+
+/* Inside a card, controls are concentric with its corners: card radius minus card padding. */
+.card.concentric {
+  /* 20px around the content, and a card radius of padding + 10 so the controls'
+     10px corners stay concentric with the card's. */
+  --r-md: 10px; --r-sm: 10px;
+  border-radius: calc(var(--card-pad) + 10px); padding: var(--card-pad);
+}
+.card.concentric .ctl { gap: 12px; }
+
+/* Section title inside a card */
+.ctl-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 0 16px; }
+.ctl-title b { font-size: 20px; line-height: 24px; font-weight: 600; letter-spacing: -0.02em; }
+.ctl-title span { font-size: 11px; color: var(--ink-3); }
+.ctl { display: grid; gap: 6px; }
+
+/* Slider: grey pill, black fill, text inverts over the fill */
+.sl {
+  position: relative; isolation: isolate; height: 34px; border-radius: var(--r-sm); background: var(--chrome-2);
+  cursor: ew-resize; touch-action: none; outline: none; overflow: hidden;
+  transition: transform var(--t-pop) var(--spring-pop), opacity 0.25s, background 0.2s;
+}
+.sl:hover, .sl.drag { background: var(--chrome-3); }
+.sl.drag { transition: opacity 0.25s, background 0.2s; }
+.sl:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.sl-fill {
+  position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--ink);
+  transform-origin: left center; transform: scaleX(var(--v, 0));
+  transition: transform var(--t-snappy) var(--spring-snappy);
+}
+.sl.drag .sl-fill { transition: none; }
+.sl-txt {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; color: #fff; mix-blend-mode: difference; pointer-events: none; font-weight: 500;
+}
+.sl-txt output { font-variant-numeric: tabular-nums; }
+.sl.off { opacity: 0.35; }
+
+/* Segmented control with a stretching grey pill */
+.seg {
+  position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+  padding: 3px; background: var(--chrome-2); border-radius: var(--r-md);
+}
+.seg > .pill-ind { background: var(--seg-pill); box-shadow: 0 1px 4px rgba(0,0,0,0.1); border-radius: calc(var(--r-md) - 3px); }
+.seg button {
+  position: relative; z-index: 1; border: 0; background: none; border-radius: calc(var(--r-md) - 3px); padding: 8px 0;
+  color: var(--ink-2); font-weight: 500; cursor: pointer;
+  transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.seg button:hover, .seg button[aria-checked="true"] { color: var(--ink); }
+.seg button:active { transform: scale(0.94); transition-duration: 0.1s; }
+
+/* Switch */
+.sw {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  border: 0; background: none; cursor: pointer; padding: 8px 6px 8px 12px; border-radius: var(--r-sm);
+  color: var(--ink-2); font-weight: 500; transition: background 0.2s, color 0.2s;
+}
+.sw:hover { background: var(--chrome-2); color: var(--ink); }
+.sw[aria-checked="true"] { color: var(--ink); }
+.sw i { position: relative; width: 32px; height: 20px; border-radius: 999px; background: var(--chrome-3); transition: background var(--t-snappy) var(--spring-snappy); }
+.sw i::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: left var(--t-snappy) var(--spring-snappy), width var(--t-snappy) var(--spring-snappy);
+}
+.sw:active i::after { width: 20px; }
+.sw[aria-checked="true"] i { background: var(--ink); }
+.sw[aria-checked="true"] i::after { left: 14px; background: var(--on-ink); }
+.sw[aria-checked="true"]:active i::after { left: 10px; }
+
+/* Buttons */
+.btn {
+  height: 38px; border: 0; border-radius: var(--r-sm); background: var(--chrome-2); color: var(--ink);
+  font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+  transition: background 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.btn:hover { background: var(--chrome-3); }
+.btn:active { transform: scale(0.96); transition-duration: 0.1s; }
+.btn.primary { background: var(--ink); color: var(--on-ink); }
+.btn.primary:hover { opacity: 0.88; }
+.btn svg { width: 15px; height: 15px; }
+.btn .spin { animation: kit-spin 0.8s linear infinite; }
+.tick path { stroke-dasharray: 22; stroke-dashoffset: 22; animation: kit-draw 0.35s 0.05s var(--spring-smooth) forwards; }
+@keyframes kit-spin { to { transform: rotate(360deg); } }
+@keyframes kit-draw { to { stroke-dashoffset: 0; } }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* A button that fills as it works (recording a loop) */
+.btn.busy { position: relative; overflow: hidden; }
+.btn.busy > :not(.bar) { position: relative; }
+.btn .bar {
+  position: absolute; inset: 0; background: var(--ink); opacity: 0.12;
+  transform-origin: left center; transform: scaleX(var(--p, 0)); transition: transform 0.25s linear;
+}
+.btn span { font-variant-numeric: tabular-nums; }
+
+/* Colour — the one place hue is allowed */
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 0 2px; }
+.swatches button {
+  aspect-ratio: 1; border: 0; border-radius: 50%; cursor: pointer; padding: 0;
+  box-shadow: 0 0 0 0 #fff, 0 0 0 0 var(--ink);
+  transition: transform var(--t-pop) var(--spring-pop), box-shadow var(--t-snappy) var(--spring-snappy);
+}
+.swatches button:hover { transform: scale(1.08); }
+.swatches button:active { transform: scale(0.9); transition-duration: 0.1s; }
+.swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--chrome), 0 0 0 3.5px var(--ink); }
+.picks { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.pick { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 500; cursor: pointer; }
+.pick:hover { background: var(--chrome-2); color: var(--ink); }
+.pick input { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border: 0; border-radius: 50%; padding: 0; background: none; cursor: pointer; flex: none; }
+.pick input::-webkit-color-swatch-wrapper { padding: 0; }
+.pick input::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+.pick input::-moz-color-swatch { border: 0; border-radius: 50%; }
+
+/* Settings: small section labels and one key command per line */
+.ctl-label { padding: 4px 12px 0; color: var(--ink-3); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+.keys { display: grid; gap: 2px; }
+.key { display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 0 6px 0 12px; color: var(--ink-2); font-weight: 500; }
+.key kbd + kbd { margin-left: 4px; }
+
+/* Small stat line (rolling numbers) */
+.stat { display: flex; justify-content: space-between; padding: 6px 4px 2px; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.stat b { color: var(--ink-2); font-weight: 500; }
+.roll { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.roll > span { display: inline-block; }
+
+/* Toast: the one dark element */
+#toast {
+  position: fixed; z-index: 50; left: 50%; bottom: 24px; transform: translateX(-50%); pointer-events: none;
+  background: var(--ink); color: var(--on-ink); border-radius: 999px; height: 36px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px; font-weight: 500; white-space: nowrap; overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.45);
+}
+#toast svg { width: 14px; height: 14px; flex: none; }
+
+/* One focus ring everywhere: black, never coloured. */
+:where(.ib, .seg button, .sw, .btn, .swatches button, .tab, .act, .tg, .chips button, .dots button, .logo, #show):focus-visible,
+:where(.pick, .ink):has(input:focus-visible) {
+  outline: none; box-shadow: 0 0 0 2px var(--chrome), 0 0 0 4px var(--ink);
+}
+:where(.ib, .seg button, .sw, .btn, .swatches button, .tab, .act, .tg, .chips button, .dots button, .logo, #show, .pick input, .ink input) { outline: none; }
+
+/* Shutter flash for snaps: light, quick, no words. */
+#flash { position: fixed; inset: 0; z-index: 60; background: #fff; pointer-events: none; opacity: 0; }
+
+kbd {
+  font: inherit; font-size: 10.5px; color: var(--ink-2); background: var(--chrome-2);
+  border-radius: 5px; padding: 1px 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::after { transition-duration: 0.12s !important; transition-delay: 0s !important; transition-timing-function: ease !important; }
+}
+</style>
+<style>
+/* Direct mode: the bits every timeline sketch shares. */
+/* Create | Direct: two quiet icons in the top right, on the galaxy itself (always dark). */
+.modes {
+  position: fixed; z-index: 20; top: calc(13px + env(safe-area-inset-top, 0px)); right: 14px;
+  display: flex; gap: 2px; padding: 2px; border-radius: 999px;
+  transition: opacity 0.35s var(--spring-smooth), filter 0.35s var(--spring-smooth), background 0.25s;
+}
+.modes:hover { background: rgba(255, 255, 255, 0.06); }
+.modes button {
+  position: relative; width: 32px; height: 30px; padding: 0 0 2px; border: 0; border-radius: 999px; background: none; cursor: pointer;
+  display: grid; place-items: center; color: rgba(255, 255, 255, 0.42); transition: color 0.25s; -webkit-tap-highlight-color: transparent;
+}
+.modes button:hover { color: rgba(255, 255, 255, 0.75); }
+.modes button[aria-checked="true"] { color: rgba(255, 255, 255, 0.95); }
+.modes button svg { width: 17px; height: 17px; }
+.modes button .fill { opacity: 0; transition: opacity 0.25s; }
+.modes button[aria-checked="true"] .fill { opacity: 1; }
+.modes button:focus-visible { outline: 1px solid rgba(255, 255, 255, 0.6); outline-offset: 1px; }
+.modes i { position: absolute; bottom: 1px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: #fff; pointer-events: none; transition: left var(--t-snappy) var(--spring-snappy); }
+/* The playground's way back moves left, out of the toggle's corner. */
+body:has(.modes) .backbar { right: auto; left: 16px; }
+.dchrome, .backbar { transition: opacity 0.35s var(--spring-smooth), filter 0.35s var(--spring-smooth), transform 0.35s var(--spring-smooth); }
+body.previewing .dchrome, body.previewing .backbar, body.previewing #toast, body.previewing .tip {
+  opacity: 0 !important; filter: blur(6px); pointer-events: none !important;
+  transition: opacity 0.2s var(--ease-exit), filter 0.2s var(--ease-exit) !important;
+}
+body.previewing { cursor: none; }
+.ib.sm { width: 34px; height: 34px; border-radius: 10px; }
+.ib.sm svg { width: 18px; height: 18px; }
+.ib.play { background: var(--ink); color: var(--on-ink); }
+.ib.play:hover { color: var(--on-ink); opacity: 0.88; }
+.ib:disabled { opacity: 0.35; cursor: default; }
+.tc { font-variant-numeric: tabular-nums; color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+.tc b { color: var(--ink); font-weight: 500; }
+.chip {
+  height: 30px; padding: 0 11px; border: 0; border-radius: 9px; background: var(--chrome-2); color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background 0.2s, color 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.chip:hover { background: var(--chrome-3); color: var(--ink); }
+.chip:active { transform: scale(0.95); transition-duration: 0.1s; }
+.chip svg { width: 15px; height: 15px; }
+.chip.ink { background: var(--ink); color: var(--on-ink); }
+.chip.ink:hover { opacity: 0.88; }
+.seg.ease button { padding: 6px 0; font-size: 11.5px; }
+.menu { position: fixed; z-index: 40; padding: 6px; border-radius: 16px; min-width: 180px; display: grid; gap: 2px; }
+.menu button { height: 32px; border: 0; background: none; border-radius: 10px; text-align: left; padding: 0 10px; color: var(--ink-2); font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.menu button:hover { background: var(--chrome-2); color: var(--ink); }
+.menu .lab { padding: 6px 10px 2px; color: var(--ink-3); font-size: 11px; font-weight: 500; }
+.menu hr { border: 0; border-top: 1px solid var(--hair); margin: 4px 6px; }
+.empty-hint { color: var(--ink-3); font-weight: 500; pointer-events: none; }
+
+/* The dot track: one slim pill, like a video scrubber. Centred with translate so
+   the enter and leave animations can use transform freely. */
+#dbar {
+  position: fixed; z-index: 10; left: 50%; translate: -50% 0; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: min(760px, calc(100vw - 32px)); height: 56px; padding: 0 10px; border-radius: 999px;
+  display: flex; align-items: center; gap: 8px;
+}
+#dbar .ib.sm { width: 36px; height: 36px; border-radius: 999px; flex: none; }
+#dbar .ib.sm[hidden] { display: none; }
+#dbar .track { position: relative; flex: 1; height: 40px; margin: 0 10px; cursor: pointer; touch-action: none; }
+#dbar .line { position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: var(--chrome-2); }
+#dbar .done { position: absolute; left: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: var(--ink-3); }
+#dbar.recording .done { background: var(--ink); }
+#dbar.recording .track { cursor: default; }
+#dbar .dot {
+  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  background: var(--chrome); box-shadow: inset 0 0 0 2px var(--ink-2); cursor: grab; touch-action: none;
+  transition: transform var(--t-pop) var(--spring-pop), box-shadow 0.2s, background 0.2s;
+}
+#dbar .dot::after { content: ""; position: absolute; inset: -10px; }
+#dbar .dot:hover { transform: scale(1.25); box-shadow: inset 0 0 0 2px var(--ink); }
+#dbar .dot.sel { background: var(--ink); box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 3px var(--chrome), 0 0 0 4.5px var(--ink); transform: scale(1.1); }
+#dbar .dot.drag { cursor: grabbing; transform: scale(1.4); }
+/* A key that changes the galaxy (not just the camera) carries a small centre. */
+#dbar .dot.chg::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--ink-2); }
+#dbar .dot.sel.chg::before { background: var(--chrome); }
+#dbar .ph { position: absolute; top: 50%; width: 4px; height: 22px; margin: -11px 0 0 -2px; border-radius: 4px; background: var(--ink); pointer-events: none; box-shadow: 0 0 0 2px var(--chrome); }
+#dbar .empty-hint { position: absolute; inset: 0 0 0 12px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; white-space: nowrap; overflow: hidden; }
+#dbar .tc { min-width: 92px; text-align: right; }
+#dundo {
+  position: fixed; z-index: 11; left: 50%; translate: -50% 0; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding: 5px 5px 5px 16px; border-radius: 999px; display: flex; align-items: center; gap: 12px; font-weight: 500;
+}
+#dundo .chip { border-radius: 999px; }
+#dlib {
+  position: fixed; z-index: 12; left: 50%; translate: -50% 0; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  width: min(440px, calc(100vw - 32px)); padding: 16px; border-radius: 22px; display: grid; gap: 12px;
+}
+#dlib .lh { display: flex; align-items: baseline; justify-content: space-between; }
+#dlib .lh b { font-size: 15px; font-weight: 600; }
+#dlib .la { display: flex; gap: 6px; flex-wrap: wrap; }
+#dlib .chip:disabled { opacity: 0.4; cursor: default; }
+#dlib .ll { display: grid; gap: 2px; max-height: min(320px, 45vh); overflow-y: auto; scrollbar-width: none; margin: 0 -6px; }
+#dlib .li { display: flex; align-items: center; gap: 2px; padding: 0 4px 0 0; border-radius: 14px; transition: background 0.2s; }
+#dlib .li:hover, #dlib .li.cur { background: var(--chrome-2); }
+#dlib .lo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 6px; border: 0; background: none; text-align: left; cursor: pointer; border-radius: 12px; }
+#dlib .lo img, #dlib .lo i { width: 72px; height: 40px; border-radius: 9px; object-fit: cover; flex: none; background: var(--chrome-3); display: block; }
+#dlib .ln { min-width: 0; display: grid; gap: 2px; }
+#dlib .ln b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dlib .ln em { font-style: normal; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+#dlib .ln input { font: inherit; font-weight: 600; color: var(--ink); background: var(--chrome); border: 0; border-radius: 7px; padding: 3px 6px; margin: -3px -6px; box-shadow: 0 0 0 1.5px var(--ink); outline: none; width: 100%; user-select: text; -webkit-user-select: text; }
+#dlib .ib.sm { width: 32px; height: 32px; color: var(--ink-3); }
+#dlib .ib.sm:hover { color: var(--ink); }
+#dlib .empty-hint { padding: 14px 8px; text-align: center; }
+body.tools-off #dlib, body.bare #dlib { opacity: 0 !important; pointer-events: none !important; }
+#dpeek { position: fixed; z-index: 15; padding: 6px; border-radius: 16px; pointer-events: none; }
+#dpeek img { display: block; width: 176px; height: 99px; object-fit: cover; border-radius: 11px; background: var(--chrome-2); }
+#dpeek span { display: block; padding: 5px 4px 1px; font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; font-weight: 500; }
+#dopts {
+  position: fixed; z-index: 11; left: 50%; translate: -50% 0; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 6px 6px 14px; border-radius: 18px; display: flex; align-items: center; gap: 8px;
+}
+#dopts b { font-weight: 600; white-space: nowrap; }
+#dopts img { width: 64px; height: 36px; object-fit: cover; border-radius: 9px; margin-left: -8px; display: block; flex: none; }
+#dopts .tc { margin-right: 4px; }
+#dopts .chg { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: var(--chrome-2); }
+#dopts .seg { width: 300px; }
+#dopts .ib.sm { width: 32px; height: 32px; flex: none; }
+/* Easing: a curve thumbnail in the keyframe strip, and the editor card above it. */
+.cv { width: 18px; height: 18px; flex: none; }
+.cv path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#dopts .chip.curve { gap: 6px; padding-left: 8px; }
+#dopts .chip.curve[aria-expanded="true"] { background: var(--ink); color: var(--chrome); }
+.curve-card { padding: 18px 16px 16px; border-radius: 22px; display: grid; gap: 12px; }
+#dcurve { position: fixed; z-index: 13; left: 50%; translate: -50% 0; }
+.curve-card .ctl-title { padding: 0; }
+.curve-card .ctl-title span { font-variant-numeric: tabular-nums; }
+.curve-card .graph { width: 100%; max-height: 44vh; display: block; touch-action: none; overflow: visible; }
+.curve-card .box { fill: var(--chrome-2); }
+.curve-card .diag { stroke: var(--ink-3); stroke-dasharray: 3 4; opacity: 0.6; fill: none; }
+.curve-card .arm { stroke: var(--ink-3); stroke-width: 1.5; }
+.curve-card .curve { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+.curve-card .end { fill: var(--ink-3); }
+.curve-card .h { fill: var(--chrome); stroke: var(--ink); stroke-width: 2.5; cursor: grab; outline: none; transition: r 0.15s; }
+.curve-card .h:hover, .curve-card .h:focus-visible { r: 10; }
+.curve-card .h.drag { cursor: grabbing; fill: var(--ink); }
+.curve-card .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.curve-card .presets .chip { gap: 5px; padding: 5px 10px 5px 7px; font-size: 12px; }
+.curve-card .presets .chip[aria-pressed="true"] { background: var(--ink); color: var(--chrome); }
+.curve-card .row { display: flex; gap: 6px; }
+.curve-card .row .chip { flex: 1; justify-content: center; }
+.curve-card .row .chip:disabled { opacity: 0.4; }
+body.tools-off #dcurve, body.bare #dcurve { opacity: 0 !important; pointer-events: none !important; }
+@media (max-width: 700px) {
+  #dbar { width: var(--dock-w, calc(100vw - 32px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 0 6px; gap: 2px; }
+  #dbar .tc { min-width: 0; font-size: 11.5px; }
+  #dbar .over { display: none !important; }   /* Start over stays in the ⋯ menu */
+  #dbar .track { margin: 0 8px; }
+  #dopts { width: var(--dock-w, calc(100vw - 32px)); flex-wrap: wrap; padding: 8px 8px 8px 14px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  #dopts .seg { width: 100%; order: 5; }
+  #dopts .tc { flex: 1; }
+}
+</style>
+<style>
+  /* Layout: a quiet reference page (contents on the left, sections down the right);
+     the app's own chrome only appears inside the dark "sky" stages. */
+  :root {
+    --page: #ececee;
+    --page-raised: #f7f7f8;
+    --page-ink: #0a0a0b;
+    --page-ink-2: #5d5d63;
+    --page-line: rgba(0, 0, 0, 0.09);
+    --sky: #04040a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page: #0b0b0d; --page-raised: #131316; --page-ink: #f4f4f5; --page-ink-2: #9d9da3; --page-line: rgba(255, 255, 255, 0.09); color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --page: #0b0b0d; --page-raised: #131316; --page-ink: #f4f4f5; --page-ink-2: #9d9da3; --page-line: rgba(255, 255, 255, 0.09); color-scheme: dark; }
+
+  html, body.ds { height: auto; min-height: 100%; overflow: visible; background: var(--page); }
+  body.ds {
+    color: var(--page-ink); font-size: 14px; line-height: 1.5; user-select: text; -webkit-user-select: text;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .ds a { color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px; padding-block: 40px 96px; }
+  .toc { position: sticky; top: calc(24px + env(safe-area-inset-top, 0px)); align-self: start; display: grid; gap: 2px; font-size: 13px; }
+  .toc b { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--page-ink-2); padding: 14px 0 4px; }
+  .toc a { text-decoration: none; color: var(--page-ink-2); padding: 3px 0; }
+  .toc a:hover { color: var(--page-ink); }
+  main { min-width: 0; display: grid; gap: 72px; }
+
+  .hero { display: grid; gap: 14px; }
+  .hero h1 { font-size: clamp(40px, 7vw, 76px); font-weight: 800; letter-spacing: -0.055em; line-height: 0.92; text-wrap: balance; }
+  .hero p { max-width: 62ch; color: var(--page-ink-2); font-size: 15px; }
+  .hero .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 8px; }
+  .hero .bar .seg { width: 260px; }
+  .hero .bar code { font-size: 12px; color: var(--page-ink-2); }
+
+  section { display: grid; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.1; }
+  section > p, .sub > p { max-width: 64ch; color: var(--page-ink-2); }
+  .sub { display: grid; gap: 12px; padding-top: 18px; border-top: 1px solid var(--page-line); }
+  .sub h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .sub h3 code { font-size: 12px; font-weight: 500; color: var(--page-ink-2); }
+  pre { margin: 0; overflow-x: auto; background: var(--page-raised); border: 1px solid var(--page-line); border-radius: 12px; padding: 12px 14px; font: 12px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--page-ink); }
+
+  /* Stages: the night sky the chrome floats on, once in light chrome and once in dark. */
+  .demo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stage {
+    position: relative; min-width: 0; border-radius: 18px; padding: 44px 24px 28px; overflow: hidden;
+    background-color: var(--sky); background-image: var(--stars), radial-gradient(120% 90% at 78% 18%, rgba(120, 130, 255, 0.16), transparent 60%), radial-gradient(90% 80% at 12% 92%, rgba(255, 150, 90, 0.12), transparent 60%);
+    background-size: 512px 512px, auto, auto;
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 12px;
+    color: var(--ink); font-size: 12.5px;
+  }
+  .stage::before { content: attr(data-label); position: absolute; top: 14px; left: 18px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); }
+  /* Controls live inside panels in the app, so the demos sit on one too. */
+  .stage .col { display: grid; gap: 6px; width: min(100%, 304px); background: var(--chrome); border-radius: calc(var(--card-pad) + 10px); padding: var(--card-pad); box-shadow: var(--lift); }
+  .stage .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .stage .tile { background: var(--chrome); border-radius: 20px; padding: 14px; box-shadow: var(--lift); }
+  .demo.one { grid-template-columns: 1fr; }
+
+  /* Colour tokens */
+  .tokens { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tokens th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--page-ink-2); padding: 0 12px 10px 0; }
+  .tokens td { padding: 10px 12px 10px 0; border-top: 1px solid var(--page-line); vertical-align: middle; }
+  .tokens code { font-size: 12.5px; }
+  .tokens .role { color: var(--page-ink-2); }
+  .chipv { display: inline-flex; align-items: center; gap: 10px; font: 12px ui-monospace, Menlo, monospace; color: var(--page-ink-2); white-space: nowrap; }
+  .chipv i { width: 36px; height: 24px; border-radius: 7px; box-shadow: inset 0 0 0 1px var(--page-line); flex: none; }
+  .tablewrap { overflow-x: auto; }
+  .palettes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .pal { background: var(--page-raised); border: 1px solid var(--page-line); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+  .pal .orb { height: 72px; border-radius: 10px; }
+  .pal b { font-weight: 600; }
+  .pal .hexes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font: 11px ui-monospace, Menlo, monospace; color: var(--page-ink-2); }
+  .pal .hexes span { display: flex; align-items: center; gap: 6px; }
+  .pal .hexes i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+  /* Type */
+  .types { display: grid; }
+  .type { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: center; padding: 16px 0; border-top: 1px solid var(--page-line); }
+  .type .meta { display: grid; gap: 2px; font-size: 12.5px; color: var(--page-ink-2); }
+  .type .meta b { color: var(--page-ink); font-weight: 600; font-size: 14px; }
+  .type .meta code { font-size: 11.5px; }
+  .type .sample { min-width: 0; overflow-wrap: anywhere; }
+  .on-sky { background-color: var(--sky); background-image: var(--stars); background-size: 512px 512px; border-radius: 12px; padding: 14px 16px; }
+
+  /* Shape and motion */
+  .grid-specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .spec { background: var(--page-raised); border: 1px solid var(--page-line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; font-size: 12.5px; }
+  .spec .shape { height: 56px; background: var(--page-ink); opacity: 0.88; }
+  .spec b { font-weight: 600; }
+  .spec span { color: var(--page-ink-2); font: 11.5px ui-monospace, Menlo, monospace; }
+  .motion { display: grid; gap: 10px; }
+  .mrow { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: center; }
+  .mrow .meta { font-size: 12.5px; color: var(--page-ink-2); display: grid; }
+  .mrow .meta b { color: var(--page-ink); font-weight: 600; font-size: 13.5px; }
+  .lane { position: relative; height: 34px; border-radius: 999px; background: var(--page-raised); border: 1px solid var(--page-line); }
+  .puck { position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; border-radius: 50%; background: var(--page-ink); }
+  .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+  .icon { display: grid; justify-items: center; gap: 8px; padding: 14px 6px 10px; background: var(--page-raised); border: 1px solid var(--page-line); border-radius: 12px; color: var(--page-ink); }
+  .icon svg { width: 22px; height: 22px; }
+  .icon span { font: 11px ui-monospace, Menlo, monospace; color: var(--page-ink-2); }
+  .icon .fill { opacity: 1; }
+
+  /* Patterns rebuilt in place (the app's own versions are fixed to the screen). */
+  .rail-demo { width: 60px; padding: var(--rail-pad); display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: var(--r-card); }
+  .rail-demo .group { position: relative; display: flex; flex-direction: column; gap: 4px; }
+  .rail-demo hr { width: 24px; border: 0; border-top: 1px solid var(--hair); margin: 8px 0; }
+  .strip-demo { padding: 6px 6px 6px 14px; border-radius: 18px; display: flex; align-items: center; gap: 8px; font-weight: 500; max-width: 100%; flex-wrap: wrap; }
+  .strip-demo .thumb { width: 64px; height: 36px; border-radius: 9px; margin-left: -8px; background: radial-gradient(circle at 50% 50%, #fff3d6 0 6%, #e8b06a 16%, #5a6fd6 42%, #0b0b18 70%); flex: none; }
+  .strip-demo b { font-weight: 600; white-space: nowrap; }
+  .bar-demo { width: 100%; max-width: 560px; height: 56px; padding: 0 10px; border-radius: 999px; display: flex; align-items: center; gap: 8px; }
+  .bar-demo .ib.sm { width: 36px; height: 36px; border-radius: 999px; flex: none; }
+  .bar-demo .track { position: relative; flex: 1; height: 40px; margin: 0 10px; min-width: 60px; }
+  .bar-demo .line { position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: var(--chrome-2); }
+  .bar-demo .done { position: absolute; left: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: var(--ink-3); width: 46%; }
+  .bar-demo .dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--chrome); box-shadow: inset 0 0 0 2px var(--ink-2); }
+  .bar-demo .dot.sel { background: var(--ink); box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 3px var(--chrome), 0 0 0 4.5px var(--ink); }
+  .bar-demo .dot.chg::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--ink-2); }
+  .bar-demo .ph { position: absolute; top: 50%; width: 4px; height: 22px; margin: -11px 0 0 -2px; border-radius: 4px; background: var(--ink); box-shadow: 0 0 0 2px var(--chrome); }
+
+  @media (max-width: 860px) {
+    .wrap { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 24px 64px; }
+    .toc { position: static; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    .toc b { grid-column: 1 / -1; }
+    .demo { grid-template-columns: minmax(0, 1fr); }
+    .type, .mrow { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  }
+</style>
+</head>
+<body class="ds">
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <b>Foundations</b>
+    <a href="#colour">Colour</a><a href="#type">Type</a><a href="#shape">Shape and depth</a><a href="#motion">Motion</a><a href="#icons">Icons</a>
+    <b>Components</b>
+    <a href="#button">Button</a><a href="#icon-button">Icon button</a><a href="#chip">Chip</a><a href="#segmented">Segmented control</a><a href="#switch">Switch</a><a href="#slider">Slider</a><a href="#swatches">Swatches</a><a href="#picks">Colour picks</a><a href="#keys">Labels and keys</a><a href="#panel">Panel</a><a href="#menu">Menu</a><a href="#tooltip">Tooltip</a><a href="#toasts">Toast</a><a href="#curve">Curve editor</a>
+    <b>Patterns</b>
+    <a href="#rail">Tool rail</a><a href="#timeline">Timeline</a><a href="#strip">Keyframe strip</a>
+  </nav>
+  <main>
+    <header class="hero">
+      <h1>Galaxy Creator design system</h1>
+      <p>Monochrome chrome in two themes, floating over a galaxy that holds all the colour. Every swatch below is read live from <code>kit.css</code>, and every control is built by <code>ui.js</code>, the same factories the app uses.</p>
+      <div class="bar"><span id="themeSeg"></span><code>UI.setTheme('light' | 'dark' | 'system')</code></div>
+    </header>
+
+    <section id="colour">
+      <h2>Colour</h2>
+      <p>The chrome is greyscale on purpose, so the galaxy is the only colour on screen. Ink marks what is active; the three chrome greys build surfaces, fills and hover states.</p>
+      <div class="tablewrap"><table class="tokens" id="tokens"><thead><tr><th>Token</th><th>Used for</th><th>Light</th><th>Dark</th></tr></thead><tbody></tbody></table></div>
+      <div class="sub"><h3>Galaxy palettes</h3><p>The one place hue is allowed. Each palette colours four things in the galaxy: old stars, young stars, and two gases.</p><div class="palettes" id="palettes"></div></div>
+    </section>
+
+    <section id="type">
+      <h2>Type</h2>
+      <p>One family, Geist, from 10.5 px key caps to the 240 px landing headline. Weight carries hierarchy; numbers that change use tabular figures.</p>
+      <div class="types" id="types"></div>
+    </section>
+
+    <section id="shape">
+      <h2>Shape and depth</h2>
+      <p>Corners are concentric: a control inset in a card takes the card's radius minus the padding between them, so every gap around a corner is even. One shadow, <code>--lift</code>, separates chrome from the sky.</p>
+      <div class="grid-specs" id="radii"></div>
+      <div class="sub"><h3>Sizes</h3><div class="grid-specs" id="sizes"></div></div>
+    </section>
+
+    <section id="motion">
+      <h2>Motion</h2>
+      <p>Springs, not durations: snappy for presses and pills, pop for things that arrive, smooth for panels, and a quick exit curve for anything leaving. Leaving is always faster than arriving.</p>
+      <div class="motion" id="springs"></div>
+      <div><span id="playMotion"></span></div>
+    </section>
+
+    <section id="icons">
+      <h2>Icons</h2>
+      <p>24 px grid, 1.6 px strokes, round caps. Icons with a <code>.fill</code> layer fill in when their control is active.</p>
+      <div class="icons" id="iconGrid"></div>
+    </section>
+
+    <section id="components"><h2>Components</h2><p>Each factory takes plain options and returns an element. Controls that show a value read it through <code>get</code> and redraw with <code>el.sync()</code>, so the same control can follow any state, the galaxy's or a page's own.</p></section>
+    <div id="componentList" style="display:grid;gap:56px"></div>
+
+    <section id="patterns"><h2>Patterns</h2><p>The app's larger pieces, assembled from the components above.</p></section>
+    <div id="patternList" style="display:grid;gap:56px"></div>
+  </main>
+</div>
+
+<script>
+/* Galaxy Creator UI: the component library. Icons, motion helpers, theme, easing,
+   and the controls every surface is built from (buttons, chips, segmented controls,
+   switches, sliders, swatches, panels, menus, the curve editor, the toast). Nothing
+   here knows about the galaxy; kit.js and director.js wire these to it. The styles
+   live in kit.css and director.css; design/index.html shows them all. */
+(function () {
+  'use strict';
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const EASE = { snappy: cssVar('--spring-snappy'), pop: cssVar('--spring-pop'), smooth: cssVar('--spring-smooth'), exit: cssVar('--ease-exit') };
+  const still = () => (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !Element.prototype.animate;
+
+  const svg = (body, extra) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${body}</svg>`;
+  const ICON = {
+    galaxy: svg('<circle class="fill" cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7"/><path d="M13.6 11.1c1.1-2.9 4.5-4.2 7.2-2.7M10.4 12.9c-1.1 2.9-4.5 4.2-7.2 2.7M12.9 13.6c2.9 1.1 4.2 4.5 2.7 7.2M11.1 10.4c-2.9-1.1-4.2-4.5-2.7-7.2"/>'),
+    matter: svg('<path class="fill" d="M12 3.5l1.9 5.2 5.1 1.9-5.1 1.9L12 17.7l-1.9-5.2L5 10.6l5.1-1.9z" fill="currentColor"/><path d="M12 3.5l1.9 5.2 5.1 1.9-5.1 1.9L12 17.7l-1.9-5.2L5 10.6l5.1-1.9z"/><path d="M18.5 16l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>'),
+    motion: svg('<ellipse cx="12" cy="12" rx="9.2" ry="4" transform="rotate(-24 12 12)"/><circle class="fill" cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="2.4"/><circle cx="19.6" cy="8.6" r="1.3" fill="currentColor" stroke="none"/>'),
+    light: svg('<circle class="fill" cx="12" cy="12" r="3.8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="3.6"/><path d="M12 2.8V5M12 19v2.2M2.8 12H5M19 12h2.2M5.5 5.5l1.6 1.6M16.9 16.9l1.6 1.6M5.5 18.5l1.6-1.6M16.9 7.1l1.6-1.6"/>'),
+    colour: svg('<path class="fill" d="M12 3a9 9 0 1 0 0 18c1.3 0 1.9-.8 1.9-1.7 0-1.3-1-1.6-1-2.8 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z" fill="currentColor" fill-opacity=".14" stroke="none"/><path d="M12 3a9 9 0 1 0 0 18c1.3 0 1.9-.8 1.9-1.7 0-1.3-1-1.6-1-2.8 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z"/><circle cx="7.5" cy="11.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10" cy="7.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>'),
+    create: svg('<rect class="fill" x="4" y="4" width="16" height="16" rx="4.5" fill="currentColor" fill-opacity=".14" stroke="none"/><rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none"/>'),
+    save: svg('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>'),
+    hide: svg('<path d="M3 3l18 18M10.6 5.1A9.7 9.7 0 0 1 12 5c5.5 0 9 7 9 7a15 15 0 0 1-2.9 3.7M6.5 6.6C4.2 8.2 3 12 3 12s3.5 7 9 7c1.6 0 3-.4 4.2-1"/>'),
+    show: svg('<path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="2.8"/>'),
+    keys: svg('<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/>'),
+    close: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
+    seed: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
+    dice: svg('<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>'),
+    spin: svg('<circle cx="12" cy="12" r="8" stroke-opacity=".25"/><path d="M12 4a8 8 0 0 1 8 8"/>', ' class="spin"'),
+    tick: svg('<path d="M5 12.5 10 17.5 19 7"/>', ' class="tick" stroke-width="2"'),
+    view: svg('<path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="2.8"/>'),
+    pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10-6.5a1 1 0 0 0 0-1.7l-10-6.5A1 1 0 0 0 8 5.5Z"/></svg>',
+  };
+  ICON.moon = svg('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/>');
+  ICON.sun = svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>');
+  ICON.camera = svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.4-2h5l1.4 2h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/><circle cx="12" cy="12.5" r="3.4"/>');
+  ICON.create = svg('<path d="M12 5v14M5 12h14"/>');
+  ICON.capture = ICON.camera;
+  ICON.share = svg('<path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M8.5 10.5H7A2.5 2.5 0 0 0 4.5 13v4.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V13a2.5 2.5 0 0 0-2.5-2.5h-1.5"/>');
+  ICON.link = svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>');
+  ICON.record = svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>');
+  ICON.stop = svg('<rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/>');
+  ICON.settings = svg('<path class="fill" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="currentColor" fill-opacity=".14" stroke="none"/><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4Z"/>');
+  Object.assign(ICON, {
+    prev: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="2.6" height="14" rx="1"/><path d="M19 6.2v11.6a1 1 0 0 1-1.6.8l-8-5.8a1 1 0 0 1 0-1.6l8-5.8a1 1 0 0 1 1.6.8Z"/></svg>',
+    next: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="16.4" y="5" width="2.6" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.6.8l8-5.8a1 1 0 0 0 0-1.6l-8-5.8A1 1 0 0 0 5 6.2Z"/></svg>',
+    key: svg('<path d="M12 4.5 19.5 12 12 19.5 4.5 12Z"/><path d="M12 9v6M9 12h6"/>'),
+    preview: svg('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M10 9.2v5.6a.6.6 0 0 0 .9.5l4.4-2.8a.6.6 0 0 0 0-1l-4.4-2.8a.6.6 0 0 0-.9.5Z" fill="currentColor" stroke="none"/>'),
+    export: svg('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>'),
+    shots: svg('<rect x="3.5" y="6" width="17" height="12" rx="2.5"/><path d="M3.5 10h17M8 6v4M13 6v4"/>'),
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>',
+    trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7"/>'),
+    refresh: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
+    restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/>'),
+    saved: svg('<path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"/>'),
+    sliders: svg('<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
+    film: svg('<rect class="fill" x="3.5" y="5.5" width="17" height="13" rx="3" fill="currentColor" fill-opacity=".14" stroke="none"/><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M8 5.5v13M16 5.5v13M3.5 10h4.5M3.5 14h4.5M16 10h4.5M16 14h4.5"/>'),
+    pencil: svg('<path d="M14.5 5.5l4 4M4 20l1-5L15.5 4.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L9 19Z"/>'),
+  });
+
+  // ---- motion helpers -----------------------------------------------------------------
+  function swapHTML(el, html, isText) {
+    const same = isText ? el.textContent === html : el.innerHTML === html;
+    if (el._next === undefined && same) return;
+    const put = (v) => { if (isText) el.textContent = v; else el.innerHTML = v; };
+    if (still()) { put(html); return; }
+    if (el._next !== undefined) { el._next = html; return; }
+    el._next = html;
+    const out = el.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'none' }, { opacity: 0, filter: 'blur(4px)', transform: 'translateY(-4px)' }], { duration: 120, easing: EASE.exit, fill: 'forwards' });
+    out.onfinish = () => {
+      put(el._next); el._next = undefined; out.cancel();
+      el.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'translateY(4px)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 300, easing: EASE.pop });
+    };
+  }
+  function rollText(el, text) {
+    const old = el.dataset.v;
+    el.dataset.v = text;
+    if (old === undefined || still()) { el.textContent = text; return; }
+    if (old === text) return;
+    const num = (t) => parseFloat(t.replace(/[^0-9.]/g, '')) || 0;
+    const dir = num(text) >= num(old) ? 1 : -1;
+    el.textContent = '';
+    const n = text.length;
+    for (let i = 0; i < n; i++) {
+      const ch = text[i], prev = old[old.length - n + i];
+      if (ch === prev) { el.append(ch); continue; }
+      const wrap = document.createElement('span'), inner = document.createElement('span');
+      wrap.className = 'roll'; inner.textContent = ch; wrap.append(inner); el.append(wrap);
+      inner.animate([{ transform: `translateY(${dir * 80}%)`, opacity: 0, filter: 'blur(2px)' }, { transform: 'none', opacity: 1, filter: 'blur(0px)' }],
+        { duration: 280, delay: (n - 1 - i) * 25, easing: EASE.snappy, fill: 'backwards' });
+    }
+  }
+  // Animate an element's height from its current size to whatever its new content needs.
+  function morphHeight(el, change, opts) {
+    const from = el.getBoundingClientRect();
+    change();
+    const to = el.getBoundingClientRect();
+    if (still() || (from.height === to.height && from.width === to.width)) return;
+    const kf = [{ height: from.height + 'px' }, { height: to.height + 'px' }];
+    if (opts && opts.width) { kf[0].width = from.width + 'px'; kf[1].width = to.width + 'px'; }
+    if (opts && opts.radius) { kf[0].borderRadius = opts.radius[0]; kf[1].borderRadius = opts.radius[1]; }
+    // Leaving is quicker than arriving (MOTION.md): closes use the exit curve.
+    return el.animate(kf, opts && opts.exit ? { duration: 200, easing: EASE.exit } : { duration: 420, easing: EASE.smooth });
+  }
+  // Blur a group out quickly, then run `then` (used before a container shrinks).
+  function leave(els, then) {
+    els = Array.from(els).filter(Boolean);
+    if (still() || !els.length) { then(); return; }
+    let left = els.length;
+    els.forEach((el) => {
+      const a = el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(4px)' }], { duration: 150, easing: EASE.exit, fill: 'forwards' });
+      a.onfinish = () => { if (--left === 0) { then(); els.forEach((x) => x.getAnimations().forEach((an) => an.cancel())); } };
+    });
+  }
+  const enter = (el, from, delay) => {
+    if (still()) return;
+    el.animate([Object.assign({ opacity: 0, filter: 'blur(6px)' }, from || {}), { opacity: 1, filter: 'blur(0px)', transform: 'none' }],
+      { duration: 380, delay: delay || 0, easing: EASE.smooth, fill: 'backwards' });
+  };
+
+  // Toast: one black pill that morphs between messages.
+  let toastEl = null, toastTimer = 0, toastOn = false, toastHide = null;
+  function toast(msg, icon) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.id = 'toast'; toastEl.setAttribute('role', 'status'); toastEl.hidden = true; document.body.append(toastEl); }
+    const fill = () => { toastEl.innerHTML = (icon ? ICON[icon] : '') + '<span></span>'; toastEl.lastChild.textContent = msg; };
+    clearTimeout(toastTimer);
+    if (toastHide) { toastHide.cancel(); toastHide = null; }
+    if (!toastOn) {
+      fill(); toastEl.hidden = false; toastOn = true;
+      if (!still()) toastEl.animate([{ opacity: 0, transform: 'translateX(-50%) translateY(14px) scale(0.9)', filter: 'blur(8px)' }, { opacity: 1, transform: 'translateX(-50%)', filter: 'blur(0px)' }], { duration: 450, easing: EASE.pop });
+    } else {
+      const w0 = toastEl.offsetWidth; fill(); const w1 = toastEl.offsetWidth;
+      if (!still()) {
+        toastEl.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: 340, easing: EASE.snappy });
+        Array.from(toastEl.children).forEach((c) => c.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 260 }));
+      }
+    }
+    toastTimer = setTimeout(() => {
+      toastOn = false;
+      if (still()) { toastEl.hidden = true; return; }
+      toastHide = toastEl.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'translateX(-50%)' }, { opacity: 0, filter: 'blur(4px)', transform: 'translateX(-50%) translateY(6px) scale(0.98)' }], { duration: 180, easing: EASE.exit, fill: 'forwards' });
+      toastHide.onfinish = () => { toastEl.hidden = true; toastHide.cancel(); toastHide = null; };
+    }, 1700);
+  }
+
+  // A sliding grey pill for any row or column of items.
+  function pillTrack(container, items, getActive) {
+    let ind = container.querySelector(':scope > .pill-ind');
+    if (!ind) { ind = document.createElement('div'); ind.className = 'pill-ind'; container.prepend(ind); }
+    let at = null;
+    function place(animate) {
+      const b = items().find(getActive);
+      if (!b || !container.offsetWidth) { ind.style.opacity = b ? '' : '0'; return; }
+      ind.style.opacity = '';
+      const box = { left: b.offsetLeft, top: b.offsetTop, right: container.clientWidth - b.offsetLeft - b.offsetWidth, bottom: container.clientHeight - b.offsetTop - b.offsetHeight };
+      container.classList.remove('go-fwd', 'go-back');
+      if (animate && at && !still()) container.classList.add(box.left + box.top >= at.left + at.top ? 'go-fwd' : 'go-back');
+      else ind.style.transition = 'none';
+      for (const k in box) ind.style[k] = box[k] + 'px';
+      if (ind.style.transition === 'none') { void ind.offsetWidth; ind.style.transition = ''; }
+      at = box;
+    }
+    return { place, hide() { ind.style.opacity = '0'; at = null; } };
+  }
+
+  // Tooltips for icon buttons (aria-label), placed on the given side.
+  function tooltips(root, side) {
+    let tip = null;
+    const show = (b) => {
+      if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; document.body.append(tip); }
+      tip.textContent = b.getAttribute('aria-label');
+      const r = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      const at = typeof side === 'function' ? side() : side;
+      const pos = at === 'right' ? { x: r.right + 10, y: r.top + r.height / 2 - t.height / 2 }
+        : at === 'top' ? { x: r.left + r.width / 2 - t.width / 2, y: r.top - t.height - 10 }
+        : { x: r.left + r.width / 2 - t.width / 2, y: r.bottom + 10 };
+      tip.style.left = Math.max(8, Math.min(innerWidth - t.width - 8, pos.x)) + 'px'; tip.style.top = pos.y + 'px';   // kept on screen
+      if (!still()) tip.animate([{ opacity: 0, filter: 'blur(4px)', transform: 'scale(0.94)' }, { opacity: 1, filter: 'blur(0px)', transform: 'none' }], { duration: 220, easing: EASE.pop });
+      tip.hidden = false;
+    };
+    const hide = () => { if (tip) tip.hidden = true; };
+    root.querySelectorAll('[data-tip]').forEach((b) => {
+      b.addEventListener('pointerenter', () => show(b));
+      b.addEventListener('pointerleave', hide);
+      b.addEventListener('pointerdown', hide);
+      b.addEventListener('focus', () => { if (b.matches(':focus-visible')) show(b); });
+      b.addEventListener('blur', hide);
+    });
+    return { hide };
+  }
+
+  // Arrow keys move between the buttons of a tablist or toolbar.
+  function roving(container, selector, vertical) {
+    container.addEventListener('keydown', (e) => {
+      const next = vertical ? ['ArrowDown', 'ArrowUp'] : ['ArrowRight', 'ArrowLeft'];
+      const i = next.indexOf(e.key);
+      if (i < 0) return;
+      const items = Array.from(container.querySelectorAll(selector)).filter((b) => b.offsetParent);
+      const at = items.indexOf(document.activeElement);
+      if (at < 0) return;
+      e.preventDefault(); e.stopPropagation();
+      items[(at + (i === 0 ? 1 : -1) + items.length) % items.length].focus();
+    });
+  }
+
+  // ---- theme: Light, Dark or System; dark by default; remembered per viewer ----------------
+  const THEME_KEY = 'galaxy-creator-theme';
+  const systemDark = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  function theme() {                                 // the choice: 'light' | 'dark' | 'system'
+    try { const t = localStorage.getItem(THEME_KEY); if (t === 'light' || t === 'dark' || t === 'system') return t; } catch (e) {}
+    return 'dark';
+  }
+  const resolve = (t) => (t === 'system' ? (systemDark && systemDark.matches ? 'dark' : 'light') : t);
+  function setTheme(t) {
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+    const next = resolve(t);
+    if (document.documentElement.dataset.theme === next) return;
+    const go = () => { document.documentElement.dataset.theme = next; };
+    // The whole chrome cross-fades between themes rather than snapping.
+    if (document.startViewTransition && !still()) document.startViewTransition(go); else go();
+  }
+  document.documentElement.dataset.theme = resolve(theme());
+  if (systemDark && systemDark.addEventListener) systemDark.addEventListener('change', () => { if (theme() === 'system') setTheme('system'); });
+
+  // Easing into a keyframe. Smooth comes to rest on every key; the others flow through.
+  const EASES = {
+    smooth: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+    linear: (t) => t,
+    in: (t) => t * t * t,
+    out: (t) => 1 - Math.pow(1 - t, 3),
+  };
+  const EASE_NAMES = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out']];
+  // A custom easing is a cubic Bézier, as in CSS: from (0,0) to (1,1), shaped by two handles.
+  // Their heights may leave 0–1, so a move can overshoot its key and settle back.
+  function bezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = (s) => ((ax * s + bx) * s + cx) * s, Y = (s) => ((ay * s + by) * s + cy) * s, dX = (s) => (3 * ax * s + 2 * bx) * s + cx;
+    return (t) => {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      let s = t;
+      for (let i = 0; i < 8; i++) { const e = X(s) - t, g = dX(s); if (Math.abs(e) < 1e-6 || Math.abs(g) < 1e-6) break; s -= e / g; }
+      if (!(s >= 0 && s <= 1) || Math.abs(X(s) - t) > 1e-4) {         // Newton wandered off: bisect
+        let lo = 0, hi = 1; s = t;
+        for (let i = 0; i < 40; i++) { if (X(s) < t) lo = s; else hi = s; s = (lo + hi) / 2; }
+      }
+      return Y(s);
+    };
+  }
+  const CURVE_Y = [-0.6, 1.6];
+  const isCurve = (e) => Array.isArray(e) && e.length === 4 && e.every((v) => typeof v === 'number' && isFinite(v));
+  const r2 = (v) => Math.round(v * 100) / 100;
+  const cleanCurve = (e) => e.map((v, i) => r2(i % 2 ? Math.max(CURVE_Y[0], Math.min(CURVE_Y[1], v)) : Math.max(0, Math.min(1, v))));
+  const validEase = (e) => (typeof e === 'string' && EASES[e] ? e : isCurve(e) ? cleanCurve(e) : 'smooth');
+  const curveCache = new Map();
+  function easeFn(e) {
+    if (typeof e === 'string') return EASES[e] || EASES.smooth;
+    if (!isCurve(e)) return EASES.smooth;
+    const id = e.join();
+    if (!curveCache.has(id)) curveCache.set(id, bezier(e[0], e[1], e[2], e[3]));
+    return curveCache.get(id);
+  }
+  // Where the handles sit for the named easings (Smooth and the rest are exact cubics; these
+  // Béziers match them closely), and the presets the curve editor offers.
+  const EASE_CURVES = { smooth: [0.65, 0, 0.35, 1], linear: [0.25, 0.25, 0.75, 0.75], in: [0.32, 0, 0.67, 0], out: [0.33, 1, 0.68, 1] };
+  const CURVE_PRESETS = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out'], [[0.37, 0, 0.63, 1], 'Gentle'], [[0.16, 1, 0.3, 1], 'Snappy'], [[0.34, 1.56, 0.64, 1], 'Overshoot']];
+  const handlesOf = (e) => (typeof e === 'string' ? EASE_CURVES[e] || EASE_CURVES.smooth : e);
+  const sameEase = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const easeName = (e) => { const p = CURVE_PRESETS.find(([v]) => sameEase(v, e)); return p ? p[1] : 'Custom'; };
+  // ---- the easing curve: a thumbnail for the keyframe strip, and an editor card -----------------
+  // Named easings draw as their real function; custom ones as the Bézier they are.
+  function curveD(e, X, Y, n) {
+    if (isCurve(e)) return `M${X(0)} ${Y(0)} C${X(e[0])} ${Y(e[1])} ${X(e[2])} ${Y(e[3])} ${X(1)} ${Y(1)}`;
+    const f = easeFn(e);
+    let s = '';
+    for (let i = 0; i <= n; i++) { const t = i / n; s += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f(t)).toFixed(1); }
+    return s;
+  }
+  const curveIcon = (e) => `<svg class="cv" viewBox="0 0 24 24" aria-hidden="true"><path d="${curveD(e, (v) => 4 + v * 16, (v) => 20 - v * 16, 16)}"/></svg>`;
+
+
+  // ---- components ---------------------------------------------------------------------
+  // Each factory builds one control from plain options and returns its element. Controls
+  // that show a value read it through `get` (a function, so they can follow outside
+  // state) and expose `el.sync(animate)` to redraw from it; nothing here knows the galaxy.
+  const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
+  const iconHTML = (icon) => (!icon ? '' : icon.trim().startsWith('<') ? icon : ICON[icon] || '');
+  const valueOf = (v) => (typeof v === 'function' ? v() : v);
+
+  // Button: full width, grey; `variant: 'primary'` makes it ink. setContent swaps icon and label.
+  function button({ icon, label = '', variant, onClick, className } = {}) {
+    const b = h('button', ['btn', variant, className].filter(Boolean).join(' '));
+    b.type = 'button';
+    b.setContent = (ic, text) => { b.innerHTML = `${iconHTML(ic)}<span></span>`; b.lastChild.textContent = text; };
+    b.setContent(icon, label);
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  // Icon button: an icon with its name as aria-label (and a tooltip when `tip`).
+  // size 'sm' is the compact one; variant 'play' is the round ink one.
+  function iconButton({ icon, label, size, variant, tip = true, pressed, onClick, className } = {}) {
+    const b = h('button', ['ib', size, variant, className].filter(Boolean).join(' '), iconHTML(icon));
+    b.type = 'button';
+    if (label) b.setAttribute('aria-label', label);
+    if (tip) b.setAttribute('data-tip', '');
+    if (pressed !== undefined) b.setAttribute('aria-pressed', String(!!valueOf(pressed)));
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  // Chip: a small pill button; variant 'ink' for the one that matters.
+  function chip({ icon, label = '', variant, pressed, disabled, onClick, className } = {}) {
+    const b = h('button', ['chip', variant, className].filter(Boolean).join(' '));
+    b.type = 'button';
+    b.setContent = (ic, text) => { b.innerHTML = `${iconHTML(ic)}${text ? '<span></span>' : ''}`; if (text) b.lastChild.textContent = text; };
+    b.setContent(icon, label);
+    if (pressed !== undefined) b.setAttribute('aria-pressed', String(!!valueOf(pressed)));
+    if (disabled) b.disabled = true;
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  // Segmented control: one choice of a few, with the stretching pill.
+  // options: [[value, label], ...]; get() → the current value; onChange(value).
+  function segmented({ label, options, get, onChange, columns, className } = {}) {
+    const el = h('div', ['seg', className].filter(Boolean).join(' '));
+    el.setAttribute('role', 'radiogroup'); if (label) el.setAttribute('aria-label', label);
+    el.style.gridTemplateColumns = `repeat(${columns || options.length}, 1fr)`;
+    options.forEach(([v, t]) => { const b = h('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.v = String(v); b.textContent = t; el.append(b); });
+    const btns = () => Array.from(el.querySelectorAll('button'));
+    const cur = () => String(valueOf(get));
+    const pill = pillTrack(el, btns, (b) => b.dataset.v === cur());
+    el.sync = (animate) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === cur()))); pill.place(animate); };
+    el._place = () => el.sync(false);
+    btns().forEach((b) => b.addEventListener('click', () => { if (onChange) onChange(b.dataset.v); el.sync(true); }));
+    requestAnimationFrame(() => el.sync(false));
+    return el;
+  }
+  // Switch: a labelled on/off row. get() → boolean; onChange(next).
+  function toggle({ label, get, onChange } = {}) {
+    const el = h('button', 'sw', '<span></span><i></i>');
+    el.type = 'button'; el.setAttribute('role', 'switch');
+    el.firstChild.textContent = label;
+    el.sync = () => el.setAttribute('aria-checked', String(!!valueOf(get)));
+    el.addEventListener('click', () => { if (onChange) onChange(!valueOf(get)); el.sync(); });
+    el.sync();
+    return el;
+  }
+  // Slider: a grey pill with an ink fill, the label and value inverting over it. Drag
+  // anywhere (it stretches a little past its ends), tap to jump, double-click to reset,
+  // arrow keys to step (Shift for ten). get() → value; set(v) → the value actually kept.
+  function slider({ label, min = 0, max = 1, step = 0.01, format = (v) => v.toFixed(2), get, set, reset, off } = {}) {
+    const el = h('div', 'sl', '<div class="sl-fill"></div><div class="sl-txt"><span></span><output></output></div>');
+    el.tabIndex = 0; el.setAttribute('role', 'slider');
+    el.setAttribute('aria-label', label); el.setAttribute('aria-valuemin', min); el.setAttribute('aria-valuemax', max);
+    el.querySelector('.sl-txt span').textContent = label;
+    const out = el.querySelector('output');
+    const span = max - min, discrete = step >= 1;
+    el.render = (v) => {
+      el.style.setProperty('--v', clamp((v - min) / span, 0, 1));
+      const t = format(v);
+      if (discrete) rollText(out, t); else out.textContent = t;
+      el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', t);
+      if (off) el.classList.toggle('off', !!off());
+    };
+    const commit = (v) => { const nv = set ? set(v) : v; el.render(nv === undefined ? valueOf(get) : nv); };
+    function stretch(px) {
+      if (!px || still()) { el.style.transform = ''; return; }
+      const r = Math.min(12, Math.abs(px) * 0.5 / (1 + Math.abs(px) / 80));
+      el.style.transformOrigin = px > 0 ? 'left center' : 'right center';
+      el.style.transform = `scaleX(${1 + r / el.offsetWidth})`;
+    }
+    let grab = null;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      grab = { x: e.clientX, v: valueOf(get), moved: false, w: el.getBoundingClientRect().width };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!grab) return;
+      const dx = e.clientX - grab.x;
+      if (!grab.moved && Math.abs(dx) < 3) return;
+      if (!grab.moved) { grab.moved = true; el.classList.add('drag'); }
+      const raw = grab.v + dx / grab.w * span;
+      commit(raw);
+      stretch(raw > max ? (raw - max) / span * grab.w : raw < min ? (raw - min) / span * grab.w : 0);
+    });
+    const release = (e) => {
+      if (!grab) return;
+      if (!grab.moved && e.type === 'pointerup') { const r = el.getBoundingClientRect(); commit(min + clamp((e.clientX - r.left) / r.width, 0, 1) * span); }
+      grab = null; el.classList.remove('drag'); stretch(0);
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    if (reset !== undefined) el.addEventListener('dblclick', () => commit(valueOf(reset)));
+    el.addEventListener('keydown', (e) => {
+      const k = e.key, big = e.shiftKey ? 10 : 1, v0 = valueOf(get);
+      const v = k === 'ArrowRight' || k === 'ArrowUp' ? v0 + step * big
+        : k === 'ArrowLeft' || k === 'ArrowDown' ? v0 - step * big
+        : k === 'Home' ? min : k === 'End' ? max : null;
+      if (v === null) return;
+      e.preventDefault(); e.stopPropagation(); commit(v);
+    });
+    el.sync = () => { if (valueOf(get) !== +el.getAttribute('aria-valuenow') || off) el.render(valueOf(get)); };
+    el.render(valueOf(get));
+    return el;
+  }
+  // Swatches: round colour buttons. items: [{ id, label, style }]; get() → the chosen id.
+  function swatches({ items, get, onPick } = {}) {
+    const el = h('div', 'swatches');
+    items.forEach((it) => { const b = h('button'); b.type = 'button'; b.dataset.id = it.id; b.setAttribute('aria-label', it.label); b.title = it.label; b.setAttribute('style', it.style); el.append(b); });
+    el.sync = () => el.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === valueOf(get))));
+    el.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { if (onPick) onPick(b.dataset.id); el.sync(); }));
+    el.sync();
+    return el;
+  }
+  // Colour picks: labelled colour wells. items: [{ id, label }]; get(id) → '#rrggbb'.
+  function colorPicks({ items, get, onInput } = {}) {
+    const el = h('div', 'picks');
+    items.forEach((it) => { const l = h('label', 'pick', '<input type="color"><span></span>'); l.firstChild.dataset.k = it.id; l.lastChild.textContent = it.label; el.append(l); });
+    el.sync = () => el.querySelectorAll('input').forEach((i) => { i.value = get(i.dataset.k); });
+    el.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { if (onInput) onInput(i.dataset.k, i.value); el.sync(); }));
+    el.sync();
+    return el;
+  }
+  // Small section label inside a panel.
+  const label = (text) => { const l = h('div', 'ctl-label'); l.textContent = text; return l; };
+  // A key cap, and a list of key commands: [[what, ['K', ...]], ...].
+  const kbd = (text) => { const k = h('kbd'); k.textContent = text; return k; };
+  function keys(list) {
+    const el = h('div', 'keys');
+    list.forEach(([what, ks]) => { const row = h('div', 'key', '<span></span><span></span>'); row.firstChild.textContent = what; ks.forEach((k) => row.lastChild.append(kbd(k))); el.append(row); });
+    return el;
+  }
+  // Panel: a card with the headline and hint, then its controls.
+  function panel({ title, hint, body = [], className } = {}) {
+    const el = h('section', ['card', 'concentric', className].filter(Boolean).join(' '), '<div class="ctl-title"><b></b><span></span></div>');
+    el.querySelector('b').textContent = title || '';
+    el.querySelector('.ctl-title span').textContent = hint || '';
+    const box = h('div', 'ctl'); body.forEach((x) => box.append(x)); el.append(box);
+    return el;
+  }
+  // Menu: a small card above (or below) a button. items: [label, fn, hint], a string
+  // heading, or '-' for a rule. Clicking away or picking closes it.
+  let openMenu = null;
+  function menu(anchor, items, below, className) {
+    if (openMenu) { const was = openMenu.anchor; openMenu.close(); if (was === anchor) return null; }
+    const m = h('div', ['menu card', className].filter(Boolean).join(' '));
+    items.forEach((it) => {
+      if (it === '-') { m.append(h('hr')); return; }
+      if (typeof it === 'string') { const l = h('div', 'lab'); l.textContent = it; m.append(l); return; }
+      const b = h('button', '', '<span></span><kbd hidden></kbd>'); b.type = 'button';
+      b.firstChild.textContent = it[0];
+      if (it[2]) { b.lastChild.hidden = false; b.lastChild.textContent = it[2]; }
+      b.addEventListener('click', () => { close(); it[1](); });
+      m.append(b);
+    });
+    document.body.append(m);
+    const r = anchor.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(12, Math.min(innerWidth - mr.width - 12, r.left + r.width / 2 - mr.width / 2)) + 'px';
+    m.style.top = (below ? r.bottom + 8 : r.top - mr.height - 8) + 'px';
+    if (!still()) m.animate([{ opacity: 0, transform: `translateY(${below ? -6 : 6}px) scale(0.96)`, filter: 'blur(4px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 260, easing: EASE.pop });
+    const away = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) close(); };
+    function close() { document.removeEventListener('pointerdown', away, true); m.remove(); openMenu = null; }
+    setTimeout(() => document.addEventListener('pointerdown', away, true));
+    openMenu = { anchor, close };
+    return m;
+  }
+  // Curve editor: the easing graph (time across, progress up) with two handles to drag,
+  // presets, and optional Preview and Apply to all. get() → a named easing or
+  // [x1, y1, x2, y2]; set(e) stores it (and may tidy it), and the editor redraws.
+  function curveEditor({ title = 'Easing', get, set, onPreview, onApplyAll, className } = {}) {
+    const card = h('div', ['card curve-card', className].filter(Boolean).join(' '));
+    // The plot fills the card's width and is a little shorter than wide, with a band above
+    // and below for overshoot; handles pulled further than that still draw, outside the box.
+    const SX = 300, SY = 210, P = 12, ROOM = 0.12;
+    const W = SX + 2 * P, H = SY * (1 + 2 * ROOM) + 2 * P;
+    const X = (v) => P + v * SX, Y = (v) => P + (ROOM + 1 - v) * SY;
+    card.innerHTML = `
+      <div class="ctl-title"><b></b><span data-r="name"></span></div>
+      <svg class="graph" viewBox="0 0 ${W} ${H}" aria-label="Easing curve: time across, progress up">
+        <rect class="box" x="${X(0)}" y="${Y(1)}" width="${SX}" height="${SY}" rx="8"/>
+        <path class="diag" d="M${X(0)} ${Y(0)}L${X(1)} ${Y(1)}"/>
+        <line class="arm" data-r="a0" x1="${X(0)}" y1="${Y(0)}"/><line class="arm" data-r="a1" x1="${X(1)}" y1="${Y(1)}"/>
+        <path class="curve" data-r="curve"/>
+        <circle class="end" cx="${X(0)}" cy="${Y(0)}" r="3.5"/><circle class="end" cx="${X(1)}" cy="${Y(1)}" r="3.5"/>
+        <circle class="h" data-h="0" r="8" tabindex="0" role="slider" aria-label="First handle"/>
+        <circle class="h" data-h="1" r="8" tabindex="0" role="slider" aria-label="Second handle"/>
+      </svg>
+      <div class="presets"></div>
+      <div class="row"></div>`;
+    card.querySelector('.ctl-title b').textContent = title;
+    const presets = card.querySelector('.presets');
+    CURVE_PRESETS.forEach(([v, t], j) => { const b = chip({ icon: curveIcon(v), label: t, onClick: () => put(v) }); b.dataset.p = j; presets.append(b); });
+    const row = card.querySelector('.row');
+    if (onPreview) row.append(chip({ icon: 'play', label: 'Preview move', disabled: onPreview === 'disabled', onClick: () => onPreview !== 'disabled' && onPreview() }));
+    if (onApplyAll) row.append(chip({ label: 'Apply to all', onClick: () => onApplyAll(get()) }));
+    if (!row.children.length) row.remove();
+    const svgEl = card.querySelector('svg'), $ = (r) => card.querySelector(`[data-r="${r}"]`);
+    const hs = Array.from(card.querySelectorAll('.h'));
+    let cur = handlesOf(get()).slice();
+    function render() {
+      const e = get();
+      $('curve').setAttribute('d', curveD(e, X, Y, 48));
+      $('a0').setAttribute('x2', X(cur[0])); $('a0').setAttribute('y2', Y(cur[1]));
+      $('a1').setAttribute('x2', X(cur[2])); $('a1').setAttribute('y2', Y(cur[3]));
+      hs.forEach((hd, j) => { hd.setAttribute('cx', X(cur[j * 2])); hd.setAttribute('cy', Y(cur[j * 2 + 1])); hd.setAttribute('aria-valuetext', `${cur[j * 2].toFixed(2)}, ${cur[j * 2 + 1].toFixed(2)}`); });
+      $('name').textContent = isCurve(e) && easeName(e) === 'Custom' ? e.join(', ') : easeName(e);
+      presets.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', String(sameEase(CURVE_PRESETS[+b.dataset.p][0], e))));
+    }
+    const put = (e) => { set(e); cur = handlesOf(get()).slice(); render(); };
+    const toVals = (ev) => {
+      const pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+      const q = pt.matrixTransform(svgEl.getScreenCTM().inverse());
+      return [(q.x - P) / SX, ROOM + 1 - (q.y - P) / SY];
+    };
+    hs.forEach((hd, j) => {
+      // Drag a handle: it becomes a custom curve.
+      hd.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault(); hd.setPointerCapture(ev.pointerId); hd.classList.add('drag');
+        const move = (e2) => { const [x, y] = toVals(e2); cur[j * 2] = x; cur[j * 2 + 1] = y; put(cleanCurve(cur)); };
+        const up = () => { hd.classList.remove('drag'); hd.removeEventListener('pointermove', move); hd.removeEventListener('pointerup', up); hd.removeEventListener('pointercancel', up); };
+        hd.addEventListener('pointermove', move); hd.addEventListener('pointerup', up); hd.addEventListener('pointercancel', up);
+      });
+      // Arrow keys nudge the focused handle (Shift for bigger steps).
+      hd.addEventListener('keydown', (ev) => {
+        const st = ev.shiftKey ? 0.1 : 0.02;
+        const dx = ev.key === 'ArrowRight' ? st : ev.key === 'ArrowLeft' ? -st : 0;
+        const dy = ev.key === 'ArrowUp' ? st : ev.key === 'ArrowDown' ? -st : 0;
+        if (!dx && !dy) return;
+        ev.preventDefault(); ev.stopPropagation();
+        cur[j * 2] += dx; cur[j * 2 + 1] += dy; put(cleanCurve(cur));
+      });
+    });
+    card.sync = () => { cur = handlesOf(get()).slice(); render(); };
+    render();
+    return card;
+  }
+
+  window.UI = {
+    // tokens and helpers
+    EASE, still, clamp, svg, ICON,
+    // motion
+    swapHTML, rollText, morphHeight, leave, enter, pillTrack, tooltips, roving, toast,
+    // theme
+    theme, setTheme,
+    // easing
+    EASES, EASE_NAMES, bezier, isCurve, cleanCurve, validEase, easeFn, EASE_CURVES, CURVE_PRESETS, handlesOf, sameEase, easeName, curveD, curveIcon,
+    // components
+    button, iconButton, chip, segmented, toggle, slider, swatches, colorPicks, label, kbd, keys, panel, menu, curveEditor,
+  };
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
+  const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  // A starfield for the sky stages, drawn once.
+  (function stars() {
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const g = c.getContext('2d');
+    let seed = 7; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 520; i++) {
+      const b = Math.pow(r(), 3), s = 0.4 + b * 1.4;
+      g.fillStyle = `rgba(${200 + r() * 55 | 0},${205 + r() * 50 | 0},255,${0.25 + b * 0.75})`;
+      g.beginPath(); g.arc(r() * 512, r() * 512, s, 0, Math.PI * 2); g.fill();
+    }
+    try { document.documentElement.style.setProperty('--stars', `url(${c.toDataURL()})`); } catch (e) {}
+  })();
+
+  // The page follows the app's own theme switch.
+  $('themeSeg').replaceWith(UI.segmented({ label: 'Theme', options: [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']], get: UI.theme, onChange: UI.setTheme }));
+
+  // ---- colour ------------------------------------------------------------------------
+  const TOKENS = [
+    ['--chrome', 'Card and panel surface'],
+    ['--chrome-2', 'Control fills, hovered rows, slider tracks'],
+    ['--chrome-3', 'Pressed fills, idle switch track'],
+    ['--ink', 'Primary text and fills; whatever is active'],
+    ['--ink-2', 'Secondary text, idle icons'],
+    ['--ink-3', 'Hints, labels, timeline progress'],
+    ['--on-ink', 'Text and knobs that sit on ink'],
+    ['--seg-pill', 'The pill inside a segmented control'],
+    ['--hair', 'Hairline dividers'],
+  ];
+  const probe = (theme) => { const p = h('div'); p.dataset.theme = theme; p.hidden = true; document.body.append(p); return getComputedStyle(p); };
+  const L = probe('light'), D = probe('dark');
+  const tb = $('tokens').tBodies[0];
+  TOKENS.forEach(([name, role]) => {
+    const tr = h('tr');
+    const cell = (cs) => { const v = cs.getPropertyValue(name).trim(); return `<span class="chipv"><i style="background:${v}"></i>${esc(v)}</span>`; };
+    tr.innerHTML = `<td><code>${name}</code></td><td class="role">${role}</td><td>${cell(L)}</td><td>${cell(D)}</td>`;
+    tb.append(tr);
+  });
+
+  const PRESETS = {
+    Natural: { old: '#ffb466', young: '#6d9bff', gasA: '#ff6f9a', gasB: '#9cc0ff' },
+    Hubble:  { old: '#ffd46b', young: '#7cf7ff', gasA: '#ffa21f', gasB: '#13d0c0' },
+    Cosmic:  { old: '#ffa6e4', young: '#62e3ff', gasA: '#ff2fa8', gasB: '#7d4dff' },
+    Ember:   { old: '#ffb067', young: '#ffd27a', gasA: '#ff2948', gasB: '#ff7a1a' },
+    Aurora:  { old: '#d6ffa1', young: '#5effd0', gasA: '#2bff8a', gasB: '#b44dff' },
+    Ice:     { old: '#eaf1ff', young: '#86b8ff', gasA: '#5f7dff', gasB: '#a8f4ff' },
+  } || {
+    Natural: { old: '#ffb466', young: '#6d9bff', gasA: '#ff6f9a', gasB: '#9cc0ff' },
+    Hubble: { old: '#ffd46b', young: '#7cf7ff', gasA: '#ffa21f', gasB: '#13d0c0' },
+    Cosmic: { old: '#ffa6e4', young: '#62e3ff', gasA: '#ff2fa8', gasB: '#7d4dff' },
+    Ember: { old: '#ffb067', young: '#ffd27a', gasA: '#ff2948', gasB: '#ff7a1a' },
+    Aurora: { old: '#d6ffa1', young: '#5effd0', gasA: '#2bff8a', gasB: '#b44dff' },
+    Ice: { old: '#eaf1ff', young: '#86b8ff', gasA: '#5f7dff', gasB: '#a8f4ff' },
+  };
+  const orb = (p) => `radial-gradient(circle at 50% 50%, ${p.old} 0 12%, ${p.young} 30%, ${p.gasA} 55%, ${p.gasB} 78%, #05050a 100%)`;
+  const NAMES = { old: 'Old stars', young: 'Young stars', gasA: 'Gas', gasB: 'Gas 2' };
+  Object.entries(PRESETS).forEach(([name, p]) => {
+    const el = h('div', 'pal', `<div class="orb" style="background:${orb(p)}"></div><b>${name}</b><div class="hexes">${Object.keys(NAMES).map((k) => `<span title="${NAMES[k]}"><i style="background:${p[k]}"></i>${p[k]}</span>`).join('')}</div>`);
+    $('palettes').append(el);
+  });
+
+  // ---- type --------------------------------------------------------------------------
+  const TYPES = [
+    ['Display', 'Landing headline', 'Geist 800 · clamp(64–240 px) · −0.055em · 0.86', '<div style="font-weight:800;font-size:64px;letter-spacing:-0.055em;line-height:0.86">Galaxy Creator</div>'],
+    ['Panel title', '.ctl-title b', 'Geist 600 · 20/24 px · −0.02em', '<div class="ctl-title" style="padding:0"><b>Structure</b><span>Type and shape</span></div>'],
+    ['Lead', 'Landing subhead', 'Geist 400 · 15–19 px · 1.5', '<div style="font-size:17px;line-height:1.5;max-width:44ch">Create a galaxy from nothing. Direct it like a film.</div>'],
+    ['Control', 'Sliders, buttons, rows', 'Geist 500 · 12.5 px', '<div style="font-size:12.5px;font-weight:500">Diffraction spikes</div>'],
+    ['Label', '.ctl-label', 'Geist 500 · 11 px · +0.02em · ink-3', '<div class="ctl-label" style="padding:0">Loop · one full turn</div>'],
+    ['Timecode', '.tc', 'Geist 500 · 12.5 px · tabular · ink-2', '<span class="tc"><b>0:08.3</b> / 0:12.0</span>'],
+    ['Key cap', 'kbd', 'Geist · 10.5 px on chrome-2', '<span><kbd>⌘</kbd> <kbd>.</kbd> <kbd>Space</kbd></span>'],
+    ['Caption', 'On the galaxy', 'Geist 500 · 12 px · white 90% · shadow', '<div class="on-sky" style="color:rgba(255,255,255,.9);font-size:12px;font-weight:500;letter-spacing:.02em;text-shadow:0 1px 12px rgba(0,0,0,.7)">Galaxy Creator <i style="font-style:normal;color:rgba(255,255,255,.5);font-weight:400">#1977 · Spiral</i></div>'],
+  ];
+  TYPES.forEach(([name, where, spec, sample]) => {
+    const row = h('div', 'type', `<div class="meta"><b>${name}</b><span>${where}</span><code>${spec}</code></div><div class="sample" data-theme="${document.documentElement.dataset.theme}">${sample}</div>`);
+    $('types').append(row);
+  });
+  // Samples use chrome tokens; keep them on the page's theme.
+  new MutationObserver(() => document.querySelectorAll('.type .sample').forEach((s) => { s.dataset.theme = document.documentElement.dataset.theme; })).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // ---- shape ---------------------------------------------------------------------------
+  const RADII = [['Card', '--r-card', '24px'], ['Panel', 'card-pad + 10', '30px'], ['Inset', '--r-inset', '14px'], ['Control', '--r-md', '14px'], ['Small', '--r-sm', '10px'], ['Chip', '.chip', '9px'], ['Pill', 'toast, dock', '999px']];
+  RADII.forEach(([n, t, v]) => $('radii').append(h('div', 'spec', `<div class="shape" style="border-radius:${v === '999px' ? '999px' : v}"></div><b>${n}</b><span>${t} · ${v}</span>`)));
+  const SIZES = [['Hit target', '--hit', '40 px'], ['Compact button', '.ib.sm', '34 px'], ['Button', '.btn', '38 px'], ['Slider', '.sl', '34 px'], ['Chip', '.chip', '30 px'], ['Dock and timeline', '#dbar', '56 px'], ['Card padding', '--card-pad', '20 px'], ['Rail padding', '--rail-pad', '10 px']];
+  SIZES.forEach(([n, t, v]) => $('sizes').append(h('div', 'spec', `<b>${n}</b><span>${t} · ${v}</span>`)));
+
+  // ---- motion --------------------------------------------------------------------------
+  const css = getComputedStyle(document.documentElement);
+  const SPRINGS = [['Snappy', '--spring-snappy', '--t-snappy', 'Presses, pills, toggles'], ['Pop', '--spring-pop', '--t-pop', 'Things that arrive: menus, toasts, tooltips'], ['Smooth', '--spring-smooth', '--t-smooth', 'Panels and layout'], ['Exit', '--ease-exit', null, 'Anything leaving (fast, 150–200 ms)']];
+  const pucks = [];
+  SPRINGS.forEach(([n, v, t, use]) => {
+    const row = h('div', 'mrow', `<div class="meta"><b>${n}</b><span>${use}</span><code style="font-size:11px">${v}${t ? ' · ' + css.getPropertyValue(t).trim() : ' · 200ms'}</code></div><div class="lane"><div class="puck"></div></div>`);
+    pucks.push([row.querySelector('.puck'), css.getPropertyValue(v).trim() || 'ease', t ? parseFloat(css.getPropertyValue(t)) || 400 : 200]);
+    $('springs').append(row);
+  });
+  let there = false;
+  $('playMotion').replaceWith(UI.chip({ icon: 'play', label: 'Play', variant: 'ink', onClick: () => {
+    there = !there;
+    pucks.forEach(([p, easing, dur]) => {
+      const lane = p.parentElement, x = lane.clientWidth - 32;
+      p.animate([{ transform: `translateX(${there ? 0 : x}px)` }, { transform: `translateX(${there ? x : 0}px)` }], { duration: UI.still() ? 1 : dur * 1.6, easing, fill: 'forwards' });
+    });
+  } }));
+
+  // ---- icons ---------------------------------------------------------------------------
+  Object.keys(UI.ICON).sort().forEach((k) => $('iconGrid').append(h('div', 'icon', `${UI.ICON[k]}<span>${k}</span>`)));
+
+  // ---- components ------------------------------------------------------------------------
+  // Each demo renders twice, in light and dark chrome; `build(stage, all)` returns the
+  // element(s) for one stage, and `all()` lists every instance so shared state stays in step.
+  function demo(list, id, title, call, note, build, opts) {
+    const s = h('section', 'sub'); s.id = id;
+    s.innerHTML = `<h3>${title} <code>${esc(call)}</code></h3>` + (note ? `<p>${note}</p>` : '');
+    const box = h('div', 'demo' + (opts && opts.one ? ' one' : ''));
+    const inst = [];
+    const all = () => inst;
+    ['light', 'dark'].forEach((theme) => {
+      const st = h('div', 'stage'); st.dataset.theme = theme; st.dataset.label = theme === 'light' ? 'Light chrome' : 'Dark chrome';
+      box.append(st);
+      const made = build(st, all, theme);
+      [].concat(made || []).forEach((el) => { st.append(el); inst.push(el); });
+    });
+    s.append(box);
+    if (opts && opts.code) s.append(h('pre', '', esc(opts.code)));
+    $(list).append(s);
+    requestAnimationFrame(() => inst.forEach((el) => { if (el._place) el._place(); el.querySelectorAll && el.querySelectorAll('.seg').forEach((sg) => sg._place && sg._place()); }));
+    return s;
+  }
+  const syncAll = (all) => all().forEach((el) => { if (el.sync) el.sync(true); el.querySelectorAll && el.querySelectorAll('*').forEach((c) => c.sync && c.sync(true)); });
+  const col = (...els) => { const c = h('div', 'col'); els.forEach((e) => c.append(e)); return c; };
+  const row = (...els) => { const c = h('div', 'row'); els.forEach((e) => c.append(e)); return c; };
+
+  demo('componentList', 'button', 'Button', 'UI.button({ icon, label, variant })', 'Full-width actions inside a panel. Primary (ink) for the one action that matters, grey for the rest. setContent swaps the icon and label while it works.', () => {
+    const busy = UI.button({ icon: 'stop', label: 'Recording 42%' }); busy.classList.add('busy'); busy.prepend(h('i', 'bar')); busy.style.setProperty('--p', 0.42);
+    const pair = h('div', 'pair'); pair.append(UI.button({ icon: 'seed', label: 'New seed' }), UI.button({ icon: 'dice', label: 'Surprise' }));
+    return col(UI.button({ icon: 'camera', label: 'Save image', variant: 'primary', onClick: () => UI.toast('Snapped', 'tick') }), UI.button({ icon: 'record', label: 'Record loop' }), busy, UI.button({ icon: 'spin', label: 'Rendering' }), pair);
+  }, { code: "UI.button({ icon: 'camera', label: 'Save image', variant: 'primary', onClick })\nb.setContent('spin', 'Rendering')" });
+
+  demo('componentList', 'icon-button', 'Icon button', 'UI.iconButton({ icon, label, size, variant, pressed })', 'The rail and the timeline. The label becomes the tooltip and the accessible name. Pressed icons fill in.', (st) => {
+    const r = row(UI.iconButton({ icon: 'galaxy', label: 'Structure', pressed: true }), UI.iconButton({ icon: 'matter', label: 'Stars & gas' }), UI.iconButton({ icon: 'settings', label: 'Settings' }),
+      UI.iconButton({ icon: 'play', label: 'Play', size: 'sm', variant: 'play' }), UI.iconButton({ icon: 'create', label: 'Keyframe', size: 'sm' }), (() => { const b = UI.iconButton({ icon: 'trash', label: 'Delete', size: 'sm' }); b.disabled = true; return b; })());
+    const t = h('div', 'tile'); t.append(r); requestAnimationFrame(() => UI.tooltips(t, 'top'));
+    return t;
+  }, { code: "UI.iconButton({ icon: 'galaxy', label: 'Structure', pressed: true })\nUI.iconButton({ icon: 'play', label: 'Play', size: 'sm', variant: 'play' })" });
+
+  demo('componentList', 'chip', 'Chip', 'UI.chip({ icon, label, variant })', 'Small actions in Direct: the shot library, the keyframe strip, curve presets. Ink for the main one.', () => {
+    const t = h('div', 'tile');
+    t.append(row(UI.chip({ icon: 'saved', label: 'Save shot', variant: 'ink' }), UI.chip({ icon: 'link', label: 'Copy link' }), UI.chip({ label: 'Undo' }), UI.chip({ icon: UI.curveIcon([0.34, 1.56, 0.64, 1]), label: 'Overshoot' })));
+    return t;
+  }, { code: "UI.chip({ icon: 'saved', label: 'Save shot', variant: 'ink', onClick })" });
+
+  const segState = { type: 'Spiral', edge: '3840' };
+  demo('componentList', 'segmented', 'Segmented control', 'UI.segmented({ label, options, get, onChange })', 'One choice from a few. The pill stretches toward its next position, then settles.', (st, all) => col(
+    UI.segmented({ label: 'Galaxy type', options: ['Spiral', 'Barred', 'Elliptical', 'Ring', 'Irregular'].map((t) => [t, t]), get: () => segState.type, onChange: (v) => { segState.type = v; syncAll(all); } }),
+    UI.segmented({ label: 'Image size', options: [['screen', 'Screen'], ['3840', '4K'], ['6144', '6K'], ['7680', '8K']], get: () => segState.edge, onChange: (v) => { segState.edge = v; syncAll(all); } })),
+  { code: "UI.segmented({ label: 'Image size', options: [['screen', 'Screen'], ['3840', '4K']], get: () => edge, onChange: (v) => { edge = v; } })" });
+
+  const sw = { spikes: true, comp: false };
+  demo('componentList', 'switch', 'Switch', 'UI.toggle({ label, get, onChange })', 'A whole row is the target; the knob stretches while pressed.', (st, all) => col(
+    UI.toggle({ label: 'Diffraction spikes', get: () => sw.spikes, onChange: (v) => { sw.spikes = v; syncAll(all); } }),
+    UI.toggle({ label: 'Companion galaxies', get: () => sw.comp, onChange: (v) => { sw.comp = v; syncAll(all); } })),
+  { code: "UI.toggle({ label: 'Music', get: () => music.on, onChange: (v) => music.set(v) })" });
+
+  const sl = { twist: 1, arms: 2, dust: 0.6 };
+  demo('componentList', 'slider', 'Slider', 'UI.slider({ label, min, max, step, format, get, set, reset })', 'Drag anywhere, tap to jump, double-click to reset, arrow keys to step. The text inverts over the fill. Whole-number sliders roll their digits.', (st, all) => col(
+    UI.slider({ label: 'Twist', min: 0, max: 3, step: 0.01, format: (v) => v.toFixed(2), get: () => sl.twist, set: (v) => { sl.twist = Math.max(0, Math.min(3, v)); syncAll(all); return sl.twist; }, reset: 1 }),
+    UI.slider({ label: 'Arms', min: 1, max: 6, step: 1, format: (v) => String(Math.round(v)), get: () => sl.arms, set: (v) => { sl.arms = Math.round(Math.max(1, Math.min(6, v))); syncAll(all); return sl.arms; }, reset: 2 }),
+    UI.slider({ label: 'Dust', min: 0, max: 1, format: (v) => Math.round(v * 100) + '%', get: () => sl.dust, set: (v) => { sl.dust = Math.max(0, Math.min(1, v)); syncAll(all); return sl.dust; }, reset: 0.6 }),
+    UI.slider({ label: 'Arms (not for this type)', min: 1, max: 6, step: 1, format: (v) => String(v), get: () => 2, set: () => 2, off: () => true })),
+  { code: "UI.slider({ label: 'Twist', min: 0, max: 3, step: 0.01, format: (v) => v.toFixed(2), get: () => state.twist, set: (v) => (state.twist = v), reset: 1 })" });
+
+  const swState = { preset: 'Natural' };
+  const swatchStyle = (p) => `background: radial-gradient(circle at 50% 50%, ${p.old} 0 18%, ${p.young} 38%, ${p.gasA} 62%, ${p.gasB} 100%)`;
+  demo('componentList', 'swatches', 'Swatches', 'UI.swatches({ items, get, onPick })', 'Palette picks: the one control that shows colour.', (st, all) => col(UI.swatches({ items: Object.keys(PRESETS).map((n) => ({ id: n, label: n + ' palette', style: swatchStyle(PRESETS[n]) })), get: () => swState.preset, onPick: (n) => { swState.preset = n; syncAll(all); } })),
+  { code: "UI.swatches({ items: [{ id: 'Natural', label: 'Natural palette', style }], get: () => preset, onPick })" });
+
+  const ink = { old: '#ffb466', young: '#6d9bff', gasA: '#ff6f9a', gasB: '#9cc0ff' };
+  demo('componentList', 'picks', 'Colour picks', 'UI.colorPicks({ items, get, onInput })', 'Labelled colour wells for a palette\'s four inks.', (st, all) => col(UI.colorPicks({ items: Object.keys(NAMES).map((k) => ({ id: k, label: NAMES[k] })), get: (k) => ink[k], onInput: (k, v) => { ink[k] = v; syncAll(all); } })),
+  { code: "UI.colorPicks({ items: [{ id: 'old', label: 'Old stars' }], get: (k) => state[k], onInput: (k, v) => { state[k] = v; } })" });
+
+  demo('componentList', 'keys', 'Labels and keys', 'UI.label(text) · UI.keys(list) · UI.kbd(text)', 'Section labels inside panels, and the key list in Settings.', () => col(UI.label('Keys'), UI.keys([['Snap an image', ['S']], ['Galaxy only', ['⌘', '.']], ['Keyframe, in Direct', ['K']], ['Front, side, top', ['1', '3', '7']]])),
+  { code: "UI.keys([['Snap an image', ['S']], ['Galaxy only', ['⌘', '.']]])" });
+
+  const pState = { type: 'Spiral', spread: 0.35, core: 0.6 };
+  demo('componentList', 'panel', 'Panel', 'UI.panel({ title, hint, body })', 'The flyout card: headline, hint, then controls. Corners stay concentric with the controls inside.', (st, all) => {
+    const p = UI.panel({ title: 'Structure', hint: 'Type and shape', body: [
+      UI.segmented({ label: 'Galaxy type', options: ['Spiral', 'Barred', 'Ring'].map((t) => [t, t]), get: () => pState.type, onChange: (v) => { pState.type = v; syncAll(all); } }),
+      UI.slider({ label: 'Core', min: 0, max: 1, get: () => pState.core, set: (v) => { pState.core = Math.max(0, Math.min(1, v)); syncAll(all); return pState.core; } }),
+      UI.slider({ label: 'Spread', min: 0, max: 1, get: () => pState.spread, set: (v) => { pState.spread = Math.max(0, Math.min(1, v)); syncAll(all); return pState.spread; } }),
+    ] });
+    p.style.width = 'min(100%, 304px)';
+    return p;
+  }, { code: "UI.panel({ title: 'Structure', hint: 'Type and shape', body: [segmented, slider, slider] })" });
+
+  demo('componentList', 'menu', 'Menu', 'UI.menu(anchor, items, below)', 'A small card from a button. Items are [label, action, key], a string heading, or a rule.', () => {
+    const b = UI.iconButton({ icon: 'more', label: 'Shots, length, export', size: 'sm' });
+    b.addEventListener('click', () => UI.menu(b, ['Start from a shot', ['Approach', () => UI.toast('Approach')], ['Orbit', () => UI.toast('Orbit')], '-', ['Preview', () => UI.toast('Preview'), 'P'], ['Export video', () => UI.toast('Exporting')]], true));
+    const t = h('div', 'tile'); t.append(row(b, h('span', 'tc', 'Open the menu'))); return t;
+  }, { code: "UI.menu(button, ['Start from a shot', ['Orbit', run], '-', ['Preview', preview, 'P']])" });
+
+  demo('componentList', 'tooltip', 'Tooltip', 'UI.tooltips(root, side)', 'Every [data-tip] button in root shows its aria-label on hover or keyboard focus, kept on screen.', () => {
+    const t = h('div', 'tile');
+    t.append(row(UI.iconButton({ icon: 'camera', label: 'Capture' }), UI.iconButton({ icon: 'link', label: 'Copy share link (L)' }), UI.iconButton({ icon: 'hide', label: 'Hide tools (H)' })));
+    requestAnimationFrame(() => UI.tooltips(t, 'top'));
+    return t;
+  }, { code: "UI.tooltips(rail, 'right')" });
+
+  demo('componentList', 'toasts', 'Toast', 'UI.toast(message, icon)', 'One ink pill at the bottom of the screen that morphs between messages, then leaves.', () => row(
+    UI.chip({ icon: 'tick', label: 'Link copied', onClick: () => UI.toast('Link copied', 'tick') }),
+    UI.chip({ icon: 'seed', label: 'Seed #1977', onClick: () => UI.toast('Seed #1977', 'seed') }),
+    UI.chip({ icon: 'pause', label: 'Paused', onClick: () => UI.toast('Paused', 'pause') })),
+  { code: "UI.toast('Link copied', 'tick')" });
+
+  let ease = [0.34, 1.56, 0.64, 1];
+  demo('componentList', 'curve', 'Curve editor', 'UI.curveEditor({ title, get, set, onPreview, onApplyAll })', 'Easing as a cubic Bézier: time across, progress up. Drag the handles (above the box to overshoot), pick a preset, or nudge a focused handle with the arrow keys.', (st, all) => {
+    const c = UI.curveEditor({ title: 'Into keyframe 2', get: () => ease, set: (e) => { ease = UI.validEase(e); all().forEach((x) => x !== c && x.sync()); }, onPreview: () => UI.toast('Previewing the move', 'play'), onApplyAll: (e) => UI.toast(`${UI.easeName(e)} on every keyframe`, 'tick') });
+    c.style.width = 'min(100%, 380px)';
+    return c;
+  }, { code: "UI.curveEditor({ title: 'Into keyframe 2', get: () => key.ease, set: (e) => (key.ease = e), onPreview, onApplyAll })" });
+
+  // ---- patterns ----------------------------------------------------------------------------
+  demo('patternList', 'rail', 'Tool rail', 'UI.iconButton × 8 + UI.pillTrack', 'The Create mode rail on the left (a dock along the bottom on phones). The grey pill travels between categories.', (st, all) => {
+    const rail = h('nav', 'card rail-demo'); const g = h('div', 'group'); rail.append(g);
+    const ids = [['create', 'Create galaxy'], ['galaxy', 'Structure'], ['matter', 'Stars & gas'], ['motion', 'Motion'], ['light', 'Light'], ['colour', 'Colour'], '-', ['capture', 'Capture'], ['settings', 'Settings']];
+    let on = 'galaxy';
+    ids.forEach((it) => { if (it === '-') { g.append(h('hr')); return; } const b = UI.iconButton({ icon: it[0], label: it[1], pressed: it[0] === on }); b.dataset.id = it[0]; g.append(b); });
+    const btns = () => Array.from(g.querySelectorAll('.ib'));
+    const pill = UI.pillTrack(g, btns, (b) => b.dataset.id === on);
+    btns().forEach((b) => b.addEventListener('click', () => { on = b.dataset.id; btns().forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.id === on))); pill.place(true); }));
+    rail._place = () => pill.place(false);
+    requestAnimationFrame(() => { pill.place(false); UI.tooltips(rail, 'right'); });
+    return rail;
+  });
+
+  demo('patternList', 'timeline', 'Timeline', '#dbar', 'Direct mode\'s scrubber: play, keyframe dots (a filled centre marks a key that changes the galaxy), the playhead, the time, then Keyframe, Saved shots and More.', () => {
+    const bar = h('section', 'card bar-demo');
+    bar.append(UI.iconButton({ icon: 'play', label: 'Play (Space)', size: 'sm', variant: 'play' }));
+    const tr = h('div', 'track', '<div class="line"></div><div class="done"></div><div class="dot" style="left:0%"></div><div class="dot chg sel" style="left:42%"></div><div class="dot" style="left:100%"></div><div class="ph" style="left:46%"></div>');
+    bar.append(tr, h('span', 'tc', '<b>0:05.5</b> / 0:12.0'), UI.iconButton({ icon: 'create', label: 'Keyframe (K)', size: 'sm' }), UI.iconButton({ icon: 'saved', label: 'Saved shots', size: 'sm' }), UI.iconButton({ icon: 'more', label: 'More', size: 'sm' }));
+    return bar;
+  }, { one: true });
+
+  let sEase = 'smooth';
+  demo('patternList', 'strip', 'Keyframe strip', 'UI.chip + UI.iconButton', 'Rises above the timeline when a keyframe is picked: its picture, name and time, the easing into it, Update and Delete. The curve chip opens the curve editor, which lines up with the strip.', (st, all) => {
+    const s = h('div', 'card strip-demo', '<i class="thumb"></i><b>Keyframe 2</b><span class="tc">0:05.0</span>');
+    const cb = UI.chip({ icon: UI.curveIcon(sEase), label: UI.easeName(sEase), onClick: () => { sEase = sEase === 'smooth' ? [0.16, 1, 0.3, 1] : 'smooth'; all().forEach((x) => x.querySelector('.chip').setContent(UI.curveIcon(sEase), UI.easeName(sEase))); } });
+    s.append(cb, UI.iconButton({ icon: 'refresh', label: 'Update', size: 'sm' }), UI.iconButton({ icon: 'trash', label: 'Delete', size: 'sm' }));
+    return s;
+  });
+})();
+</script>
+</body>
+</html>
