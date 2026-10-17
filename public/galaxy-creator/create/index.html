@@ -142,8 +142,22 @@
     --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
     --t-snappy: 340ms; --t-pop: 450ms; --t-smooth: 390ms;
   }
+  /* A scope can set its own theme (the design page shows both side by side). */
+  [data-theme="light"] {
+    --chrome: #ffffff;
+    --chrome-2: #f2f2f3;
+    --chrome-3: #e7e7e9;
+    --ink: #0a0a0b;
+    --ink-2: #6c6c70;
+    --ink-3: #a3a3a8;
+    --hair: rgba(0, 0, 0, 0.07);
+    --lift: 0 24px 60px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.18);
+    --on-ink: #ffffff;          /* text and knobs that sit on --ink */
+    --seg-pill: #ffffff;
+    color-scheme: light;
+  }
   /* Dark chrome: the same shapes and motion, inverted. Still monochrome. */
-  :root[data-theme="dark"] {
+  :root[data-theme="dark"], [data-theme="dark"] {
     --chrome: #141416;
     --chrome-2: #232326;
     --chrome-3: #303034;
@@ -454,6 +468,23 @@
   #dbar .ph { position: absolute; top: 50%; width: 4px; height: 22px; margin: -11px 0 0 -2px; border-radius: 4px; background: var(--ink); pointer-events: none; box-shadow: 0 0 0 2px var(--chrome); }
   #dbar .empty-hint { position: absolute; inset: 0 0 0 12px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; white-space: nowrap; overflow: hidden; }
   #dbar .tc { min-width: 92px; text-align: right; }
+  /* Toasts rise above the timeline and the HUD rather than covering them. */
+  body.direct #toast, body.flying #toast { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+  @media (max-width: 700px) { body.flying #toast { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); } }
+  /* Fly mode's HUD: exit, the speed, where you are, Record flight. */
+  #fhud {
+    position: fixed; z-index: 10; left: 50%; translate: -50% 0; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    width: min(720px, calc(100vw - 32px)); padding: 8px 8px 8px 8px; border-radius: 999px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  #fhud .ib.sm { width: 36px; height: 36px; border-radius: 999px; flex: none; }
+  #fhud .sl { flex: 1; min-width: 120px; border-radius: 999px; }
+  #fhud .tc { font-size: 11.5px; white-space: nowrap; }
+  #fhud .chip { border-radius: 999px; height: 34px; flex: none; }
+  @media (max-width: 700px) {
+    #fhud { width: var(--dock-w, calc(100vw - 32px)); flex-wrap: wrap; border-radius: 24px; padding: 8px; }
+    #fhud .tc { order: 5; width: 100%; text-align: center; padding-bottom: 2px; }
+  }
   #dundo {
     position: fixed; z-index: 11; left: 50%; translate: -50% 0; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
     padding: 5px 5px 5px 16px; border-radius: 999px; display: flex; align-items: center; gap: 12px; font-weight: 500;
@@ -498,24 +529,25 @@
   .cv path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
   #dopts .chip.curve { gap: 6px; padding-left: 8px; }
   #dopts .chip.curve[aria-expanded="true"] { background: var(--ink); color: var(--chrome); }
-  #dcurve { position: fixed; z-index: 13; left: 50%; translate: -50% 0; padding: 18px 16px 16px; border-radius: 22px; display: grid; gap: 12px; }
-  #dcurve .ctl-title { padding: 0; }
-  #dcurve .ctl-title span { font-variant-numeric: tabular-nums; }
-  #dcurve .graph { width: 100%; max-height: 44vh; display: block; touch-action: none; overflow: visible; }
-  #dcurve .box { fill: var(--chrome-2); }
-  #dcurve .diag { stroke: var(--ink-3); stroke-dasharray: 3 4; opacity: 0.6; fill: none; }
-  #dcurve .arm { stroke: var(--ink-3); stroke-width: 1.5; }
-  #dcurve .curve { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
-  #dcurve .end { fill: var(--ink-3); }
-  #dcurve .h { fill: var(--chrome); stroke: var(--ink); stroke-width: 2.5; cursor: grab; outline: none; transition: r 0.15s; }
-  #dcurve .h:hover, #dcurve .h:focus-visible { r: 10; }
-  #dcurve .h.drag { cursor: grabbing; fill: var(--ink); }
-  #dcurve .presets { display: flex; flex-wrap: wrap; gap: 6px; }
-  #dcurve .presets .chip { gap: 5px; padding: 5px 10px 5px 7px; font-size: 12px; }
-  #dcurve .presets .chip[aria-pressed="true"] { background: var(--ink); color: var(--chrome); }
-  #dcurve .row { display: flex; gap: 6px; }
-  #dcurve .row .chip { flex: 1; justify-content: center; }
-  #dcurve .row .chip:disabled { opacity: 0.4; }
+  .curve-card { padding: 18px 16px 16px; border-radius: 22px; display: grid; gap: 12px; }
+  #dcurve { position: fixed; z-index: 13; left: 50%; translate: -50% 0; }
+  .curve-card .ctl-title { padding: 0; }
+  .curve-card .ctl-title span { font-variant-numeric: tabular-nums; }
+  .curve-card .graph { width: 100%; max-height: 44vh; display: block; touch-action: none; overflow: visible; }
+  .curve-card .box { fill: var(--chrome-2); }
+  .curve-card .diag { stroke: var(--ink-3); stroke-dasharray: 3 4; opacity: 0.6; fill: none; }
+  .curve-card .arm { stroke: var(--ink-3); stroke-width: 1.5; }
+  .curve-card .curve { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+  .curve-card .end { fill: var(--ink-3); }
+  .curve-card .h { fill: var(--chrome); stroke: var(--ink); stroke-width: 2.5; cursor: grab; outline: none; transition: r 0.15s; }
+  .curve-card .h:hover, .curve-card .h:focus-visible { r: 10; }
+  .curve-card .h.drag { cursor: grabbing; fill: var(--ink); }
+  .curve-card .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .curve-card .presets .chip { gap: 5px; padding: 5px 10px 5px 7px; font-size: 12px; }
+  .curve-card .presets .chip[aria-pressed="true"] { background: var(--ink); color: var(--chrome); }
+  .curve-card .row { display: flex; gap: 6px; }
+  .curve-card .row .chip { flex: 1; justify-content: center; }
+  .curve-card .row .chip:disabled { opacity: 0.4; }
   body.tools-off #dcurve, body.bare #dcurve { opacity: 0 !important; pointer-events: none !important; }
   @media (max-width: 700px) {
     #dbar { width: var(--dock-w, calc(100vw - 32px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 0 6px; gap: 2px; }
@@ -553,7 +585,8 @@
   body.bare { cursor: none; }
 
   /* Direct mode: the rail steps aside for the timeline (director.js). */
-  body.direct #rail { transform: translate(-120px, -50%); opacity: 0; filter: blur(6px); pointer-events: none; transition-timing-function: var(--ease-exit); transition-duration: 0.2s; }
+  body.direct #rail, body.flying #rail { transform: translate(-120px, -50%); opacity: 0; filter: blur(6px); pointer-events: none; transition-timing-function: var(--ease-exit); transition-duration: 0.2s; }
+  body.tools-off #fhud, body.bare #fhud,
   body.tools-off .modes, body.tools-off #dbar, body.tools-off #dopts, body.tools-off #dpeek, body.tools-off #dundo,
   body.bare .modes, body.bare #dbar, body.bare #dopts, body.bare #dpeek, body.bare #dundo, body.bare .menu {
     opacity: 0 !important; filter: blur(6px); pointer-events: none !important;
@@ -581,7 +614,7 @@
     #rail .group { flex-direction: row; gap: 0; min-width: 0; width: 100%; }
     #rail .ib { flex: 1 1 0; min-width: 0; height: 44px; }
     #rail hr { width: 0; height: 24px; align-self: center; border-top: 0; border-left: 1px solid var(--hair); margin: 0 4px; flex: none; }
-    body.tools-off #rail, body.direct #rail { transform: translate(-50%, 120px); }
+    body.tools-off #rail, body.direct #rail, body.flying #rail { transform: translate(-50%, 120px); }
     body.bare #rail { transform: translateX(-50%) !important; }
     body.bare.tools-off #rail { transform: translate(-50%, 120px) !important; }
     #fly {
@@ -595,7 +628,7 @@
   /* Captions belong to the chrome too: ⌘. takes them away, and the bottom-left one
      makes room for the Show tools pill. */
   body.bare .cap { opacity: 0; }
-  body.tools-off #cap-info, body.direct #cap-info, body:has(#fly:not([hidden])) #cap-info { opacity: 0; }
+  body.tools-off #cap-info, body.direct #cap-info, body.flying #cap-info, body:has(#fly:not([hidden])) #cap-info { opacity: 0; }
   #fallback {
     position: fixed; inset: 0; display: none; place-items: center; text-align: center;
     padding: 24px; color: #9a9aa0; line-height: 1.7;
@@ -634,9 +667,11 @@
 <div id="fallback">This piece is drawn with WebGL2, which this browser does not offer.<br>Try a current Chrome, Safari, Firefox or Edge.</div>
 
 <script>
-/* Galaxy Creator playground kit: connects to the live galaxy (../index.html?embed)
-   and builds the shared controls, following MOTION.md. Prototypes decide where
-   the controls live and how they open; the controls themselves come from here. */
+/* Galaxy Creator UI: the component library. Icons, motion helpers, theme, easing,
+   and the controls every surface is built from (buttons, chips, segmented controls,
+   switches, sliders, swatches, panels, menus, the curve editor, the toast). Nothing
+   here knows about the galaxy; kit.js and director.js wire these to it. The styles
+   live in kit.css and director.css; design/index.html shows them all. */
 (function () {
   'use strict';
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -675,15 +710,23 @@
   ICON.record = svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>');
   ICON.stop = svg('<rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/>');
   ICON.settings = svg('<path class="fill" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="currentColor" fill-opacity=".14" stroke="none"/><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4Z"/>');
-  // Create galaxy leads the rail; Settings sits with the actions at the bottom.
-  const CATS = [
-    { id: 'create', label: 'Create galaxy', hint: 'A new one, or a surprise' },
-    { id: 'galaxy', label: 'Structure', hint: 'Type and shape' },
-    { id: 'matter', label: 'Stars & gas', hint: 'What it is made of' },
-    { id: 'motion', label: 'Motion', hint: 'Spin, drift, zoom' },
-    { id: 'light', label: 'Light', hint: 'Exposure and lens' },
-    { id: 'colour', label: 'Colour', hint: 'Palettes and inks' },
-  ];
+  ICON.fly = svg('<path class="fill" d="M3.5 11.2 20.5 4l-6.6 16.5-3-6.9Z" fill="currentColor" fill-opacity=".14" stroke="none"/><path d="M3.5 11.2 20.5 4l-6.6 16.5-3-6.9Z"/><path d="m10.9 13.6 9.6-9.6"/>');
+  Object.assign(ICON, {
+    prev: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="2.6" height="14" rx="1"/><path d="M19 6.2v11.6a1 1 0 0 1-1.6.8l-8-5.8a1 1 0 0 1 0-1.6l8-5.8a1 1 0 0 1 1.6.8Z"/></svg>',
+    next: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="16.4" y="5" width="2.6" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.6.8l8-5.8a1 1 0 0 0 0-1.6l-8-5.8A1 1 0 0 0 5 6.2Z"/></svg>',
+    key: svg('<path d="M12 4.5 19.5 12 12 19.5 4.5 12Z"/><path d="M12 9v6M9 12h6"/>'),
+    preview: svg('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M10 9.2v5.6a.6.6 0 0 0 .9.5l4.4-2.8a.6.6 0 0 0 0-1l-4.4-2.8a.6.6 0 0 0-.9.5Z" fill="currentColor" stroke="none"/>'),
+    export: svg('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>'),
+    shots: svg('<rect x="3.5" y="6" width="17" height="12" rx="2.5"/><path d="M3.5 10h17M8 6v4M13 6v4"/>'),
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>',
+    trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7"/>'),
+    refresh: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
+    restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/>'),
+    saved: svg('<path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"/>'),
+    sliders: svg('<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
+    film: svg('<rect class="fill" x="3.5" y="5.5" width="17" height="13" rx="3" fill="currentColor" fill-opacity=".14" stroke="none"/><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M8 5.5v13M16 5.5v13M3.5 10h4.5M3.5 14h4.5M16 10h4.5M16 14h4.5"/>'),
+    pencil: svg('<path d="M14.5 5.5l4 4M4 20l1-5L15.5 4.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L9 19Z"/>'),
+  });
 
   // ---- motion helpers -----------------------------------------------------------------
   function swapHTML(el, html, isText) {
@@ -849,6 +892,352 @@
   document.documentElement.dataset.theme = resolve(theme());
   if (systemDark && systemDark.addEventListener) systemDark.addEventListener('change', () => { if (theme() === 'system') setTheme('system'); });
 
+  // Easing into a keyframe. Smooth comes to rest on every key; the others flow through.
+  const EASES = {
+    smooth: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+    linear: (t) => t,
+    in: (t) => t * t * t,
+    out: (t) => 1 - Math.pow(1 - t, 3),
+  };
+  const EASE_NAMES = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out']];
+  // A custom easing is a cubic Bézier, as in CSS: from (0,0) to (1,1), shaped by two handles.
+  // Their heights may leave 0–1, so a move can overshoot its key and settle back.
+  function bezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = (s) => ((ax * s + bx) * s + cx) * s, Y = (s) => ((ay * s + by) * s + cy) * s, dX = (s) => (3 * ax * s + 2 * bx) * s + cx;
+    return (t) => {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      let s = t;
+      for (let i = 0; i < 8; i++) { const e = X(s) - t, g = dX(s); if (Math.abs(e) < 1e-6 || Math.abs(g) < 1e-6) break; s -= e / g; }
+      if (!(s >= 0 && s <= 1) || Math.abs(X(s) - t) > 1e-4) {         // Newton wandered off: bisect
+        let lo = 0, hi = 1; s = t;
+        for (let i = 0; i < 40; i++) { if (X(s) < t) lo = s; else hi = s; s = (lo + hi) / 2; }
+      }
+      return Y(s);
+    };
+  }
+  const CURVE_Y = [-0.6, 1.6];
+  const isCurve = (e) => Array.isArray(e) && e.length === 4 && e.every((v) => typeof v === 'number' && isFinite(v));
+  const r2 = (v) => Math.round(v * 100) / 100;
+  const cleanCurve = (e) => e.map((v, i) => r2(i % 2 ? Math.max(CURVE_Y[0], Math.min(CURVE_Y[1], v)) : Math.max(0, Math.min(1, v))));
+  const validEase = (e) => (typeof e === 'string' && EASES[e] ? e : isCurve(e) ? cleanCurve(e) : 'smooth');
+  const curveCache = new Map();
+  function easeFn(e) {
+    if (typeof e === 'string') return EASES[e] || EASES.smooth;
+    if (!isCurve(e)) return EASES.smooth;
+    const id = e.join();
+    if (!curveCache.has(id)) curveCache.set(id, bezier(e[0], e[1], e[2], e[3]));
+    return curveCache.get(id);
+  }
+  // Where the handles sit for the named easings (Smooth and the rest are exact cubics; these
+  // Béziers match them closely), and the presets the curve editor offers.
+  const EASE_CURVES = { smooth: [0.65, 0, 0.35, 1], linear: [0.25, 0.25, 0.75, 0.75], in: [0.32, 0, 0.67, 0], out: [0.33, 1, 0.68, 1] };
+  const CURVE_PRESETS = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out'], [[0.37, 0, 0.63, 1], 'Gentle'], [[0.16, 1, 0.3, 1], 'Snappy'], [[0.34, 1.56, 0.64, 1], 'Overshoot']];
+  const handlesOf = (e) => (typeof e === 'string' ? EASE_CURVES[e] || EASE_CURVES.smooth : e);
+  const sameEase = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const easeName = (e) => { const p = CURVE_PRESETS.find(([v]) => sameEase(v, e)); return p ? p[1] : 'Custom'; };
+  // ---- the easing curve: a thumbnail for the keyframe strip, and an editor card -----------------
+  // Named easings draw as their real function; custom ones as the Bézier they are.
+  function curveD(e, X, Y, n) {
+    if (isCurve(e)) return `M${X(0)} ${Y(0)} C${X(e[0])} ${Y(e[1])} ${X(e[2])} ${Y(e[3])} ${X(1)} ${Y(1)}`;
+    const f = easeFn(e);
+    let s = '';
+    for (let i = 0; i <= n; i++) { const t = i / n; s += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f(t)).toFixed(1); }
+    return s;
+  }
+  const curveIcon = (e) => `<svg class="cv" viewBox="0 0 24 24" aria-hidden="true"><path d="${curveD(e, (v) => 4 + v * 16, (v) => 20 - v * 16, 16)}"/></svg>`;
+
+
+  // ---- components ---------------------------------------------------------------------
+  // Each factory builds one control from plain options and returns its element. Controls
+  // that show a value read it through `get` (a function, so they can follow outside
+  // state) and expose `el.sync(animate)` to redraw from it; nothing here knows the galaxy.
+  const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
+  const iconHTML = (icon) => (!icon ? '' : icon.trim().startsWith('<') ? icon : ICON[icon] || '');
+  const valueOf = (v) => (typeof v === 'function' ? v() : v);
+
+  // Button: full width, grey; `variant: 'primary'` makes it ink. setContent swaps icon and label.
+  function button({ icon, label = '', variant, onClick, className } = {}) {
+    const b = h('button', ['btn', variant, className].filter(Boolean).join(' '));
+    b.type = 'button';
+    b.setContent = (ic, text) => { b.innerHTML = `${iconHTML(ic)}<span></span>`; b.lastChild.textContent = text; };
+    b.setContent(icon, label);
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  // Icon button: an icon with its name as aria-label (and a tooltip when `tip`).
+  // size 'sm' is the compact one; variant 'play' is the round ink one.
+  function iconButton({ icon, label, size, variant, tip = true, pressed, onClick, className } = {}) {
+    const b = h('button', ['ib', size, variant, className].filter(Boolean).join(' '), iconHTML(icon));
+    b.type = 'button';
+    if (label) b.setAttribute('aria-label', label);
+    if (tip) b.setAttribute('data-tip', '');
+    if (pressed !== undefined) b.setAttribute('aria-pressed', String(!!valueOf(pressed)));
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  // Chip: a small pill button; variant 'ink' for the one that matters.
+  function chip({ icon, label = '', variant, pressed, disabled, onClick, className } = {}) {
+    const b = h('button', ['chip', variant, className].filter(Boolean).join(' '));
+    b.type = 'button';
+    b.setContent = (ic, text) => { b.innerHTML = `${iconHTML(ic)}${text ? '<span></span>' : ''}`; if (text) b.lastChild.textContent = text; };
+    b.setContent(icon, label);
+    if (pressed !== undefined) b.setAttribute('aria-pressed', String(!!valueOf(pressed)));
+    if (disabled) b.disabled = true;
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  // Segmented control: one choice of a few, with the stretching pill.
+  // options: [[value, label], ...]; get() → the current value; onChange(value).
+  function segmented({ label, options, get, onChange, columns, className } = {}) {
+    const el = h('div', ['seg', className].filter(Boolean).join(' '));
+    el.setAttribute('role', 'radiogroup'); if (label) el.setAttribute('aria-label', label);
+    el.style.gridTemplateColumns = `repeat(${columns || options.length}, 1fr)`;
+    options.forEach(([v, t]) => { const b = h('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.v = String(v); b.textContent = t; el.append(b); });
+    const btns = () => Array.from(el.querySelectorAll('button'));
+    const cur = () => String(valueOf(get));
+    const pill = pillTrack(el, btns, (b) => b.dataset.v === cur());
+    el.sync = (animate) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === cur()))); pill.place(animate); };
+    el._place = () => el.sync(false);
+    btns().forEach((b) => b.addEventListener('click', () => { if (onChange) onChange(b.dataset.v); el.sync(true); }));
+    requestAnimationFrame(() => el.sync(false));
+    return el;
+  }
+  // Switch: a labelled on/off row. get() → boolean; onChange(next).
+  function toggle({ label, get, onChange } = {}) {
+    const el = h('button', 'sw', '<span></span><i></i>');
+    el.type = 'button'; el.setAttribute('role', 'switch');
+    el.firstChild.textContent = label;
+    el.sync = () => el.setAttribute('aria-checked', String(!!valueOf(get)));
+    el.addEventListener('click', () => { if (onChange) onChange(!valueOf(get)); el.sync(); });
+    el.sync();
+    return el;
+  }
+  // Slider: a grey pill with an ink fill, the label and value inverting over it. Drag
+  // anywhere (it stretches a little past its ends), tap to jump, double-click to reset,
+  // arrow keys to step (Shift for ten). get() → value; set(v) → the value actually kept.
+  function slider({ label, min = 0, max = 1, step = 0.01, format = (v) => v.toFixed(2), get, set, reset, off } = {}) {
+    const el = h('div', 'sl', '<div class="sl-fill"></div><div class="sl-txt"><span></span><output></output></div>');
+    el.tabIndex = 0; el.setAttribute('role', 'slider');
+    el.setAttribute('aria-label', label); el.setAttribute('aria-valuemin', min); el.setAttribute('aria-valuemax', max);
+    el.querySelector('.sl-txt span').textContent = label;
+    const out = el.querySelector('output');
+    const span = max - min, discrete = step >= 1;
+    el.render = (v) => {
+      el.style.setProperty('--v', clamp((v - min) / span, 0, 1));
+      const t = format(v);
+      if (discrete) rollText(out, t); else out.textContent = t;
+      el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', t);
+      if (off) el.classList.toggle('off', !!off());
+    };
+    const commit = (v) => { const nv = set ? set(v) : v; el.render(nv === undefined ? valueOf(get) : nv); };
+    function stretch(px) {
+      if (!px || still()) { el.style.transform = ''; return; }
+      const r = Math.min(12, Math.abs(px) * 0.5 / (1 + Math.abs(px) / 80));
+      el.style.transformOrigin = px > 0 ? 'left center' : 'right center';
+      el.style.transform = `scaleX(${1 + r / el.offsetWidth})`;
+    }
+    let grab = null;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      grab = { x: e.clientX, v: valueOf(get), moved: false, w: el.getBoundingClientRect().width };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!grab) return;
+      const dx = e.clientX - grab.x;
+      if (!grab.moved && Math.abs(dx) < 3) return;
+      if (!grab.moved) { grab.moved = true; el.classList.add('drag'); }
+      const raw = grab.v + dx / grab.w * span;
+      commit(raw);
+      stretch(raw > max ? (raw - max) / span * grab.w : raw < min ? (raw - min) / span * grab.w : 0);
+    });
+    const release = (e) => {
+      if (!grab) return;
+      if (!grab.moved && e.type === 'pointerup') { const r = el.getBoundingClientRect(); commit(min + clamp((e.clientX - r.left) / r.width, 0, 1) * span); }
+      grab = null; el.classList.remove('drag'); stretch(0);
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    if (reset !== undefined) el.addEventListener('dblclick', () => commit(valueOf(reset)));
+    el.addEventListener('keydown', (e) => {
+      const k = e.key, big = e.shiftKey ? 10 : 1, v0 = valueOf(get);
+      const v = k === 'ArrowRight' || k === 'ArrowUp' ? v0 + step * big
+        : k === 'ArrowLeft' || k === 'ArrowDown' ? v0 - step * big
+        : k === 'Home' ? min : k === 'End' ? max : null;
+      if (v === null) return;
+      e.preventDefault(); e.stopPropagation(); commit(v);
+    });
+    el.sync = () => { if (valueOf(get) !== +el.getAttribute('aria-valuenow') || off) el.render(valueOf(get)); };
+    el.render(valueOf(get));
+    return el;
+  }
+  // Swatches: round colour buttons. items: [{ id, label, style }]; get() → the chosen id.
+  function swatches({ items, get, onPick } = {}) {
+    const el = h('div', 'swatches');
+    items.forEach((it) => { const b = h('button'); b.type = 'button'; b.dataset.id = it.id; b.setAttribute('aria-label', it.label); b.title = it.label; b.setAttribute('style', it.style); el.append(b); });
+    el.sync = () => el.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === valueOf(get))));
+    el.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { if (onPick) onPick(b.dataset.id); el.sync(); }));
+    el.sync();
+    return el;
+  }
+  // Colour picks: labelled colour wells. items: [{ id, label }]; get(id) → '#rrggbb'.
+  function colorPicks({ items, get, onInput } = {}) {
+    const el = h('div', 'picks');
+    items.forEach((it) => { const l = h('label', 'pick', '<input type="color"><span></span>'); l.firstChild.dataset.k = it.id; l.lastChild.textContent = it.label; el.append(l); });
+    el.sync = () => el.querySelectorAll('input').forEach((i) => { i.value = get(i.dataset.k); });
+    el.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { if (onInput) onInput(i.dataset.k, i.value); el.sync(); }));
+    el.sync();
+    return el;
+  }
+  // Small section label inside a panel.
+  const label = (text) => { const l = h('div', 'ctl-label'); l.textContent = text; return l; };
+  // A key cap, and a list of key commands: [[what, ['K', ...]], ...].
+  const kbd = (text) => { const k = h('kbd'); k.textContent = text; return k; };
+  function keys(list) {
+    const el = h('div', 'keys');
+    list.forEach(([what, ks]) => { const row = h('div', 'key', '<span></span><span></span>'); row.firstChild.textContent = what; ks.forEach((k) => row.lastChild.append(kbd(k))); el.append(row); });
+    return el;
+  }
+  // Panel: a card with the headline and hint, then its controls.
+  function panel({ title, hint, body = [], className } = {}) {
+    const el = h('section', ['card', 'concentric', className].filter(Boolean).join(' '), '<div class="ctl-title"><b></b><span></span></div>');
+    el.querySelector('b').textContent = title || '';
+    el.querySelector('.ctl-title span').textContent = hint || '';
+    const box = h('div', 'ctl'); body.forEach((x) => box.append(x)); el.append(box);
+    return el;
+  }
+  // Menu: a small card above (or below) a button. items: [label, fn, hint], a string
+  // heading, or '-' for a rule. Clicking away or picking closes it.
+  let openMenu = null;
+  function menu(anchor, items, below, className) {
+    if (openMenu) { const was = openMenu.anchor; openMenu.close(); if (was === anchor) return null; }
+    const m = h('div', ['menu card', className].filter(Boolean).join(' '));
+    items.forEach((it) => {
+      if (it === '-') { m.append(h('hr')); return; }
+      if (typeof it === 'string') { const l = h('div', 'lab'); l.textContent = it; m.append(l); return; }
+      const b = h('button', '', '<span></span><kbd hidden></kbd>'); b.type = 'button';
+      b.firstChild.textContent = it[0];
+      if (it[2]) { b.lastChild.hidden = false; b.lastChild.textContent = it[2]; }
+      b.addEventListener('click', () => { close(); it[1](); });
+      m.append(b);
+    });
+    document.body.append(m);
+    const r = anchor.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(12, Math.min(innerWidth - mr.width - 12, r.left + r.width / 2 - mr.width / 2)) + 'px';
+    m.style.top = (below ? r.bottom + 8 : r.top - mr.height - 8) + 'px';
+    if (!still()) m.animate([{ opacity: 0, transform: `translateY(${below ? -6 : 6}px) scale(0.96)`, filter: 'blur(4px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 260, easing: EASE.pop });
+    const away = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) close(); };
+    function close() { document.removeEventListener('pointerdown', away, true); m.remove(); openMenu = null; }
+    setTimeout(() => document.addEventListener('pointerdown', away, true));
+    openMenu = { anchor, close };
+    return m;
+  }
+  // Curve editor: the easing graph (time across, progress up) with two handles to drag,
+  // presets, and optional Preview and Apply to all. get() → a named easing or
+  // [x1, y1, x2, y2]; set(e) stores it (and may tidy it), and the editor redraws.
+  function curveEditor({ title = 'Easing', get, set, onPreview, onApplyAll, className } = {}) {
+    const card = h('div', ['card curve-card', className].filter(Boolean).join(' '));
+    // The plot fills the card's width and is a little shorter than wide, with a band above
+    // and below for overshoot; handles pulled further than that still draw, outside the box.
+    const SX = 300, SY = 210, P = 12, ROOM = 0.12;
+    const W = SX + 2 * P, H = SY * (1 + 2 * ROOM) + 2 * P;
+    const X = (v) => P + v * SX, Y = (v) => P + (ROOM + 1 - v) * SY;
+    card.innerHTML = `
+      <div class="ctl-title"><b></b><span data-r="name"></span></div>
+      <svg class="graph" viewBox="0 0 ${W} ${H}" aria-label="Easing curve: time across, progress up">
+        <rect class="box" x="${X(0)}" y="${Y(1)}" width="${SX}" height="${SY}" rx="8"/>
+        <path class="diag" d="M${X(0)} ${Y(0)}L${X(1)} ${Y(1)}"/>
+        <line class="arm" data-r="a0" x1="${X(0)}" y1="${Y(0)}"/><line class="arm" data-r="a1" x1="${X(1)}" y1="${Y(1)}"/>
+        <path class="curve" data-r="curve"/>
+        <circle class="end" cx="${X(0)}" cy="${Y(0)}" r="3.5"/><circle class="end" cx="${X(1)}" cy="${Y(1)}" r="3.5"/>
+        <circle class="h" data-h="0" r="8" tabindex="0" role="slider" aria-label="First handle"/>
+        <circle class="h" data-h="1" r="8" tabindex="0" role="slider" aria-label="Second handle"/>
+      </svg>
+      <div class="presets"></div>
+      <div class="row"></div>`;
+    card.querySelector('.ctl-title b').textContent = title;
+    const presets = card.querySelector('.presets');
+    CURVE_PRESETS.forEach(([v, t], j) => { const b = chip({ icon: curveIcon(v), label: t, onClick: () => put(v) }); b.dataset.p = j; presets.append(b); });
+    const row = card.querySelector('.row');
+    if (onPreview) row.append(chip({ icon: 'play', label: 'Preview move', disabled: onPreview === 'disabled', onClick: () => onPreview !== 'disabled' && onPreview() }));
+    if (onApplyAll) row.append(chip({ label: 'Apply to all', onClick: () => onApplyAll(get()) }));
+    if (!row.children.length) row.remove();
+    const svgEl = card.querySelector('svg'), $ = (r) => card.querySelector(`[data-r="${r}"]`);
+    const hs = Array.from(card.querySelectorAll('.h'));
+    let cur = handlesOf(get()).slice();
+    function render() {
+      const e = get();
+      $('curve').setAttribute('d', curveD(e, X, Y, 48));
+      $('a0').setAttribute('x2', X(cur[0])); $('a0').setAttribute('y2', Y(cur[1]));
+      $('a1').setAttribute('x2', X(cur[2])); $('a1').setAttribute('y2', Y(cur[3]));
+      hs.forEach((hd, j) => { hd.setAttribute('cx', X(cur[j * 2])); hd.setAttribute('cy', Y(cur[j * 2 + 1])); hd.setAttribute('aria-valuetext', `${cur[j * 2].toFixed(2)}, ${cur[j * 2 + 1].toFixed(2)}`); });
+      $('name').textContent = isCurve(e) && easeName(e) === 'Custom' ? e.join(', ') : easeName(e);
+      presets.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', String(sameEase(CURVE_PRESETS[+b.dataset.p][0], e))));
+    }
+    const put = (e) => { set(e); cur = handlesOf(get()).slice(); render(); };
+    const toVals = (ev) => {
+      const pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+      const q = pt.matrixTransform(svgEl.getScreenCTM().inverse());
+      return [(q.x - P) / SX, ROOM + 1 - (q.y - P) / SY];
+    };
+    hs.forEach((hd, j) => {
+      // Drag a handle: it becomes a custom curve.
+      hd.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault(); hd.setPointerCapture(ev.pointerId); hd.classList.add('drag');
+        const move = (e2) => { const [x, y] = toVals(e2); cur[j * 2] = x; cur[j * 2 + 1] = y; put(cleanCurve(cur)); };
+        const up = () => { hd.classList.remove('drag'); hd.removeEventListener('pointermove', move); hd.removeEventListener('pointerup', up); hd.removeEventListener('pointercancel', up); };
+        hd.addEventListener('pointermove', move); hd.addEventListener('pointerup', up); hd.addEventListener('pointercancel', up);
+      });
+      // Arrow keys nudge the focused handle (Shift for bigger steps).
+      hd.addEventListener('keydown', (ev) => {
+        const st = ev.shiftKey ? 0.1 : 0.02;
+        const dx = ev.key === 'ArrowRight' ? st : ev.key === 'ArrowLeft' ? -st : 0;
+        const dy = ev.key === 'ArrowUp' ? st : ev.key === 'ArrowDown' ? -st : 0;
+        if (!dx && !dy) return;
+        ev.preventDefault(); ev.stopPropagation();
+        cur[j * 2] += dx; cur[j * 2 + 1] += dy; put(cleanCurve(cur));
+      });
+    });
+    card.sync = () => { cur = handlesOf(get()).slice(); render(); };
+    render();
+    return card;
+  }
+
+  window.UI = {
+    // tokens and helpers
+    EASE, still, clamp, svg, ICON,
+    // motion
+    swapHTML, rollText, morphHeight, leave, enter, pillTrack, tooltips, roving, toast,
+    // theme
+    theme, setTheme,
+    // easing
+    EASES, EASE_NAMES, bezier, isCurve, cleanCurve, validEase, easeFn, EASE_CURVES, CURVE_PRESETS, handlesOf, sameEase, easeName, curveD, curveIcon,
+    // components
+    button, iconButton, chip, segmented, toggle, slider, swatches, colorPicks, label, kbd, keys, panel, menu, curveEditor,
+  };
+})();
+</script>
+<script>
+/* Galaxy Creator playground kit: connects to the live galaxy (../index.html?embed)
+   and builds the shared controls, following MOTION.md. Prototypes decide where
+   the controls live and how they open; the controls themselves come from here. */
+(function () {
+  'use strict';
+  // The shared pieces (icons, motion, toast, theme, easing) and the controls come from ui.js.
+  const { clamp, EASE, still, ICON, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, theme, setTheme } = UI;
+  // Create galaxy leads the rail; Settings sits with the actions at the bottom.
+  const CATS = [
+    { id: 'create', label: 'Create galaxy', hint: 'A new one, or a surprise' },
+    { id: 'galaxy', label: 'Structure', hint: 'Type and shape' },
+    { id: 'matter', label: 'Stars & gas', hint: 'What it is made of' },
+    { id: 'motion', label: 'Motion', hint: 'Spin, drift, zoom' },
+    { id: 'light', label: 'Light', hint: 'Exposure and lens' },
+    { id: 'colour', label: 'Colour', hint: 'Palettes and inks' },
+  ];
+
   // ---- snapping: grab the galaxy alone and hand it to the viewer ---------------------------
   function flash() {
     let f = document.getElementById('flash');
@@ -889,146 +1278,58 @@
   const views = new Set();   // rendered controls that re-read state on refresh()
   function refresh(G) { views.forEach((v) => v(G)); }
 
+  // The galaxy's sliders, typeSeg and switches: UI controls bound to G and kept in step by refresh().
   function slider(G, key) {
     const d = G.sliders.find((x) => x.key === key);
-    const el = document.createElement('div');
-    el.className = 'sl'; el.tabIndex = 0; el.setAttribute('role', 'slider');
-    el.setAttribute('aria-label', d.label); el.setAttribute('aria-valuemin', d.min); el.setAttribute('aria-valuemax', d.max);
-    el.innerHTML = `<div class="sl-fill"></div><div class="sl-txt"><span>${d.label}</span><output></output></div>`;
-    const out = el.querySelector('output');
-    const span = d.max - d.min, discrete = d.step >= 1;
-    function render(v) {
-      el.style.setProperty('--v', clamp((v - d.min) / span, 0, 1));
-      const t = d.format(v);
-      if (discrete) rollText(out, t); else out.textContent = t;
-      el.setAttribute('aria-valuenow', v); el.setAttribute('aria-valuetext', t);
-      if (key === 'arms' || key === 'twist') el.classList.toggle('off', !['Spiral', 'Barred', 'Cycle'].includes(G.state.type));
-    }
-    const commit = (v) => { const nv = G.set(key, v); render(nv === undefined ? G.state[key] : nv); };
-    function stretch(px) {
-      if (!px || still()) { el.style.transform = ''; return; }
-      const r = Math.min(12, Math.abs(px) * 0.5 / (1 + Math.abs(px) / 80));
-      el.style.transformOrigin = px > 0 ? 'left center' : 'right center';
-      el.style.transform = `scaleX(${1 + r / el.offsetWidth})`;
-    }
-    let grab = null;
-    el.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
-      try { el.setPointerCapture(e.pointerId); } catch (err) {}
-      grab = { x: e.clientX, v: G.state[key], moved: false, w: el.getBoundingClientRect().width };
+    const el = UI.slider({
+      label: d.label, min: d.min, max: d.max, step: d.step, format: d.format,
+      get: () => G.state[key], set: (v) => G.set(key, v), reset: () => G.base[key],
+      off: key === 'arms' || key === 'twist' ? () => !['Spiral', 'Barred', 'Cycle'].includes(G.state.type) : undefined,
     });
-    el.addEventListener('pointermove', (e) => {
-      if (!grab) return;
-      const dx = e.clientX - grab.x;
-      if (!grab.moved && Math.abs(dx) < 3) return;
-      if (!grab.moved) { grab.moved = true; el.classList.add('drag'); }
-      const raw = grab.v + dx / grab.w * span;
-      commit(raw);
-      stretch(raw > d.max ? (raw - d.max) / span * grab.w : raw < d.min ? (raw - d.min) / span * grab.w : 0);
-    });
-    const release = (e) => {
-      if (!grab) return;
-      if (!grab.moved && e.type === 'pointerup') {
-        const r = el.getBoundingClientRect();
-        commit(d.min + clamp((e.clientX - r.left) / r.width, 0, 1) * span);
-      }
-      grab = null; el.classList.remove('drag'); stretch(0);
-    };
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
-    el.addEventListener('dblclick', () => commit(G.base[key]));
-    el.addEventListener('keydown', (e) => {
-      const k = e.key, big = e.shiftKey ? 10 : 1;
-      const v = k === 'ArrowRight' || k === 'ArrowUp' ? G.state[key] + d.step * big
-        : k === 'ArrowLeft' || k === 'ArrowDown' ? G.state[key] - d.step * big
-        : k === 'Home' ? d.min : k === 'End' ? d.max : null;
-      if (v === null) return;
-      e.preventDefault(); e.stopPropagation(); commit(v);
-    });
-    render(G.state[key]);
-    const view = () => { if (G.state[key] !== +el.getAttribute('aria-valuenow') || key === 'arms' || key === 'twist') render(G.state[key]); };
-    views.add(view);
+    views.add(el.sync);
     return el;
   }
 
   function typeSeg(G) {
-    const el = document.createElement('div');
-    el.className = 'seg'; el.setAttribute('role', 'radiogroup'); el.setAttribute('aria-label', 'Galaxy type');
-    el.innerHTML = G.types.map((t) => `<button type="button" role="radio" data-type="${t}">${t}</button>`).join('');
-    const btns = () => Array.from(el.querySelectorAll('button'));
-    const pill = pillTrack(el, btns, (b) => b.dataset.type === G.state.type);
-    const sync = (animate) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.type === G.state.type))); pill.place(animate); };
-    btns().forEach((b) => b.addEventListener('click', () => { G.setType(b.dataset.type); sync(true); refresh(G); }));
-    requestAnimationFrame(() => sync(false));
-    el._place = () => sync(false);
-    views.add(() => sync(true));
+    const el = UI.segmented({ label: 'Galaxy type', options: G.types.map((t) => [t, t]), get: () => G.state.type, onChange: (t) => { G.setType(t); refresh(G); } });
+    views.add(() => el.sync(true));
     return el;
   }
 
   function switchEl(G, id, label) {
     const keyOf = { spikes: 'spikes', companions: 'companions', caps: 'captions' };
-    const el = document.createElement('button');
-    el.type = 'button'; el.className = 'sw'; el.setAttribute('role', 'switch');
-    el.innerHTML = `<span>${label}</span><i></i>`;
-    const sync = () => el.setAttribute('aria-checked', String(!!G.state[keyOf[id]]));
-    el.addEventListener('click', () => { G.toggle(id); sync(); });
-    sync(); views.add(sync);
+    const el = UI.toggle({ label, get: () => G.state[keyOf[id]], onChange: () => G.toggle(id) });
+    views.add(el.sync);
     return el;
   }
 
   const swatchStyle = (p) => `background: radial-gradient(circle at 50% 50%, ${p.old} 0 18%, ${p.young} 38%, ${p.gasA} 62%, ${p.gasB} 100%)`;
   function colourControls(G) {
     const wrap = document.createElement('div'); wrap.className = 'ctl';
-    const sw = document.createElement('div'); sw.className = 'swatches';
-    sw.innerHTML = Object.keys(G.presets).map((n) => `<button type="button" data-preset="${n}" aria-label="${n} palette" title="${n}" style="${swatchStyle(G.presets[n])}"></button>`).join('');
-    const picks = document.createElement('div'); picks.className = 'picks';
     const LABELS = { old: 'Old stars', young: 'Young stars', gasA: 'Gas', gasB: 'Gas, second' };
-    picks.innerHTML = Object.keys(LABELS).map((k) => `<label class="pick"><input type="color" data-k="${k}"><span>${LABELS[k]}</span></label>`).join('');
-    const sync = () => {
-      sw.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === G.state.preset)));
-      picks.querySelectorAll('input').forEach((i) => { i.value = G.state[i.dataset.k]; });
-    };
-    sw.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { G.setPreset(b.dataset.preset); sync(); }));
-    picks.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { G.setColour(i.dataset.k, i.value); sync(); }));
-    sync(); views.add(sync);
+    const sw = UI.swatches({ items: Object.keys(G.presets).map((n) => ({ id: n, label: n + ' palette', style: swatchStyle(G.presets[n]) })), get: () => G.state.preset, onPick: (n) => { G.setPreset(n); picks.sync(); } });
+    const picks = UI.colorPicks({ items: Object.keys(LABELS).map((k) => ({ id: k, label: LABELS[k] })), get: (k) => G.state[k], onInput: (k, v) => { G.setColour(k, v); sw.sync(); } });
+    views.add(() => { sw.sync(); picks.sync(); });
     wrap.append(sw, picks);
     return wrap;
   }
 
   function createControls(G) {
     const wrap = document.createElement('div'); wrap.className = 'pair';
-    wrap.innerHTML = `<button class="btn" data-a="seed" type="button">${ICON.seed}<span>New seed</span></button><button class="btn" data-a="surprise" type="button">${ICON.dice}<span>Surprise</span></button>`;
     const twirl = (b) => { const ic = b.querySelector('svg'); if (ic && !still()) ic.animate([{ transform: 'rotate(0deg) scale(0.8)' }, { transform: 'rotate(360deg) scale(1)' }], { duration: 600, easing: EASE.pop }); };
-    wrap.querySelector('[data-a=seed]').addEventListener('click', (e) => { twirl(e.currentTarget); G.reseed(); refresh(G); toast('Seed #' + G.state.seed, 'seed'); });
-    wrap.querySelector('[data-a=surprise]').addEventListener('click', (e) => {
-      twirl(e.currentTarget); G.surprise(); refresh(G);
-      toast(`${G.typeNames[Math.max(0, G.types.indexOf(G.state.type))]} · ${G.state.preset}`, 'dice');
-    });
+    wrap.append(
+      UI.button({ icon: 'seed', label: 'New seed', onClick: (e) => { twirl(e.currentTarget); G.reseed(); refresh(G); toast('Seed #' + G.state.seed, 'seed'); } }),
+      UI.button({ icon: 'dice', label: 'Surprise', onClick: (e) => {
+        twirl(e.currentTarget); G.surprise(); refresh(G);
+        toast(`${G.typeNames[Math.max(0, G.types.indexOf(G.state.type))]} · ${G.state.preset}`, 'dice');
+      } }));
     return wrap;
   }
 
-  // A small segmented choice, with the stretching pill.
-  function choice(label, opts, get, set) {
-    const seg = document.createElement('div');
-    seg.className = 'seg'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', label);
-    seg.style.gridTemplateColumns = `repeat(${opts.length}, 1fr)`;
-    seg.innerHTML = opts.map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
-    const btns = () => Array.from(seg.querySelectorAll('button'));
-    const pill = pillTrack(seg, btns, (b) => b.dataset.v === String(get()));
-    const sync = (a) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === String(get())))); pill.place(a); };
-    btns().forEach((b) => b.addEventListener('click', () => { set(b.dataset.v); sync(true); }));
-    seg._place = () => sync(false);
-    requestAnimationFrame(() => sync(false));
-    return seg;
-  }
-  const label = (t) => { const l = document.createElement('div'); l.className = 'ctl-label'; l.textContent = t; return l; };
-  const button = (icon, text, cls) => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'btn' + (cls ? ' ' + cls : '');
-    b.innerHTML = `${ICON[icon]}<span></span>`; b.lastChild.textContent = text;
-    return b;
-  };
-  const setButton = (b, icon, text) => { b.innerHTML = `${ICON[icon]}<span></span>`; b.lastChild.textContent = text; };
+  const choice = (label, opts, get, set) => UI.segmented({ label, options: opts, get, onChange: set });
+  const label = UI.label;
+  const button = (icon, text, variant) => UI.button({ icon, label: text, variant });
+  const setButton = (b, icon, text) => b.setContent(icon, text);
 
   // Sharing: a link to exactly this galaxy, copied from the rail or with L.
   async function copyText(text) {
@@ -1101,7 +1402,8 @@
 
     wrap.append(
       label('Image'), choice('Image size', EDGES, () => edge, (v) => { edge = v; pref('edge', v); }), image,
-      ...(loops ? [label('Loop · one full turn'), choice('Loop length', [['10', '10 s'], ['20', '20 s'], ['30', '30 s']], () => secs, (v) => { secs = v; pref('loop', v); }), loop] : []));
+      ...(loops ? [label('Loop · one full turn'), choice('Loop length', [['10', '10 s'], ['20', '20 s'], ['30', '30 s']], () => secs, (v) => { secs = v; pref('loop', v); }), loop] : []),
+      ...(loops && G.music && G.music.available ? [videoMusicSwitch(G)] : []));
     return wrap;
   }
 
@@ -1121,46 +1423,34 @@
     ['Zoom', ['Scroll']],
     ['Close a tool', ['Esc']],
     ['Create or Direct', ['Tab']],
+    ['Fly', ['F']],
+    ['Fly: speed, turn, climb', ['W', 'S', 'A', 'D', 'R', 'F']],
+    ['Fly: boost', ['Shift']],
     ['Keyframe, in Direct', ['K']],
     ['Play the shot', ['Space']],
     ['Preview the shot', ['P']],
   ];
   function settingsControls(G) {
     const wrap = document.createElement('div'); wrap.className = 'ctl';
-    const seg = document.createElement('div');
-    seg.className = 'seg'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Appearance');
-    seg.innerHTML = [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
-    const btns = () => Array.from(seg.querySelectorAll('button'));
-    const pill = pillTrack(seg, btns, (b) => b.dataset.v === theme());
-    const sync = (a) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === theme()))); pill.place(a); };
-    btns().forEach((b) => b.addEventListener('click', () => { setTheme(b.dataset.v); sync(true); }));
-    seg._place = () => sync(false);
-    requestAnimationFrame(() => sync(false));
-    const keys = document.createElement('div'); keys.className = 'keys';
-    keys.innerHTML = KEYS.map(([what, ks]) => `<div class="key"><span>${what}</span><span>${ks.map((k) => `<kbd>${k}</kbd>`).join('')}</span></div>`).join('');
+    const seg = UI.segmented({ label: 'Appearance', options: [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']], get: theme, onChange: setTheme });
+    const keys = UI.keys(KEYS);
     const link = button('link', 'Copy share link', 'primary');
     link.addEventListener('click', () => copyLink(G));
-    const sound = G.music && G.music.available ? [label('Sound'), musicSwitch(G)] : [];
+    const sound = G.music && G.music.available ? [label('Sound'), musicSwitch(G), videoMusicSwitch(G)] : [];
     wrap.append(label('Share'), link, label('Appearance'), seg, switchEl(G, 'caps', 'Captions on screen'), ...sound, label('Keys'), keys);
     return wrap;
   }
 
   // Music: a preference of this browser, not part of the galaxy or its share link.
-  function musicSwitch(G) {
-    const el = document.createElement('button');
-    el.type = 'button'; el.className = 'sw'; el.setAttribute('role', 'switch');
-    el.innerHTML = '<span>Music</span><i></i>';
-    const sync = () => el.setAttribute('aria-checked', String(G.music.on));
-    el.addEventListener('click', () => { G.music.set(!G.music.on); sync(); });
-    sync();
-    return el;
-  }
+  const musicSwitch = (G) => UI.toggle({ label: 'Music', get: () => G.music.on, onChange: (v) => G.music.set(v) });
+  // Music in exported videos (loops and Direct shots); on by default, even with Music off.
+  const videoMusicSwitch = (G) => { const el = UI.toggle({ label: 'Music in videos', get: () => G.music.inVideo, onChange: (v) => G.music.setInVideo(v) }); views.add(el.sync); return el; };
 
   // The controls for one category.
   function section(G, id) {
     const box = document.createElement('div'); box.className = 'ctl';
     const add = (...els) => els.forEach((e) => box.append(e));
-    if (id === 'galaxy') add(typeSeg(G), ...['arms', 'twist', 'core', 'spread', 'halo'].map((k) => slider(G, k)));
+    if (id === 'galaxy') add(typeSeg(G), ...['arms', 'twist', 'core', 'spread', 'halo', 'hole'].map((k) => slider(G, k)));
     if (id === 'matter') add(...['stars', 'size', 'nebula', 'dust', 'clump', 'form'].map((k) => slider(G, k)));
     if (id === 'motion') add(...['spin', 'orbit', 'zoom'].map((k) => slider(G, k)));
     if (id === 'light') add(...['bright', 'bloom', 'sat', 'sky'].map((k) => slider(G, k)), switchEl(G, 'spikes', 'Diffraction spikes'), switchEl(G, 'companions', 'Companion galaxies'));
@@ -1218,7 +1508,7 @@
     document.body.append(b);
   }
 
-  window.Kit = { ICON, CATS, EASE, still, clamp, typing, theme, setTheme, flash, download, shoot, copyLink, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
+  window.Kit = { UI, ICON, CATS, EASE, still, clamp, typing, theme, setTheme, flash, download, shoot, copyLink, swapHTML, rollText, morphHeight, leave, enter, toast, pillTrack, tooltips, roving, connect, refresh, slider, typeSeg, switchEl, section, bindKeys, backbar };
 })();
 </script>
 <script>
@@ -1229,53 +1519,11 @@
   'use strict';
   const TAU = Math.PI * 2;
   const { EASE, still, toast } = Kit;
+  // Easing maths and curves live in ui.js, shared with the component gallery.
+  const { EASES, EASE_NAMES, isCurve, validEase, easeFn, handlesOf, easeName, curveIcon } = UI;
 
-  // Easing into a keyframe. Smooth comes to rest on every key; the others flow through.
-  const EASES = {
-    smooth: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
-    linear: (t) => t,
-    in: (t) => t * t * t,
-    out: (t) => 1 - Math.pow(1 - t, 3),
-  };
-  const EASE_NAMES = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out']];
-  // A custom easing is a cubic Bézier, as in CSS: from (0,0) to (1,1), shaped by two handles.
-  // Their heights may leave 0–1, so a move can overshoot its key and settle back.
-  function bezier(x1, y1, x2, y2) {
-    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
-    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
-    const X = (s) => ((ax * s + bx) * s + cx) * s, Y = (s) => ((ay * s + by) * s + cy) * s, dX = (s) => (3 * ax * s + 2 * bx) * s + cx;
-    return (t) => {
-      if (t <= 0) return 0;
-      if (t >= 1) return 1;
-      let s = t;
-      for (let i = 0; i < 8; i++) { const e = X(s) - t, g = dX(s); if (Math.abs(e) < 1e-6 || Math.abs(g) < 1e-6) break; s -= e / g; }
-      if (!(s >= 0 && s <= 1) || Math.abs(X(s) - t) > 1e-4) {         // Newton wandered off: bisect
-        let lo = 0, hi = 1; s = t;
-        for (let i = 0; i < 40; i++) { if (X(s) < t) lo = s; else hi = s; s = (lo + hi) / 2; }
-      }
-      return Y(s);
-    };
-  }
-  const CURVE_Y = [-0.6, 1.6];
-  const isCurve = (e) => Array.isArray(e) && e.length === 4 && e.every((v) => typeof v === 'number' && isFinite(v));
-  const r2 = (v) => Math.round(v * 100) / 100;
-  const cleanCurve = (e) => e.map((v, i) => r2(i % 2 ? Math.max(CURVE_Y[0], Math.min(CURVE_Y[1], v)) : Math.max(0, Math.min(1, v))));
-  const validEase = (e) => (typeof e === 'string' && EASES[e] ? e : isCurve(e) ? cleanCurve(e) : 'smooth');
-  const curveCache = new Map();
-  function easeFn(e) {
-    if (typeof e === 'string') return EASES[e] || EASES.smooth;
-    if (!isCurve(e)) return EASES.smooth;
-    const id = e.join();
-    if (!curveCache.has(id)) curveCache.set(id, bezier(e[0], e[1], e[2], e[3]));
-    return curveCache.get(id);
-  }
-  // Where the handles sit for the named easings (Smooth and the rest are exact cubics; these
-  // Béziers match them closely), and the presets the curve editor offers.
-  const EASE_CURVES = { smooth: [0.65, 0, 0.35, 1], linear: [0.25, 0.25, 0.75, 0.75], in: [0.32, 0, 0.67, 0], out: [0.33, 1, 0.68, 1] };
-  const CURVE_PRESETS = [['smooth', 'Smooth'], ['linear', 'Linear'], ['in', 'Ease in'], ['out', 'Ease out'], [[0.37, 0, 0.63, 1], 'Gentle'], [[0.16, 1, 0.3, 1], 'Snappy'], [[0.34, 1.56, 0.64, 1], 'Overshoot']];
-  const handlesOf = (e) => (typeof e === 'string' ? EASE_CURVES[e] || EASE_CURVES.smooth : e);
-  const sameEase = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const easeName = (e) => { const p = CURVE_PRESETS.find(([v]) => sameEase(v, e)); return p ? p[1] : 'Custom'; };
+  // Any length from 2 s to 2 minutes (a recorded flight has its own), else the default 12.
+  const okLength = (L) => (isFinite(L) && L >= 2 && L <= 120 ? Math.round(L * 10) / 10 : 12);
   const fmt = (t) => { const s = Math.max(0, t); return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`; };
 
   // Catmull-Rom through the neighbouring keys, so a path through several keys curves instead of kinking.
@@ -1285,11 +1533,11 @@
 
   // Galaxy settings a keyframe keeps: everything but the camera's own zoom, the idle drift
   // and the palette's name. Numbers and colours blend between keys; the rest switch at a key.
-  const BLEND = ['twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'bright', 'bloom', 'sat', 'halo', 'clump', 'form', 'sky'];
+  const BLEND = ['twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'bright', 'bloom', 'sat', 'halo', 'clump', 'form', 'sky', 'hole'];
   const COLOURS = ['old', 'young', 'gasA', 'gasB'];
   const STEP = ['type', 'arms', 'seed', 'spikes', 'companions'];
   const SET_KEYS = BLEND.concat(COLOURS, STEP);
-  const SET_LABELS = { halo: 'Halo', clump: 'Clusters', form: 'Star formation', sky: 'Sky', twist: 'Twist', core: 'Core', spread: 'Spread', stars: 'Stars', size: 'Star size', nebula: 'Nebula', dust: 'Dust', spin: 'Spin', bright: 'Brightness', bloom: 'Bloom', sat: 'Saturation', type: 'Type', arms: 'Arms', seed: 'Seed', spikes: 'Spikes', companions: 'Companions' };
+  const SET_LABELS = { hole: 'Black hole', halo: 'Halo', clump: 'Clusters', form: 'Star formation', sky: 'Sky', twist: 'Twist', core: 'Core', spread: 'Spread', stars: 'Stars', size: 'Star size', nebula: 'Nebula', dust: 'Dust', spin: 'Spin', bright: 'Brightness', bloom: 'Bloom', sat: 'Saturation', type: 'Type', arms: 'Arms', seed: 'Seed', spikes: 'Spikes', companions: 'Companions' };
   const pickSet = (o) => { const r = {}; SET_KEYS.forEach((k) => { if (o && k in o) r[k] = o[k]; }); return r; };
   const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const rgbHex = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
@@ -1314,7 +1562,7 @@
       try {
         const o = JSON.parse(localStorage.getItem(store) || 'null');
         if (o && Array.isArray(o.keys)) {
-          d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
+          d.length = okLength(o.length);
           d.keys = o.keys.filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({ id: nextId++, t: k.t, cam: k.cam, ease: validEase(k.ease), thumb: k.thumb || null, set: k.set ? pickSet(k.set) : pickSet(G.getState()) }));
         }
       } catch (e) {}
@@ -1495,7 +1743,7 @@
     d.data = () => ({ length: d.length, keys: d.keys.map(({ t, cam, ease, set }) => ({ t, cam, ease, set })) });
     d.load = async (o, libId) => {
       stop();
-      d.length = [6, 12, 20, 30].includes(o.length) ? o.length : 12;
+      d.length = okLength(o.length);
       d.keys = (o.keys || []).filter((k) => k && k.cam && isFinite(k.t)).map((k) => ({
         id: nextId++, t: Math.max(0, Math.min(d.length, k.t)), cam: k.cam, ease: validEase(k.ease), thumb: null, set: pickSet(Object.assign(G.getState(), k.set || {})),
       }));
@@ -1504,6 +1752,12 @@
       emit();
       await regen();
       d.seek(0);
+    };
+    // A recorded flight becomes the shot: its samples are the keys, moving at an even pace
+    // (linear easing) so the camera flies through them as it flew. Start over can undo it.
+    d.fromFlight = async (samples, length) => {
+      d.clear();
+      await d.load({ length, keys: samples.map((x) => ({ t: x.t, cam: x.cam, set: x.set, ease: 'linear' })) });
     };
     d.SHOTS = [['approach', 'Approach'], ['orbit', 'Orbit'], ['reveal', 'Reveal'], ['flyover', 'Flyover']];
     // Start over: an empty timeline, the playhead back at the start. One step of undo.
@@ -1580,98 +1834,21 @@
     };
   }
 
-  // A segmented control for the easing into a key.
-  function easeSeg(d, k) {
-    const seg = document.createElement('div');
-    seg.className = 'seg ease'; seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Easing into this keyframe');
-    seg.style.gridTemplateColumns = 'repeat(4, 1fr)';
-    seg.innerHTML = EASE_NAMES.map(([v, t]) => `<button type="button" role="radio" data-v="${v}">${t}</button>`).join('');
-    const btns = () => Array.from(seg.querySelectorAll('button'));
-    const pill = Kit.pillTrack(seg, btns, (b) => b.dataset.v === k.ease);
-    const sync = (a) => { btns().forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === k.ease))); pill.place(a); };
-    btns().forEach((b) => b.addEventListener('click', () => { d.ease(k.id, b.dataset.v); sync(true); }));
-    requestAnimationFrame(() => sync(false));
-    return seg;
-  }
+  // A segmented control for the easing into a key (the older timeline sketches use it).
+  const easeSeg = (d, k) => UI.segmented({ label: 'Easing into this keyframe', options: EASE_NAMES, get: () => k.ease, onChange: (v) => d.ease(k.id, v), className: 'ease' });
 
-  // ---- the easing curve: a thumbnail for the keyframe strip, and an editor card -----------------
-  // Named easings draw as their real function; custom ones as the Bézier they are.
-  function curveD(e, X, Y, n) {
-    if (isCurve(e)) return `M${X(0)} ${Y(0)} C${X(e[0])} ${Y(e[1])} ${X(e[2])} ${Y(e[3])} ${X(1)} ${Y(1)}`;
-    const f = easeFn(e);
-    let s = '';
-    for (let i = 0; i <= n; i++) { const t = i / n; s += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f(t)).toFixed(1); }
-    return s;
-  }
-  const curveIcon = (e) => `<svg class="cv" viewBox="0 0 24 24" aria-hidden="true"><path d="${curveD(e, (v) => 4 + v * 16, (v) => 20 - v * 16, 16)}"/></svg>`;
-
-  // The editor: a graph of the move into this key (time across, progress up) with two
-  // handles to drag, presets, a preview of just this move, and Apply to all.
+  // The easing editor for one key: UI.curveEditor bound to that key, with Preview move
+  // (just this stretch) and Apply to all.
   function curveEditor(d, k, onChange) {
-    const card = document.createElement('div');
-    card.className = 'card dchrome'; card.id = 'dcurve';
-    // The plot fills the card's width and is a little shorter than wide, with a band above
-    // and below for overshoot; handles pulled further than that still draw, outside the box.
-    const SX = 300, SY = 210, P = 12, ROOM = 0.12;
-    const W = SX + 2 * P, H = SY * (1 + 2 * ROOM) + 2 * P;
-    const X = (v) => P + v * SX, Y = (v) => P + (ROOM + 1 - v) * SY;
-    const i = d.index(k.id);
-    card.innerHTML = `
-      <div class="ctl-title"><b>Into keyframe ${i + 1}</b><span data-r="name"></span></div>
-      <svg class="graph" viewBox="0 0 ${W} ${H}" aria-label="Easing curve: time across, progress up">
-        <rect class="box" x="${X(0)}" y="${Y(1)}" width="${SX}" height="${SY}" rx="8"/>
-        <path class="diag" d="M${X(0)} ${Y(0)}L${X(1)} ${Y(1)}"/>
-        <line class="arm" data-r="a0" x1="${X(0)}" y1="${Y(0)}"/><line class="arm" data-r="a1" x1="${X(1)}" y1="${Y(1)}"/>
-        <path class="curve" data-r="curve"/>
-        <circle class="end" cx="${X(0)}" cy="${Y(0)}" r="3.5"/><circle class="end" cx="${X(1)}" cy="${Y(1)}" r="3.5"/>
-        <circle class="h" data-h="0" r="8" tabindex="0" role="slider" aria-label="First handle"/>
-        <circle class="h" data-h="1" r="8" tabindex="0" role="slider" aria-label="Second handle"/>
-      </svg>
-      <div class="presets">${CURVE_PRESETS.map(([v, t], j) => `<button type="button" class="chip" data-p="${j}">${curveIcon(v)}<span>${t}</span></button>`).join('')}</div>
-      <div class="row">
-        <button type="button" class="chip" data-a="try"${i > 0 ? '' : ' disabled'}>${ICON.play}<span>Preview move</span></button>
-        <button type="button" class="chip" data-a="all">Apply to all</button>
-      </div>`;
-    const svg = card.querySelector('svg'), $ = (r) => card.querySelector(`[data-r="${r}"]`);
-    const hs = Array.from(card.querySelectorAll('.h'));
-    let cur = handlesOf(k.ease).slice();
-    function render() {
-      $('curve').setAttribute('d', curveD(k.ease, X, Y, 48));
-      $('a0').setAttribute('x2', X(cur[0])); $('a0').setAttribute('y2', Y(cur[1]));
-      $('a1').setAttribute('x2', X(cur[2])); $('a1').setAttribute('y2', Y(cur[3]));
-      hs.forEach((h, j) => { h.setAttribute('cx', X(cur[j * 2])); h.setAttribute('cy', Y(cur[j * 2 + 1])); h.setAttribute('aria-valuetext', `${cur[j * 2].toFixed(2)}, ${cur[j * 2 + 1].toFixed(2)}`); });
-      $('name').textContent = isCurve(k.ease) && easeName(k.ease) === 'Custom' ? k.ease.join(', ') : easeName(k.ease);
-      card.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', String(sameEase(CURVE_PRESETS[+b.dataset.p][0], k.ease))));
-      if (onChange) onChange(k.ease);
-    }
-    const set = (e) => { d.ease(k.id, e); cur = handlesOf(k.ease).slice(); render(); };
-    // Drag a handle: it becomes a custom curve.
-    const toVals = (ev) => {
-      const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
-      const q = pt.matrixTransform(svg.getScreenCTM().inverse());
-      return [(q.x - P) / SX, ROOM + 1 - (q.y - P) / SY];
-    };
-    hs.forEach((h, j) => {
-      h.addEventListener('pointerdown', (ev) => {
-        ev.preventDefault(); h.setPointerCapture(ev.pointerId); h.classList.add('drag');
-        const move = (e2) => { const [x, y] = toVals(e2); cur[j * 2] = x; cur[j * 2 + 1] = y; set(cur.slice()); };
-        const up = () => { h.classList.remove('drag'); h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); };
-        h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
-      });
-      // Arrow keys nudge the focused handle (Shift for bigger steps).
-      h.addEventListener('keydown', (ev) => {
-        const step = ev.shiftKey ? 0.1 : 0.02;
-        const dx = ev.key === 'ArrowRight' ? step : ev.key === 'ArrowLeft' ? -step : 0;
-        const dy = ev.key === 'ArrowUp' ? step : ev.key === 'ArrowDown' ? -step : 0;
-        if (!dx && !dy) return;
-        ev.preventDefault(); ev.stopPropagation();
-        cur[j * 2] += dx; cur[j * 2 + 1] += dy; set(cur.slice());
-      });
+    const card = UI.curveEditor({
+      title: `Into keyframe ${d.index(k.id) + 1}`,
+      get: () => k.ease,
+      set: (e) => { d.ease(k.id, e); if (onChange) onChange(k.ease); },
+      onPreview: d.index(k.id) > 0 ? () => { const a = d.keys[d.index(k.id) - 1]; if (a) d.playRange(a.t, k.t); } : 'disabled',
+      onApplyAll: (e) => { d.easeAll(e); toast(`${easeName(e)} on every keyframe`, 'tick'); },
+      className: 'dchrome',
     });
-    card.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => set(CURVE_PRESETS[+b.dataset.p][0])));
-    card.querySelector('[data-a=try]').addEventListener('click', () => { const a = d.keys[d.index(k.id) - 1]; if (a) d.playRange(a.t, k.t); });
-    card.querySelector('[data-a=all]').addEventListener('click', () => { d.easeAll(k.ease); toast(`${easeName(k.ease)} on every keyframe`, 'tick'); });
-    render();
+    card.id = 'dcurve';
     return card;
   }
 
@@ -1686,50 +1863,10 @@
     return d;
   }
 
-  const svg = (b) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${b}</svg>`;
-  const ICON = Object.assign({}, Kit.ICON, {
-    prev: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="2.6" height="14" rx="1"/><path d="M19 6.2v11.6a1 1 0 0 1-1.6.8l-8-5.8a1 1 0 0 1 0-1.6l8-5.8a1 1 0 0 1 1.6.8Z"/></svg>',
-    next: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="16.4" y="5" width="2.6" height="14" rx="1"/><path d="M5 6.2v11.6a1 1 0 0 0 1.6.8l8-5.8a1 1 0 0 0 0-1.6l-8-5.8A1 1 0 0 0 5 6.2Z"/></svg>',
-    key: svg('<path d="M12 4.5 19.5 12 12 19.5 4.5 12Z"/><path d="M12 9v6M9 12h6"/>'),
-    preview: svg('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M10 9.2v5.6a.6.6 0 0 0 .9.5l4.4-2.8a.6.6 0 0 0 0-1l-4.4-2.8a.6.6 0 0 0-.9.5Z" fill="currentColor" stroke="none"/>'),
-    export: svg('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>'),
-    shots: svg('<rect x="3.5" y="6" width="17" height="12" rx="2.5"/><path d="M3.5 10h17M8 6v4M13 6v4"/>'),
-    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>',
-    trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7"/>'),
-    refresh: svg('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4h-4"/>'),
-    restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/>'),
-    saved: svg('<path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z"/>'),
-    sliders: svg('<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
-    film: svg('<rect class="fill" x="3.5" y="5.5" width="17" height="13" rx="3" fill="currentColor" fill-opacity=".14" stroke="none"/><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M8 5.5v13M16 5.5v13M3.5 10h4.5M3.5 14h4.5M16 10h4.5M16 14h4.5"/>'),
-    pencil: svg('<path d="M14.5 5.5l4 4M4 20l1-5L15.5 4.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L9 19Z"/>'),
-  });
-  ICON.record = Kit.ICON.record; ICON.stop = Kit.ICON.stop;
+  const ICON = UI.ICON;
 
-  // A small menu above (or below) a button: items are [label, fn, hint] or a string heading or '-'.
-  let openMenu = null;
-  function menu(anchor, items, below) {
-    if (openMenu) { const was = openMenu.anchor; openMenu.close(); if (was === anchor) return; }
-    const m = document.createElement('div');
-    m.className = 'menu card dchrome';
-    items.forEach((it) => {
-      if (it === '-') { m.append(document.createElement('hr')); return; }
-      if (typeof it === 'string') { const l = document.createElement('div'); l.className = 'lab'; l.textContent = it; m.append(l); return; }
-      const b = document.createElement('button'); b.type = 'button';
-      b.innerHTML = '<span></span><kbd hidden></kbd>'; b.firstChild.textContent = it[0];
-      if (it[2]) { b.lastChild.hidden = false; b.lastChild.textContent = it[2]; }
-      b.addEventListener('click', () => { close(); it[1](); });
-      m.append(b);
-    });
-    document.body.append(m);
-    const r = anchor.getBoundingClientRect(), mr = m.getBoundingClientRect();
-    m.style.left = Math.max(12, Math.min(innerWidth - mr.width - 12, r.left + r.width / 2 - mr.width / 2)) + 'px';
-    m.style.top = (below ? r.bottom + 8 : r.top - mr.height - 8) + 'px';
-    if (!still()) m.animate([{ opacity: 0, transform: `translateY(${below ? -6 : 6}px) scale(0.96)`, filter: 'blur(4px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 260, easing: EASE.pop });
-    const away = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) close(); };
-    function close() { document.removeEventListener('pointerdown', away, true); m.remove(); openMenu = null; }
-    setTimeout(() => document.addEventListener('pointerdown', away, true));
-    openMenu = { anchor, close };
-  }
+  // A small menu above (or below) a button (UI.menu, in Direct's chrome).
+  const menu = (anchor, items, below) => UI.menu(anchor, items, below, 'dchrome');
   // The shared Shots and Length entries for a menu.
   const shotItems = (d) => ['Start from a shot'].concat(d.SHOTS.map(([v, t]) => [t, () => d.shot(v)]));
   const lengthItems = (d) => ['Length'].concat([6, 12, 20, 30].map((L) => [`${L} seconds${d.length === L ? '  ✓' : ''}`, () => d.setLength(L)]));
@@ -2038,15 +2175,14 @@
       opts.innerHTML = `${k.thumb ? `<img src="${k.thumb}" alt="">` : ''}<b>Keyframe ${i + 1}</b><span class="tc">${fmt(k.t)}</span>` +
         (ch.length ? `<span class="chg" title="${esc(ch.join(', '))}">${esc(ch.length > 2 ? ch.slice(0, 2).join(', ') + ' +' + (ch.length - 2) : ch.join(', '))}</span>` : '');
       if (i > 0) {
-        const cb = el('button', 'chip curve');
-        cb.type = 'button'; cb.setAttribute('data-tip', ''); cb.setAttribute('aria-label', 'Easing into this keyframe');
-        const label = (e) => { cb.innerHTML = curveIcon(e) + `<span>${easeName(e)}</span>`; };
-        label(k.ease);
-        cb.onclick = () => (curveCard ? closeCurve() : openCurve(k, cb, label));
+        const cb = UI.chip({ icon: curveIcon(k.ease), label: easeName(k.ease), className: 'curve', onClick: () => (curveCard ? closeCurve() : openCurve(k, cb, label)) });
+        cb.setAttribute('data-tip', ''); cb.setAttribute('aria-label', 'Easing into this keyframe');
+        const label = (e) => cb.setContent(curveIcon(e), easeName(e));
         opts.append(cb);
       }
-      const btn = (icon, label, fn) => { const b = el('button', 'ib sm', ICON[icon]); b.type = 'button'; b.setAttribute('data-tip', ''); b.setAttribute('aria-label', label); b.onclick = fn; return b; };
-      opts.append(btn('refresh', 'Update: this view and galaxy', () => d.update(k.id)), btn('trash', 'Delete (⌫)', () => d.remove(k.id)));
+      opts.append(
+        UI.iconButton({ icon: 'refresh', label: 'Update: this view and galaxy', size: 'sm', onClick: () => d.update(k.id) }),
+        UI.iconButton({ icon: 'trash', label: 'Delete (⌫)', size: 'sm', onClick: () => d.remove(k.id) }));
       Kit.tooltips(opts, 'top');
       opts.hidden = false;
       if (wasHidden && !still()) opts.animate([{ opacity: 0, transform: 'translateY(8px) scale(0.96)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 320, easing: EASE.pop });
@@ -2089,7 +2225,10 @@
     const box = document.createElement('div');
     box.className = 'modes';
     box.setAttribute('role', 'radiogroup'); box.setAttribute('aria-label', 'Mode');
-    box.innerHTML = `<button type="button" role="radio" data-m="create" data-tip aria-label="Create (Tab)">${ICON.sliders}</button><button type="button" role="radio" data-m="direct" data-tip aria-label="Direct (Tab)">${ICON.film}</button><i></i>`;
+    // Fly only where the page offers it (the app, not the timeline sketches).
+    const withFly = initial === 'create' && window.galaxy && window.galaxy.fly;
+    box.innerHTML = `<button type="button" role="radio" data-m="create" data-tip aria-label="Create (Tab)">${ICON.sliders}</button><button type="button" role="radio" data-m="direct" data-tip aria-label="Direct (Tab)">${ICON.film}</button>` +
+      (withFly ? `<button type="button" role="radio" data-m="fly" data-tip aria-label="Fly (F)">${ICON.fly}</button>` : '') + '<i></i>';
     document.body.append(box);
     Kit.tooltips(box, 'bottom');
     const dot = box.querySelector('i');
@@ -2158,6 +2297,7 @@
     nebula: 0.8,
     dust: 0.7,
     halo: 0.5,             // the smooth glow around the bulge
+    hole: 0.5,             // the black hole at the centre: its size (0 hides it)
     clump: 0.55,           // how much young stars gather into clusters
     form: 0.7,             // star formation: the pink HII knots
     sky: 1.0,              // the background stars and far galaxies
@@ -2186,6 +2326,7 @@
   // this browser saved, and only becomes this visitor's own once they change it.
   const LINK_KEYS = ['arms', 'twist', 'core', 'spread', 'stars', 'size', 'nebula', 'dust', 'spin', 'orbit', 'zoom', 'bright', 'bloom', 'sat'];
   const LINK_KEYS_2 = ['halo', 'clump', 'form', 'sky'];   // version 2 adds these after the camera
+  const LINK_KEYS_3 = ['hole'];                            // version 3, the black hole
   const LINK_TYPES = ['Spiral', 'Barred', 'Elliptical', 'Ring', 'Irregular', 'Cycle'];
   const linkScale = (k) => (k === 'zoom' ? 1000 : 100);
   let shared = null;
@@ -2193,7 +2334,7 @@
     const m = /(?:^#|&)g=([^&]+)/.exec(location.hash);
     if (!m) return;
     const f = decodeURIComponent(m[1]).split('.');
-    if (!((f[0] === '1' && f.length === 26) || (f[0] === '2' && f.length === 30))) return;
+    if (!((f[0] === '1' && f.length === 26) || (f[0] === '2' && f.length === 30) || (f[0] === '3' && f.length === 31))) return;
     const n = (i) => { const v = parseFloat(f[i]); return isFinite(v) ? v : null; };
     const t = LINK_TYPES[n(1)];
     if (t) S.type = t;
@@ -2209,7 +2350,10 @@
     }
     if (n(18) > 0) S.seed = Math.round(n(18));
     const v = [19, 20, 21, 22, 23, 24, 25].map((i) => n(i) === null ? 0 : n(i));
-    if (f[0] === '2') LINK_KEYS_2.forEach((k, i) => { const x = n(26 + i); if (x !== null) S[k] = x / 100; });
+    if (f[0] !== '1') LINK_KEYS_2.forEach((k, i) => { const x = n(26 + i); if (x !== null) S[k] = x / 100; });
+    // Links from before the black hole show none, as they did when shared.
+    S.hole = 0;
+    if (f[0] === '3') LINK_KEYS_3.forEach((k, i) => { const x = n(30 + i); if (x !== null) S[k] = x / 100; });
     shared = { yaw: v[0] / 1000, pitch: v[1] / 1000, roll: v[2] / 1000, focus: [v[3] / 1000, v[4] / 1000, v[5] / 1000], gt: v[6] / 100 };
   })();
   if (!hadSaved && reduceMotion()) { S.spin = 0; S.orbit = 0; }
@@ -2894,15 +3038,105 @@
     void main() { vUv = pos[gl_VertexID] * 0.5 + 0.5; gl_Position = vec4(pos[gl_VertexID], 0., 1.); }
   `;
   // Stars, glow and the dust's transmittance, put together.
+  // Stars, glow and the dust's transmittance, put together; and near the centre, the black
+  // hole. Pixels around it trace their ray back through curved space (the Schwarzschild
+  // photon orbit, x'' = -3/2 h^2 x / r^5, in units of the horizon radius): rays that fall
+  // in leave the shadow, rays that skim past land elsewhere on the image (the lensing), and
+  // every crossing of the galaxy's plane between 3 and 14 radii picks up the accretion disk,
+  // hot and white inside, the palette's warm light outside, brighter on the side coming
+  // toward us. Only pixels inside the hole's reach do any of this.
   const COMP_FRAG = `#version 300 es
     precision highp float;
     uniform sampler2D uStars, uGlow, uDust;
+    uniform mat4 uView, uProj;
+    uniform vec3 uEye;            // the camera, in the world
+    uniform float uRs;            // horizon radius in world units; 0: no hole
+    uniform vec4 uReach;          // the hole's reach on screen: centre (uv) and radius (uv, x and y)
+    uniform float uTime, uDiskK, uFade;   // uFade: 0 while the hole is a speck on screen, 1 up close
+    uniform vec3 uDiskCol;
     in vec2 vUv;
     out vec4 fragColor;
+    const float REACH = 26.0, DIN = 3.0, DOUT = 14.0;
+    vec3 scene(vec2 uv) {
+      vec3 T = texture(uDust, uv).rgb;
+      return texture(uStars, uv).rgb * mix(vec3(1.0), pow(T, vec3(1.5)), 0.97) + texture(uGlow, uv).rgb * T;
+    }
+    vec4 disk(vec3 q, vec3 dir) {
+      float r = length(q.xz), x = (r - DIN) / (DOUT - DIN);
+      float a = atan(q.z, q.x);
+      // Inner gas laps the outer (Keplerian), which winds any pattern into ever tighter rings.
+      // So, as with a flow map, two copies each restart every P seconds from a fresh angle and
+      // cross-fade, and the winding never builds past a turn.
+      const float P = 1.6;
+      float ph = uTime / P, w1 = 1.0 - abs(2.0 * fract(ph) - 1.0);
+      float streak = 0.0;
+      for (int l = 0; l < 2; l++) {
+        float pl = ph + 0.5 * float(l), t = fract(pl) * P, cyc = floor(pl);
+        float am = a - t * 2.2 * pow(DIN / r, 1.5) + cyc * 2.39996 + float(l) * 1.3;
+        float st = 0.68 + 0.32 * sin(3.0 * am + 9.0 * log(r)) * (0.75 + 0.25 * sin(15.0 * log(r) - am));
+        streak += st * (l == 0 ? w1 : 1.0 - w1);
+      }
+      float rings = 0.88 + 0.12 * sin(r * 2.6);
+      float I = pow(DIN / r, 2.1) * smoothstep(0.0, 0.06, x) * (1.0 - smoothstep(0.62, 1.0, x));
+      // Doppler: the side orbiting toward the camera brightens and whitens.
+      vec3 orbit = normalize(vec3(-q.z, 0.0, q.x));
+      float beta = min(0.55, sqrt(0.5 / max(r - 1.0, 0.5)));
+      float D = 1.0 / (inversesqrt(1.0 - beta * beta) * (1.0 - beta * dot(orbit, -dir)));
+      D = clamp(D * D * D, 0.15, 6.0);
+      vec3 col = mix(vec3(1.0, 0.9, 0.75), uDiskCol, smoothstep(0.0, 0.45, x));
+      col = mix(col, vec3(0.95, 0.97, 1.0), clamp((D - 1.0) * 0.18, 0.0, 0.5));
+      float k = I * streak * rings;
+      return vec4(col * k * D * uDiskK, clamp(k * 3.2, 0.0, 0.97));
+    }
     void main() {
-      vec3 T = texture(uDust, vUv).rgb;
-      vec3 c = texture(uStars, vUv).rgb * mix(vec3(1.0), pow(T, vec3(1.5)), 0.97) + texture(uGlow, vUv).rgb * T;
-      fragColor = vec4(c, 1.0);
+      vec2 uv = vUv;
+      vec3 add = vec3(0.0);
+      float keep = 1.0;
+      vec2 off = (vUv - uReach.xy) / max(uReach.zw, vec2(1e-5));
+      if (uRs > 0.0 && dot(off, off) < 1.0) {
+        vec2 ndc = vUv * 2.0 - 1.0;
+        vec3 dv = normalize(vec3((ndc.x + uProj[2][0]) / uProj[0][0], (ndc.y + uProj[2][1]) / uProj[1][1], -1.0));
+        vec3 dir = normalize(transpose(mat3(uView)) * dv);
+        vec3 p = uEye / uRs;                                   // the hole sits at the galaxy's centre
+        float b = dot(p, dir), c = dot(p, p) - REACH * REACH, disc = b * b - c;
+        // Bending only fades as 1/distance, so where the tracing stops it is still a few
+        // degrees; ease it to nothing over the outer half of the reach so no seam shows.
+        float lensW = 1.0 - smoothstep(0.45 * REACH, 0.95 * REACH, length(cross(p, dir)));
+        if (disc > 0.0 && -b + sqrt(disc) > 0.0) {
+          // A per-pixel jitter along the ray turns step banding into fine grain.
+          float jit = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+          vec3 pos = p + dir * (max(0.0, -b - sqrt(disc)) + jit * 0.08), vel = dir;
+          float h2 = dot(cross(pos, vel), cross(pos, vel));
+          vec4 acc = vec4(0.0);
+          bool fell = true;
+          for (int i = 0; i < 320; i++) {
+            float r = length(pos);
+            // Short steps near the horizon and near the disk's plane, long ones elsewhere.
+            float dt = clamp(min(0.07 * r, max(0.03, 0.35 * abs(pos.y))), 0.015, 1.5);
+            vec3 prev = pos;
+            vel += -1.5 * h2 * pos / pow(r, 5.0) * dt;
+            pos += vel * dt;
+            if (prev.y * pos.y <= 0.0 && prev.y != pos.y) {                          // through the plane: the disk, if it is there
+              vec3 q = mix(prev, pos, prev.y / (prev.y - pos.y));
+              float rq = length(q.xz);
+              if (rq > DIN && rq < DOUT) { vec4 d = disk(q, normalize(vel)); acc.rgb += (1.0 - acc.a) * d.rgb; acc.a += (1.0 - acc.a) * d.a; }
+            }
+            if (length(pos) < 1.0) break;
+            if (length(pos) > REACH && dot(pos, vel) > 0.0) { fell = false; break; }
+            if (acc.a > 0.985) { fell = false; break; }
+          }
+          lensW *= uFade;
+          add = acc.rgb * uFade;
+          keep = mix(1.0, fell ? 0.0 : 1.0 - acc.a, uFade);
+          if (!fell) {
+            // Where the bent ray would have met the image: carry on past the hole, project back.
+            vec3 w = pos * uRs + normalize(vel) * length(uEye);
+            vec4 cl = uProj * uView * vec4(w, 1.0);
+            if (cl.w > 0.0) uv = mix(vUv, clamp(cl.xy / cl.w * 0.5 + 0.5, vec2(0.0), vec2(1.0)), lensW);
+          }
+        }
+      }
+      fragColor = vec4(scene(uv) * keep + add, 1.0);
     }
   `;
   // Bloom: a 13-tap downsample chain and a tent-filtered upsample back up it.
@@ -2943,7 +3177,7 @@
   const FINAL_FRAG = `#version 300 es
     precision highp float;
     uniform sampler2D uScene, uBloom;
-    uniform float uExposure, uBloomStr, uSat, uTime, uGrain;
+    uniform float uExposure, uBloomStr, uSat, uTime, uGrain, uStreak;
     uniform vec2 uRes;
     in vec2 vUv;
     out vec4 fragColor;
@@ -2953,6 +3187,16 @@
       vec2 cc = vUv - 0.5;
       vec2 ca = cc * 0.006 * length(cc);                          // a whisper of lens fringing
       vec3 hdr = vec3(texture(uScene, vUv - ca).r, texture(uScene, vUv).g, texture(uScene, vUv + ca).b);
+      if (uStreak > 0.002) {
+        // Flying fast: stars stream out from the centre, each trailing back toward it.
+        vec3 acc = hdr; float wsum = 1.0;
+        for (int i = 1; i < 12; i++) {
+          float f = float(i) / 12.0, w = 1.0 - f;
+          acc += texture(uScene, 0.5 + cc * (1.0 - uStreak * 0.16 * f * min(1.0, length(cc) * 2.4))).rgb * w;
+          wsum += w;
+        }
+        hdr = mix(hdr, acc / wsum * 1.25, min(1.0, uStreak * 1.4));
+      }
       vec3 bl = texture(uBloom, vUv).rgb;
       hdr += bl * uBloomStr;
       hdr *= uExposure;
@@ -2997,13 +3241,13 @@
   const NU = uni(bandProg, ['uView', 'uProj', 'uBand', 'uGain']);
   const bakeProg = link(QUAD_VERT, BAND_BAKE_FRAG);
   const compProg = link(QUAD_VERT, COMP_FRAG);
-  const MU = uni(compProg, ['uStars', 'uGlow', 'uDust']);
+  const MU = uni(compProg, ['uStars', 'uGlow', 'uDust', 'uView', 'uProj', 'uEye', 'uRs', 'uReach', 'uTime', 'uDiskK', 'uDiskCol', 'uFade']);
   const downProg = link(QUAD_VERT, DOWN_FRAG);
   const DU = uni(downProg, ['uSrc', 'uTexel', 'uFirst']);
   const upProg = link(QUAD_VERT, UP_FRAG);
   const UU = uni(upProg, ['uSrc', 'uTexel', 'uRadius']);
   const finalProg = link(QUAD_VERT, FINAL_FRAG);
-  const FU = uni(finalProg, ['uScene', 'uBloom', 'uExposure', 'uBloomStr', 'uSat', 'uTime', 'uGrain', 'uRes']);
+  const FU = uni(finalProg, ['uScene', 'uBloom', 'uExposure', 'uBloomStr', 'uSat', 'uTime', 'uGrain', 'uRes', 'uStreak']);
   const quadVao = gl.createVertexArray();
 
   // ---- geometry: fixed randoms, regrown only when the seed changes ----------
@@ -3188,6 +3432,11 @@
   let goal = null;                   // a view the camera is gliding to: {yaw, pitch, roll, target}
   let held = false;                  // a director holds the camera still between its own moves
   let lastView = null;
+  // Fly mode: the camera orbits a point just ahead of it (FLY_D), so dragging turns it in place,
+  // and flying carries that point forward. throttle is what the pilot asks for (0 to 1, a
+  // little reverse below 0); speed eases toward it. Units: 1 = 50,000 light-years.
+  const FLY_D = 0.03;
+  const fly = { on: false, throttle: 0, boost: false, turn: 0, climb: 0, speed: 0, streak: 0 };
   let dist = DIST_FAR * 1.6;                                   // the opening shot swoops in from far out
   if (shared) {                                                // a shared view settles in, no long swoop
     yaw = shared.yaw; pitch = clamp(shared.pitch, -PITCH_MAX, PITCH_MAX); roll = shared.roll;
@@ -3268,7 +3517,7 @@
     if (pointers.size >= 2) {
       drag = null;
       canvas.classList.remove('dragging');
-      pinch = { dist: spread(), zoom: S.zoom };
+      pinch = { dist: spread(), zoom: S.zoom, throttle: fly.throttle };
     } else {
       turnFrom({ x: e.clientX, y: e.clientY }, dragMode(e));
       canvas.classList.add('dragging');
@@ -3279,7 +3528,7 @@
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pinch) {
       const d = spread();
-      if (pinch.dist > 8 && d > 0) setZoom(pinch.zoom + Math.log(d / pinch.dist) / 4);
+      if (pinch.dist > 8 && d > 0) { if (fly.on) fly.throttle = clamp(pinch.throttle + Math.log(d / pinch.dist) / 2, -0.3, 1); else setZoom(pinch.zoom + Math.log(d / pinch.dist) / 4); }
       return;
     }
     if (!drag) return;
@@ -3318,6 +3567,7 @@
       panBy(0, -v * 0.5);
       return;
     }
+    if (fly.on) { fly.throttle = clamp(fly.throttle - e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0012), -0.3, 1); return; }   // flying: the wheel is the throttle
     setZoom(S.zoom - e.deltaY * unit * (e.ctrlKey ? 0.006 : 0.0007));
   }, { passive: false });
 
@@ -3399,6 +3649,33 @@
   const HAZE_BY_TYPE = [1, 1, 1, 0.35, 0.8];
   const DUST_BY_TYPE = [1, 1, 0.35, 0.6, 0.3];
   const starCount = () => Math.max(1000, Math.round(MAX_STARS * S.stars * S.stars));
+
+  // The black hole's uniforms: its size, and where its reach falls on screen, so the
+  // composite only traces rays there. Inside the reach (or behind the camera) every pixel traces.
+  const holeRs = () => (S.hole > 0.005 ? 0.0012 + 0.0075 * S.hole : 0);
+  function holeUniforms(view, proj, eye) {
+    const rs = holeRs();
+    gl.uniform1f(MU.uRs, rs);
+    if (!rs) return;
+    gl.uniformMatrix4fv(MU.uView, false, view);
+    gl.uniformMatrix4fv(MU.uProj, false, proj);
+    gl.uniform3fv(MU.uEye, eye);
+    gl.uniform1f(MU.uTime, gt);
+    gl.uniform1f(MU.uDiskK, 7.0);
+    gl.uniform3fv(MU.uDiskCol, col.old.map((c, i) => c * [1.0, 0.62, 0.36][i] + [0.0, 0.0, 0.0][i]));
+    // The centre, through view then projection (column-major), and the reach's size there.
+    const v = [view[12], view[13], view[14]];
+    const cx = proj[0] * v[0] + proj[8] * v[2], cy = proj[5] * v[1] + proj[9] * v[2], w = -v[2];
+    const d = Math.hypot(eye[0], eye[1], eye[2]), reach = 26 * rs;
+    if (w <= 0 || d < reach * 1.2) { gl.uniform4f(MU.uReach, 0.5, 0.5, 9, 9); gl.uniform1f(MU.uFade, 1); return; }
+    const k = reach / Math.sqrt(Math.max(d * d - reach * reach, 1e-9)) * 1.35;
+    gl.uniform4f(MU.uReach, cx / w * 0.5 + 0.5, cy / w * 0.5 + 0.5, k * proj[0] * 0.5, k * proj[5] * 0.5);
+    // A real black hole is a speck at galaxy scale; ours appears as you close in, its reach
+    // growing from a tenth to a third of the screen's height.
+    const u = Math.min(1, Math.max(0, (k * proj[5] * 0.5 - 0.1) / 0.22)), fade = u * u * (3 - 2 * u);
+    gl.uniform1f(MU.uFade, fade);
+    if (fade < 0.002) gl.uniform1f(MU.uRs, 0);                   // invisible from here: trace nothing
+  }
 
   // o, when given, renders off screen: { rt, fbo, w, h, dpr, mip } (see exportImage).
   function render(now, o) {
@@ -3523,6 +3800,7 @@
     bindTex(0, R.stars.tex, MU.uStars);
     bindTex(1, R.glow.tex, MU.uGlow);
     bindTex(2, R.dust.tex, MU.uDust);
+    holeUniforms(view, proj, eye);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     gl.useProgram(downProg);
@@ -3559,12 +3837,14 @@
     bindTex(0, R.comp.tex, FU.uScene);
     bindTex(1, R.mips[m0].tex, FU.uBloom);
     // The eye adapts: deep inside, where everything is bright, stop down.
-    const adapt = dist < 3.4 ? Math.pow(dist / 3.4, 0.55) : 1;
+    const seen = fly.on ? Math.hypot(eye[0], eye[1], eye[2]) : dist;   // flying, light adapts to where you are, not the tiny orbit
+    const adapt = seen < 3.4 ? Math.pow(seen / 3.4, 0.55) : 1;
     gl.uniform1f(FU.uExposure, 0.7 * S.bright * S.bright * Math.max(adapt, 0.12));
     gl.uniform1f(FU.uBloomStr, S.bloom * 0.16);
     gl.uniform1f(FU.uSat, S.sat);
     gl.uniform1f(FU.uTime, now);
     gl.uniform1f(FU.uGrain, 0.018);
+    gl.uniform1f(FU.uStreak, o ? 0 : fly.streak);
     gl.uniform2f(FU.uRes, cw, ch);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
@@ -3593,6 +3873,38 @@
     } else return;
     perf.slow = perf.fast = 0; perf.ema = 1 / 60;
     resize();
+  }
+
+  // One step of flight: turn, ease the speed toward the throttle, move forward, bank into turns.
+  const lookDir = () => [Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)];   // eye = focus + d·this
+  const flyScale = () => { const u = lookDir(); return Math.min(8, Math.max(0.12, 0.12 + 0.55 * Math.hypot(focus[0] + FLY_D * u[0], focus[1] + FLY_D * u[1], focus[2] + FLY_D * u[2]))); };
+  function flyStep(dt) {
+    const want = fly.throttle * (fly.boost ? 3 : 1);
+    fly.speed += (want - fly.speed) * (1 - Math.exp(-dt * (want > fly.speed ? 1.6 : 3)));
+    yaw += fly.turn * 1.2 * dt;
+    pitch = clamp(pitch - fly.climb * 0.9 * dt, -PITCH_MAX, PITCH_MAX);
+    roll += (fly.turn * -0.22 - roll) * (1 - Math.exp(-dt * 3));
+    const u = lookDir(), v = fly.speed * 0.4 * flyScale() * dt;
+    for (let i = 0; i < 3; i++) focus[i] = clamp(focus[i] - u[i] * v, -20, 20);
+    fly.streak += (Math.min(1, Math.max(0, (Math.abs(fly.speed) - 0.45) / 1.6)) - fly.streak) * (1 - Math.exp(-dt * 4));
+    S.zoom = clamp((Math.log(FLY_D) - Math.log(DIST_FAR)) / (Math.log(DIST_NEAR) - Math.log(DIST_FAR)), 0, 1);
+  }
+  function flyStart() {
+    if (fly.on) return;
+    const u = lookDir(), eye = focus.map((f, i) => f + dist * u[i]);
+    for (let i = 0; i < 3; i++) focus[i] = eye[i] - FLY_D * u[i];
+    dist = FLY_D; goal = null; yawVel = 0; pitchVel = 0;
+    Object.assign(fly, { on: true, throttle: 0, speed: 0, turn: 0, climb: 0, boost: false, streak: 0 });
+  }
+  // Back to orbiting: around a point ahead, so the view stays exactly where it is.
+  function flyStop() {
+    if (!fly.on) return;
+    const u = lookDir(), eye = focus.map((f, i) => f + FLY_D * u[i]);
+    const d = clamp(Math.hypot(eye[0], eye[1], eye[2]) * 0.5, 0.15, 6);
+    for (let i = 0; i < 3; i++) focus[i] = eye[i] - d * u[i];
+    dist = d; fly.on = false; fly.speed = 0; fly.streak = 0; fly.throttle = 0;
+    S.zoom = clamp((Math.log(d) - Math.log(DIST_FAR)) / (Math.log(DIST_NEAR) - Math.log(DIST_FAR)), 0, 1);
+    roll = 0;
   }
 
   function frame(ts) {
@@ -3629,9 +3941,10 @@
       for (let i = 0; i < 3; i++) focus[i] += (goal.target[i] - focus[i]) * k;
       if (Math.abs(dYaw) + Math.abs(goal.pitch - pitch) + Math.abs(goal.roll - roll) < 1e-3) goal = null;
     }
+    if (fly.on) flyStep(dt);
     // Zoom glides in log space, so the long trip in from the edge feels even.
-    const want = zoomToDist(S.zoom);
-    dist = Math.exp(Math.log(dist) + (Math.log(want) - Math.log(dist)) * (1 - Math.exp(-dt * (reduceMotion() ? 30 : 3.2))));
+    const want = fly.on ? FLY_D : zoomToDist(S.zoom);
+    dist = fly.on ? FLY_D : Math.exp(Math.log(dist) + (Math.log(want) - Math.log(dist)) * (1 - Math.exp(-dt * (reduceMotion() ? 30 : 3.2))));
     render(now);
     requestAnimationFrame(frame);
   }
@@ -3735,7 +4048,10 @@
   // not, so the last stretch cross-fades into the first and the turn plays forever.
   let rec = null;
   const LOOP_TYPES = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
-  const loopType = () => (window.MediaRecorder && HTMLCanvasElement.prototype.captureStream ? LOOP_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) || '' : '');
+  // With sound: the same containers with AAC (MP4) or Opus (WebM) alongside.
+  const LOOP_TYPES_AV = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus'];
+  const canRecord = () => !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+  const loopType = (audio) => (canRecord() ? (audio && LOOP_TYPES_AV.find((t) => MediaRecorder.isTypeSupported(t))) || LOOP_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) || '' : '');
   function recordLoop(seconds, onProgress) {
     const c = { yaw, pitch, roll, focus: focus.slice(), dist: zoomToDist(S.zoom) };
     return record(seconds, onProgress, (t, T) => Object.assign({}, c, { yaw: c.yaw + TAU * t / T }), true);
@@ -3743,9 +4059,12 @@
   // A director's shot: the camera follows camAt(t) from start to end, once, no fade.
   function recordPath(seconds, camAt, onProgress) { return record(seconds, onProgress, camAt, false); }
   function record(seconds, onProgress, camAt, loops) {
-    const type = loopType();
-    if (!type) return Promise.reject(Object.assign(new Error('unsupported'), { code: 'unsupported' }));
+    if (!loopType(false)) return Promise.reject(Object.assign(new Error('unsupported'), { code: 'unsupported' }));
     if (rec) rec.cancel();
+    // The music, if wanted: tapped now, inside the click that started the recording.
+    let sound = loopType(true) && LOOP_TYPES_AV.includes(loopType(true)) ? music.tap() : null;
+    const type = loopType(!!sound);
+    if (sound && !LOOP_TYPES_AV.includes(type)) { sound.release(); sound = null; }
     // At most 1920 on the long edge, and even sizes, which video encoders insist on.
     const k = Math.min(1, 1920 / Math.max(canvas.width, canvas.height));
     const even = (v) => Math.max(2, Math.round(v * k / 2) * 2);
@@ -3753,7 +4072,8 @@
     rc.width = even(canvas.width); rc.height = even(canvas.height);
     const ctx = rc.getContext('2d');
     const stream = rc.captureStream(60);
-    const mr = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: Math.round(rc.width * rc.height * 60 * 0.14) });
+    if (sound) sound.stream.getAudioTracks().forEach((tr) => stream.addTrack(tr));
+    const mr = new MediaRecorder(stream, Object.assign({ mimeType: type, videoBitsPerSecond: Math.round(rc.width * rc.height * 60 * 0.14) }, sound ? { audioBitsPerSecond: 192000 } : {}));
     const chunks = [];
     mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     return new Promise((resolve, reject) => {
@@ -3763,6 +4083,7 @@
         document.removeEventListener('visibilitychange', onHide);
         mr.onstop = () => {
           stream.getTracks().forEach((t) => t.stop());
+          if (sound) sound.release();
           const blob = new Blob(chunks, { type: type.split(';')[0] });
           if (err) reject(err);
           else if (!blob.size) reject(Object.assign(new Error('empty'), { code: 'empty' }));
@@ -3774,7 +4095,7 @@
       const onHide = () => { if (document.hidden) stop(Object.assign(new Error('hidden'), { code: 'hidden' })); };
       document.addEventListener('visibilitychange', onHide);
       rec = {
-        mr, ctx, rc, T: seconds, F: loops ? Math.min(1.5, seconds * 0.15) : 0, t0: 0, onProgress, camAt,
+        mr, ctx, rc, T: seconds, F: loops ? Math.min(1.5, seconds * 0.15) : 0, t0: 0, onProgress, camAt, sound,
         gt, rate: S.spin * 0.16,
         stop, cancel: () => stop(Object.assign(new Error('cancelled'), { code: 'cancelled' })),
       };
@@ -3786,6 +4107,7 @@
     if (!r.t0) { r.t0 = now; r.mr.start(1000); }
     const t = now - r.t0;
     if (t >= r.T) { r.stop(); return false; }
+    if (r.sound && t > r.T - 1.6) r.sound.end(r.T - t);           // the music fades out with the shot
     const c = r.camAt(t, r.T);
     if (c.set) setLive(c.set, true);
     yaw = c.yaw; pitch = clamp(c.pitch, -PITCH_MAX, PITCH_MAX); roll = c.roll; dist = c.dist;
@@ -3831,7 +4153,7 @@
 
   // ---- share links -------------------------------------------------------------------------
   function shareLink() {
-    const f = ['2', LINK_TYPES.indexOf(S.type)];
+    const f = ['3', LINK_TYPES.indexOf(S.type)];
     LINK_KEYS.forEach((k) => f.push(Math.round(S[k] * linkScale(k))));
     f.push((S.spikes ? 1 : 0) | (S.companions ? 2 : 0));
     const p = matchPreset();
@@ -3841,6 +4163,7 @@
     [wrap, pitch, roll, focus[0], focus[1], focus[2]].forEach((v) => f.push(Math.round(v * 1000)));
     f.push(Math.round(gt * 100));
     LINK_KEYS_2.forEach((k) => f.push(Math.round(S[k] * 100)));
+    LINK_KEYS_3.forEach((k) => f.push(Math.round(S[k] * 100)));
     return location.origin + location.pathname + '#g=' + f.join('.');
   }
 
@@ -3854,6 +4177,7 @@
     ['galaxy', 'core', 'Core', 0, 1, 0.01, pct],
     ['galaxy', 'spread', 'Spread', 0, 1, 0.01, pct],
     ['galaxy', 'halo', 'Halo', 0, 1.5, 0.01, pct],
+    ['galaxy', 'hole', 'Black hole', 0, 1, 0.01, pct],
     ['matter', 'stars', 'Stars', 0.1, 1, 0.01, pct],
     ['matter', 'size', 'Star size', 0.3, 3, 0.05, fix2],
     ['matter', 'nebula', 'Nebula', 0, 1.5, 0.01, pct],
@@ -3899,6 +4223,7 @@
       nebula: 0.4 + r() * 1.0,
       dust: 0.3 + r() * 0.9,
       spin: 0.3 + r() * 0.9,
+      hole: 0.2 + r() * 0.75,
     }, PRESETS[p], { preset: p });
     applyColour();
     S.seed = 1 + Math.floor(Math.random() * 99999);
@@ -3921,7 +4246,10 @@
     const AC = window.AudioContext || window.webkitAudioContext;
     let on = true;
     try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) { /* private mode: default on */ }
-    let ctx = null, master = null, pads = null, bells = null, timer = 0, nextChord = 0, nextBell = 0, ci = 0;
+    let ctx = null, master = null, out = null, speaker = null, pads = null, bells = null, timer = 0, nextChord = 0, nextBell = 0, ci = 0;
+    let taps = 0;                                     // videos being recorded with the music in them
+    let inVideo = true;
+    try { inVideo = localStorage.getItem(KEY + '-video') !== 'off'; } catch (e) { /* default on */ }
     const hz = (n) => 440 * Math.pow(2, (n - 69) / 12);
     const CHORDS = [[38, 53, 57, 60, 64], [34, 50, 53, 57, 60], [41, 52, 57, 60, 64], [36, 55, 62, 64, 67]];
     const BELLS = [74, 77, 79, 81, 84, 86, 89];
@@ -3937,7 +4265,11 @@
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -18; comp.ratio.value = 3;
       master = ctx.createGain(); master.gain.value = 0;
-      master.connect(comp); comp.connect(ctx.destination);
+      // The mix goes to the speakers through its own gain, so a video can record the music
+      // while the speakers stay silent (music off, but wanted in the export).
+      speaker = ctx.createGain(); speaker.gain.value = on ? 1 : 0;
+      master.connect(comp); comp.connect(speaker); speaker.connect(ctx.destination);
+      out = comp;
       // Reverb: seven seconds of decaying noise, a large dark hall.
       const verb = ctx.createConvolver();
       const ir = noise(7);
@@ -4042,9 +4374,41 @@
     }
     function stop() {
       if (!ctx) return;
+      if (taps) { speaker.gain.setTargetAtTime(0, ctx.currentTime, 0.3); return; }   // a video is still recording it
       fade(0, 1.2);
       playbackSession(false);
-      setTimeout(() => { if (!on && ctx.state === 'running') ctx.suspend(); }, 1400);
+      setTimeout(() => { if (!on && !taps && ctx.state === 'running') ctx.suspend(); }, 1400);
+    }
+    // For a video: the score from a fresh chord, faded in, as a stream to record. Call it from
+    // the click that starts the recording. end(fadeSeconds) fades it out; release() lets go.
+    function tap() {
+      if (!AC || embedded || !inVideo) return null;
+      if (!ctx) build();
+      if (ctx.state !== 'running') ctx.resume().then(schedule, () => {});
+      taps++;
+      speaker.gain.cancelScheduledValues(ctx.currentTime);
+      speaker.gain.setValueAtTime(on ? 1 : 0, ctx.currentTime);
+      const dest = ctx.createMediaStreamDestination();
+      out.connect(dest);
+      nextChord = ctx.currentTime + 0.05; ci = 0; nextBell = ctx.currentTime + 4;
+      schedule();
+      const t = ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(0, t);
+      master.gain.linearRampToValueAtTime(LEVEL, t + 0.9);
+      let ended = false;
+      return {
+        stream: dest.stream,
+        end(secs) { if (ended) return; ended = true; fade(0, Math.max(0.2, secs)); },
+        release() {
+          try { out.disconnect(dest); } catch (e) { /* already gone */ }
+          dest.stream.getTracks().forEach((tr) => tr.stop());
+          taps = Math.max(0, taps - 1);
+          if (taps) return;
+          if (on && !document.hidden) fade(LEVEL, 2.5);
+          else { fade(0, 0.3); setTimeout(() => { if (!on && !taps && ctx.state === 'running') ctx.suspend(); }, 500); }
+        },
+      };
     }
     // Sound unlocks on a gesture. iOS counts the end of a tap, not its start, so listen to
     // the release and to clicks as well, and keep listening: whenever the audio is not
@@ -4062,9 +4426,12 @@
       set(v) {
         on = !!v;
         try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) { /* not remembered */ }
-        if (on) start(); else stop();
+        if (on) { start(); if (speaker) speaker.gain.setTargetAtTime(1, ctx.currentTime, 0.2); } else stop();
         return on;
       },
+      get inVideo() { return inVideo && !!AC && !embedded; },
+      setInVideo(v) { inVideo = !!v; try { localStorage.setItem(KEY + '-video', inVideo ? 'on' : 'off'); } catch (e) { /* not remembered */ } return inVideo; },
+      tap,
     };
   })();
   let capTimer = 0;
@@ -4117,6 +4484,20 @@
       goal = null; yawVel = 0; pitchVel = 0;
     },
     hold(v) { held = v === undefined ? !held : !!v; return held; },
+    // Fly mode, for the toolbar: start and stop (the camera stays where it is), and the
+    // pilot's controls: throttle (-0.3 to 1), boost, turn and climb (-1 to 1).
+    fly: {
+      start: flyStart,
+      stop: flyStop,
+      get on() { return fly.on; },
+      set(o) { for (const k of ['throttle', 'boost', 'turn', 'climb']) if (k in o) fly[k] = k === 'boost' ? !!o[k] : clamp(+o[k] || 0, k === 'throttle' ? -0.3 : -1, 1); },
+      get throttle() { return fly.throttle; },
+      // Where the pilot is, for the readout: speed and distance from the core, in light-years.
+      status() {
+        const u = lookDir(), e = focus.map((f, i) => f + FLY_D * u[i]);
+        return { speedLy: Math.abs(fly.speed) * 0.4 * flyScale() * 50000, coreLy: Math.hypot(e[0], e[1], e[2]) * 50000, speed: fly.speed };
+      },
+    },
     // A whole galaxy as plain data, and back: for saved shots, which reopen with the
     // galaxy they were made with. Applying switches type at once, with no morph.
     getState() { const o = Object.assign({}, S); delete o.captions; return o; },
@@ -4298,9 +4679,114 @@
   track.bar.hidden = true;
   const directKeys = Director.keyHandler(D);
   const isDirect = () => document.body.classList.contains('direct');
+
+  // Fly mode: pilot the camera through the galaxy. Drag to look; W/S (or the Speed slider,
+  // scroll, pinch) for speed, A/D to turn, R/F to climb and dive, Shift to boost. Record
+  // flight drops a keyframe every second and hands the flight to Direct as a shot.
+  const Fly = (() => {
+    if (!G.fly) return null;
+    const UI = window.UI;
+    const hud = document.createElement('section');
+    hud.className = 'card dchrome'; hud.id = 'fhud'; hud.hidden = true;
+    const exit = UI.iconButton({ icon: 'close', label: 'Stop flying (Esc)', size: 'sm', onClick: () => modes.set('create') });
+    const speed = UI.slider({ label: 'Speed', min: -0.3, max: 1, step: 0.01, format: (v) => (v < 0 ? 'Reverse' : Math.round(v * 100) + '%'), get: () => G.fly.throttle, set: (v) => { G.fly.set({ throttle: v }); return G.fly.throttle; }, reset: 0 });
+    const readout = document.createElement('span'); readout.className = 'tc';
+    const recBtn = UI.chip({ icon: 'record', label: 'Record flight', onClick: () => (rec ? finish() : begin()) });
+    hud.append(exit, speed, readout, recBtn);
+    document.body.append(hud);
+    Kit.tooltips(hud, 'top');
+    const ly = (v) => (v >= 1e6 ? (v / 1e6).toFixed(1) + ' million' : v >= 1e4 ? Math.round(v / 1000).toLocaleString() + ',000' : Math.round(v / 100) * 100 > 0 ? (Math.round(v / 100) * 100).toLocaleString() : '0');
+
+    // Keys while flying: held keys steer, so track them down and up. They are caught before
+    // the toolbar's shortcuts (S, R, the number keys) can act on them.
+    const held = new Set();
+    const steer = () => G.fly.set({
+      turn: (held.has('a') || held.has('arrowleft') ? 1 : 0) - (held.has('d') || held.has('arrowright') ? 1 : 0),
+      climb: (held.has('r') || held.has('arrowup') ? 1 : 0) - (held.has('f') || held.has('arrowdown') ? 1 : 0),
+      boost: held.has('shift'),
+    });
+    const KEYS = ['w', 's', 'a', 'd', 'r', 'f', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'shift'];
+    function onKey(e) {
+      if (!on || Kit.typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = (e.key || '').toLowerCase();
+      if (e.type === 'keydown' && k === 'escape') { e.preventDefault(); e.stopImmediatePropagation(); modes.set('create'); return; }
+      if (e.type === 'keydown' && k === ' ') { e.preventDefault(); e.stopImmediatePropagation(); G.fly.set({ throttle: 0 }); speed.sync(); return; }
+      if (!KEYS.includes(k)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.type === 'keydown') held.add(k); else held.delete(k);
+      steer();
+    }
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('keyup', onKey, true);
+    window.addEventListener('blur', () => { held.clear(); if (on) steer(); });
+
+    let on = false, raf = 0, last = 0;
+    function tick(ts) {
+      const dt = last ? Math.min(0.1, (ts - last) / 1000) : 0;
+      last = ts;
+      // W and S ease the throttle up and down while held.
+      const dv = (held.has('w') ? 0.55 : 0) - (held.has('s') ? 0.8 : 0);
+      if (dv) { G.fly.set({ throttle: G.fly.throttle + dv * dt }); }
+      speed.sync();
+      const st = G.fly.status();
+      readout.textContent = `${ly(st.speedLy)} ly/s · ${ly(st.coreLy)} ly from the core`;
+      if (rec) sample(ts);
+      raf = requestAnimationFrame(tick);
+    }
+
+    // Recording: a sample (camera and galaxy) every second, a minute at most.
+    let rec = null;
+    function sample(ts) {
+      const t = (ts - rec.t0) / 1000;
+      if (t >= rec.next) { rec.keys.push({ t: Math.round(t * 100) / 100, cam: G.camera(), set: Director.pickSet(G.getState()) }); rec.next += 1; }
+      recBtn.setContent('stop', `Recording ${Math.floor(t)} s`);
+      if (t >= 60) finish();
+    }
+    function begin() {
+      rec = { t0: performance.now(), next: 0, keys: [] };
+      recBtn.classList.add('ink');
+      sample(rec.t0);
+    }
+    async function finish() {
+      const r = rec; rec = null;
+      recBtn.classList.remove('ink'); recBtn.setContent('record', 'Record flight');
+      if (!r) return;
+      const t = (performance.now() - r.t0) / 1000;
+      r.keys.push({ t: Math.round(t * 100) / 100, cam: G.camera(), set: Director.pickSet(G.getState()) });
+      if (t < 2 || r.keys.length < 3) { Kit.toast('Fly a little longer to make a shot'); return; }
+      modes.set('direct');
+      await D.fromFlight(r.keys, Math.round(t * 10) / 10);
+      Kit.toast(`Flight saved as a ${Math.round(t)} s shot`, 'tick');
+    }
+
+    function start() {
+      if (on) return;
+      on = true;
+      G.fly.start();
+      document.body.classList.add('flying');
+      hud.hidden = false; speed.sync();
+      if (!Kit.still()) hud.animate([{ opacity: 0, transform: 'translateY(24px) scale(0.96)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], { duration: 420, easing: Kit.EASE.smooth });
+      last = 0; raf = requestAnimationFrame(tick);
+      Kit.toast(matchMedia('(pointer: coarse)').matches ? 'Drag to look · Speed to fly' : 'Drag to look · W/S speed · A/D turn · Shift boost');
+    }
+    function stop() {
+      if (!on) return;
+      if (rec) { rec = null; recBtn.classList.remove('ink'); recBtn.setContent('record', 'Record flight'); }
+      on = false; held.clear();
+      cancelAnimationFrame(raf);
+      G.fly.set({ turn: 0, climb: 0, boost: false, throttle: 0 });
+      G.fly.stop();
+      document.body.classList.remove('flying');
+      hud.hidden = true;
+    }
+    return { start, stop, get on() { return on; } };
+  })();
+
   function setMode(m) {
-    const on = m === 'direct';
-    if (on === isDirect()) return;
+    const on = m === 'direct', flying = m === 'fly';
+    if (Fly && !flying && Fly.on) Fly.stop();
+    if (flying) { close(); D.pause(); if (D.previewing) D.endPreview(); if (D.recording) G.cancelLoop(); document.body.classList.remove('direct'); track.show(false); G.hold(true); Fly.start(); return; }
+    if (on === isDirect()) { G.hold(on); return; }
     if (on) close();
     if (D.previewing) D.endPreview();
     if (D.recording) G.cancelLoop();
@@ -4333,6 +4819,7 @@
     key: (e) => {
       const free = !document.activeElement || document.activeElement === document.body;
       if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && free && !isBare()) { if (e.preventDefault) e.preventDefault(); modes.toggle(); return true; }
+      if ((e.key === 'f' || e.key === 'F') && Fly && free && !isBare() && !(Fly.on)) { modes.set('fly'); return true; }
       return isDirect() && !isBare() ? directKeys(e) : false;
     },
     bare: () => setBare(!isBare()),

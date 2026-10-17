@@ -142,12 +142,28 @@ clouds light the arms. *Sky* sets the brightness of the background: distant
 stars on a real brightness spread, coloured by temperature, a faint band where
 our own galaxy's disk would cross the sky, and a few hundred far-off galaxies.
 
+**Black hole.** The centre holds one, sized by the Black hole slider in Structure
+(0 hides it). It is ray traced in the final composite: rays near the centre follow the
+Schwarzschild photon orbit, so the hole casts its shadow, a thin photon ring, and
+lenses the galaxy behind it into arcs and an Einstein ring. Rays crossing the plane
+pick up a glowing accretion disk, white-hot inside and the palette's warm light
+outside, brighter on the side orbiting toward you, its far side bent up over the
+shadow and under it. A real one is a speck at galaxy scale, so the effect fades in
+as you close on the core, and costs nothing from further out. Links made before the
+hole open without it.
+
 **Music.** A slow, generative score plays in the background: a low drone, pad
 chords drifting through D minor, distant bell tones and a breath of wind in a
 long reverb, made live with Web Audio, so there is nothing to download and it
 never repeats exactly. Browsers allow sound only after a gesture, so it fades
 in on the first click or key press. Settings → Sound turns it off, and the
 browser remembers. An embedded galaxy stays silent.
+
+Exported videos (loops and Direct shots) carry the music too: each starts the score on
+a fresh chord, fades it in over the first second and out over the last, and mixes it in
+as AAC (MP4) or Opus (WebM). This works even with Music off; the speakers stay quiet
+and only the video gets the sound. **Music in videos**, in Capture and in Settings →
+Sound, turns it off.
 
 **Surprise me** rolls the type, the shape, the gas, the palette and the seed.
 
@@ -202,6 +218,38 @@ a panorama, so each frame only looks it up.
 
 The few hundred brightest stars get six-point diffraction spikes, fixed to the
 screen the way a telescope's would be.
+
+## Fly
+
+The third mode (the paper plane at the top right, or `F`) puts you in the pilot's seat.
+Drag to look around; `W` and `S` (or the Speed slider, the scroll wheel, a pinch) set the
+speed, `A` and `D` turn, `R` and `F` climb and dive, Shift boosts, Space stops, `Esc`
+lands. Speed scales with your distance from the core, gentle among the stars and fast out
+in the dark, and past a certain speed the stars stream into trails. The readout shows how
+fast you are going and how far from the core you are, in light-years (one unit across
+the galaxy is 50,000).
+
+**Record flight** drops a keyframe every second (a minute at most) and, when you stop,
+hands the flight to Direct as a shot of its own length, its keys evenly paced so it plays
+back the way you flew it. Start over undoes it.
+
+## Components and the design page
+
+The interface is built from one small component library, `playground/ui.js`. Each
+factory takes plain options and returns an element: `UI.button`, `UI.iconButton`,
+`UI.chip`, `UI.segmented`, `UI.toggle`, `UI.slider`, `UI.swatches`,
+`UI.colorPicks`, `UI.label`, `UI.keys`, `UI.panel`, `UI.menu`, `UI.curveEditor`,
+plus `UI.toast` and `UI.tooltips`. Controls that show a value read it through `get`
+and redraw with `el.sync()`, so nothing in the library knows about the galaxy;
+`kit.js` and `director.js` wire the controls to it. The same file holds the icons, the
+motion helpers, the theme switch and the easing maths.
+
+`design/index.html` shows the whole system: the colour tokens in light and dark
+(read live from `kit.css`), the galaxy palettes, type styles, radii and sizes, the
+motion springs, every icon, each component working in both themes over the night
+sky, and the larger patterns (tool rail, timeline, keyframe strip). Its source is
+`playground/components.html`; `python3 tools/sync-toolbar.py` inlines it, along with
+the toolbar into `create/index.html`.
 
 ## Configure
 
