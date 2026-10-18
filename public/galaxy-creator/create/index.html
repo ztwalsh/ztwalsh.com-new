@@ -131,6 +131,7 @@
     --r-md: 14px;
     --r-sm: 10px;
     --card-pad: 20px;
+    --card-w: 360px;           /* the flyout card's width: the rail's cards and the design page's demos */
     --hit: 40px;
     --on-ink: #ffffff;          /* text and knobs that sit on --ink */
     --seg-pill: #ffffff;
@@ -552,7 +553,7 @@
   body.tools-off #rail { transform: translate(-120px, -50%); opacity: 0; filter: blur(6px); pointer-events: none; transition-timing-function: var(--ease-exit); transition-duration: 0.2s; }
 
   #fly {
-    position: fixed; z-index: 9; left: 88px; width: 304px; max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: none;
+    position: fixed; z-index: 9; left: 88px; width: var(--card-w); max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: none;
     transform-origin: left center; overflow: hidden;
   }
   #fly .body { will-change: transform; }
@@ -972,10 +973,11 @@
   }
   // Segmented control: one choice of a few, with the stretching pill.
   // options: [[value, label], ...]; get() → the current value; onChange(value).
-  function segmented({ label, options, get, onChange, columns, className } = {}) {
+  // fit: each choice as wide as its label (sharing out the spare room), for long ones like the types.
+  function segmented({ label, options, get, onChange, columns, fit, className } = {}) {
     const el = h('div', ['seg', className].filter(Boolean).join(' '));
     el.setAttribute('role', 'radiogroup'); if (label) el.setAttribute('aria-label', label);
-    el.style.gridTemplateColumns = `repeat(${columns || options.length}, 1fr)`;
+    el.style.gridTemplateColumns = `repeat(${columns || options.length}, ${fit ? 'auto' : '1fr'})`;
     options.forEach(([v, t]) => { const b = h('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.v = String(v); b.textContent = t; el.append(b); });
     const btns = () => Array.from(el.querySelectorAll('button'));
     const cur = () => String(valueOf(get));
@@ -1216,7 +1218,7 @@
     { id: 'matter', label: 'Stars & gas', hint: 'What it is made of' },
     { id: 'motion', label: 'Motion', hint: 'Spin, drift, zoom' },
     { id: 'light', label: 'Light', hint: 'Exposure and lens' },
-    { id: 'colour', label: 'Colour', hint: 'Palettes and inks' },
+    { id: 'colour', label: 'Color', hint: 'Palettes and inks' },
   ];
 
   // ---- snapping: grab the galaxy alone and hand it to the viewer ---------------------------
@@ -1272,7 +1274,7 @@
   }
 
   function typeSeg(G) {
-    const el = UI.segmented({ label: 'Galaxy type', options: G.types.map((t) => [t, t]), get: () => G.state.type, onChange: (t) => { G.setType(t); refresh(G); } });
+    const el = UI.segmented({ label: 'Galaxy type', options: G.types.filter((t) => t !== 'Cycle').map((t) => [t, t]), fit: true, get: () => G.state.type, onChange: (t) => { G.setType(t); refresh(G); } });
     views.add(() => el.sync(true));
     return el;
   }
@@ -1533,7 +1535,7 @@
       const x = a[k], y = b[k];
       if (typeof x === 'number' ? Math.abs(x - y) > 1e-3 : x !== y) out.push(SET_LABELS[k]);
     });
-    if (COLOURS.some((k) => a[k] !== b[k])) out.push('Colours');
+    if (COLOURS.some((k) => a[k] !== b[k])) out.push('Colors');
     return out;
   }
 
@@ -5251,6 +5253,17 @@
     a.onfinish = done;
   }
   btns().forEach((b) => b.addEventListener('click', () => (open === b.dataset.cat ? close() : show(b.dataset.cat))));
+  // A click anywhere outside the open card (and the rail) puts it away. A drag across the galaxy
+  // (orbiting it) leaves the card open, so you can tune and look around at once.
+  let downAt = null;
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target;
+    downAt = open && !fly.contains(t) && !$('rail').contains(t) && !(t.closest && t.closest('.menu, .tip, #toast, .modes')) ? { x: e.clientX, y: e.clientY } : null;
+  }, true);
+  document.addEventListener('pointerup', (e) => {
+    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 6) close();
+    downAt = null;
+  }, true);
 
   // Hide: the rail slides away and a small pill offers the way back.
   function setTools(on) {

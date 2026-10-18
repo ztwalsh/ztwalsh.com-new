@@ -54,7 +54,7 @@ works too in most browsers.
 |---|---|
 | Drag or swipe | orbit the camera; it keeps its momentum |
 | Pinch or scroll | zoom |
-| The rail | Create galaxy, Structure, Stars & gas, Motion, Light, Colour, then the camera, Settings and hide. Each category, the camera and Settings open a card beside the rail |
+| The rail | Create galaxy, Structure, Stars & gas, Motion, Light, Color, then the camera, Settings and hide. Each category, the camera and Settings open a card beside the rail |
 | Camera | save a still at screen size, 4K, 6K or 8K, or record a 10, 20 or 30 second loop |
 | `S` | snap the galaxy alone to a PNG at screen size (numbered, so rapid snaps never overwrite) |
 | Settings › Copy share link, or `L` | copy a link to this exact galaxy, camera included |
@@ -92,8 +92,8 @@ Preview move (plays just that stretch), and Apply to all. Arrow keys nudge a foc
 handle. Custom curves ride along in saved shots and shot links.
 
 Keyframes keep the galaxy too. To change it mid-shot, pick a keyframe (or park the
-playhead), switch to Create, change anything (nebula, colours, type, stars), switch
-back and press `K` or Update. Numbers and colours blend between keyframes with the
+playhead), switch to Create, change anything (nebula, colors, type, stars), switch
+back and press `K` or Update. Numbers and colors blend between keyframes with the
 same easing as the camera; type, arms, seed, spikes and companions change at the
 keyframe (a new type morphs into place while the shot plays). A dot with a small
 centre marks a keyframe that changes the galaxy, not just the camera. Export video records the shot at its length, the same way loops are
@@ -127,7 +127,7 @@ Blender's ground plane does.
 
 **Types.** Spiral, Barred spiral, Elliptical (with globular clusters and a
 Centaurus A style dust lane), Ring (Hoag's object), and Irregular (a Magellanic
-cloud). **Cycle** morphs through all five: every star keeps its identity and
+cloud). Picking a new type morphs into it: every star keeps its identity and
 slides from where it sits in one galaxy to where it belongs in the next.
 
 **Companion galaxies** adds two small ellipticals beside the main one, like M32
@@ -139,7 +139,7 @@ dust filaments and small pink star-forming knots.
 Sombrero's envelope). *Clusters* gathers young stars into the knots they are born
 in along the arms. *Star formation* sets how many pink HII regions and blue star
 clouds light the arms. *Sky* sets the brightness of the background: distant
-stars on a real brightness spread, coloured by temperature, a faint band where
+stars on a real brightness spread, colored by temperature, a faint band where
 our own galaxy's disk would cross the sky, and a few hundred far-off galaxies.
 
 **Style.** Light › Style picks the telescope the galaxy is seen through. *James Webb*
@@ -195,7 +195,7 @@ tab in front while it records.
 ## How it works
 
 Every star carries eight fixed random numbers, and the GPU turns them into a
-position, colour and brightness every frame. That is why each slider is live
+position, color and brightness every frame. That is why each slider is live
 and why the types can morph without rebuilding anything. The Stars slider draws
 a prefix of one large buffer, and since the randoms are independent, any prefix
 is a fair sample of the whole galaxy.
@@ -224,8 +224,8 @@ slow seconds it renders at a lower resolution, in steps, and after a long
 smooth stretch it tries one step back up. The sky's band is baked once into
 a panorama, so each frame only looks it up.
 
-The few hundred brightest stars get six-point diffraction spikes, fixed to the
-screen the way a telescope's would be.
+The few hundred brightest stars get diffraction spikes (six points, or Webb's
+eight), fixed to the screen the way a telescope's would be.
 
 ## Components and the design page
 
@@ -238,7 +238,7 @@ and redraw with `el.sync()`, so nothing in the library knows about the galaxy;
 `kit.js` and `director.js` wire the controls to it. The same file holds the icons, the
 motion helpers, the theme switch and the easing maths.
 
-`design/index.html` shows the whole system: the colour tokens in light and dark
+`design/index.html` shows the whole system: the color tokens in light and dark
 (read live from `kit.css`), the galaxy palettes, type styles, radii and sizes, the
 motion springs, every icon, each component working in both themes over the night
 sky, and the larger patterns (tool rail, timeline, keyframe strip). Its source is
@@ -256,8 +256,8 @@ const HOME_LABEL = '← back';   // what it says; HOME_URL = '' removes it
 
 The toolbar follows [DESIGN.md](DESIGN.md) and [MOTION.md](MOTION.md). It is designed in `playground/` (`kit.css`, `kit.js`, `director.css`, `director.js`, `left-rail-flyout.html`) and copied into `create/index.html` with `python3 tools/sync-toolbar.py`.
 
-The opening state is the `BASE` object near the top of the script, and the six
-colour palettes are in `PRESETS` just above it. A visitor's own changes are
+The opening state is the `BASE` object near the top of the script, and the twelve
+color palettes are in `PRESETS` just above it. A visitor's own changes are
 saved to their browser under the key `galaxy-creator`, so editing `BASE`
 changes what a new visitor sees, not what a returning one does.
 
