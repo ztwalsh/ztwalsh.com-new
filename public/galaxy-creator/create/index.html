@@ -4526,6 +4526,9 @@
     // 60 frames a second is plenty for a slow-turning galaxy; on 120 Hz screens skip every
     // other refresh rather than doubling the work.
     if (!rec && last && now - last < 0.0125) { requestAnimationFrame(frame); return; }
+    // The window's size, checked every frame: an embedded galaxy can start out in a frame's default
+    // 300×150 and be stretched later without a resize event (iPhone Safari), leaving it in a corner.
+    if (Math.round(window.innerWidth) !== W || Math.round(window.innerHeight) !== H) resize();
     const dt = Math.min(0.05, last ? now - last : 0.016);
     watchPerf(last ? now - last : 0.016);
     last = now;
