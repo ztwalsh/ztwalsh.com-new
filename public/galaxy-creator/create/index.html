@@ -396,6 +396,9 @@
     transition: opacity 0.35s var(--spring-smooth), filter 0.35s var(--spring-smooth), background 0.25s;
   }
   .modes:hover { background: rgba(255, 255, 255, 0.06); }
+  .hub-back { align-items: center; height: 32px; padding: 0 12px; color: rgba(255, 255, 255, 0.72); font-size: 12.5px; font-weight: 500; text-decoration: none; text-shadow: 0 1px 8px rgba(0,0,0,0.7); }
+  .hub-back:hover { color: #fff; }
+  .hub-back:focus-visible { outline: 1px solid rgba(255, 255, 255, 0.6); outline-offset: 1px; }
   .modes button {
     position: relative; width: 32px; height: 30px; padding: 0 0 2px; border: 0; border-radius: 999px; background: none; cursor: pointer;
     display: grid; place-items: center; color: rgba(255, 255, 255, 0.42); transition: color 0.25s; -webkit-tap-highlight-color: transparent;
@@ -1412,7 +1415,6 @@
     ['Pan', ['Shift', 'Drag']],
     ['Zoom', ['Scroll']],
     ['Close a tool', ['Esc']],
-    ['Create or Direct', ['Tab']],
     ['Keyframe, in Direct', ['K']],
     ['Play the shot', ['Space']],
     ['Preview the shot', ['P']],
@@ -5334,7 +5336,14 @@
       if (at && Director.changes(at, Director.pickSet(G.getState())).length) Kit.toast(`Galaxy changed · K keeps it at ${Director.fmt(D.t)}`);
     }
   }
-  const modes = Director.modeSwitch('create', setMode);
+  // One mode per visit: the hub (Create · Direct · Play) picks it, and a pill in the top right goes back there.
+  let mode = 'create';
+  const modes = { set: (m) => { if (m === mode) return; mode = m; setMode(m); }, get: () => mode };
+  const back = document.createElement('a');
+  back.className = 'modes hub-back'; back.href = '../hub.html';
+  back.innerHTML = '<span>← All modes</span>';
+  back.setAttribute('aria-label', 'Back to Create, Direct and Play');
+  if (!new URLSearchParams(location.search).has('embed')) document.body.append(back);
   window.galaxyDirector = D;                                    // for an embedding page, and for tests
   // A shot link (#g=…&s=…) opens straight into Direct with its keyframes. Whatever shot
   // this browser had going is kept in Saved shots first, so nothing is lost.
@@ -5351,8 +5360,6 @@
 
   Kit.bindKeys(G, {
     key: (e) => {
-      const free = !document.activeElement || document.activeElement === document.body;
-      if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && free && !isBare()) { if (e.preventDefault) e.preventDefault(); modes.toggle(); return true; }
       return isDirect() && !isBare() ? directKeys(e) : false;
     },
     bare: () => setBare(!isBare()),
@@ -5363,7 +5370,7 @@
   pill.hide();
   // ?clean opens on the galaxy alone; small screens start with the flyout closed.
   if (new URLSearchParams(location.search).has('clean')) setBare(true);
-  if (innerWidth > 700) show('create');
+  if (innerWidth > 700 && !isDirect()) show('create');
 })();
 </script>
 </body>

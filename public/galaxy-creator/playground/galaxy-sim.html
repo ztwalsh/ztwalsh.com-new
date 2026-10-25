@@ -317,9 +317,9 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
   Kit.backbar('Galaxy sim');
-  // Opened from the app's hub: the way back leads there, not to the playground.
-  try { if (new URLSearchParams(location.search).get('from') === 'hub') sessionStorage.setItem('galaxy-sim-from', 'hub'); } catch (e) {}
-  try { if (sessionStorage.getItem('galaxy-sim-from') === 'hub') { const a = document.querySelector('.backbar a'); a.href = '../hub.html'; a.textContent = '← Galaxy Creator'; a.nextSibling.remove(); a.nextSibling.remove(); } } catch (e) {}
+  // The way back leads to the hub (Create · Direct · Play), unless this was opened from the playground's own index.
+  try { const r = document.referrer && new URL(document.referrer); if (r && /\/playground\/(index\.html)?$/.test(r.pathname)) sessionStorage.setItem('galaxy-sim-from', 'playground'); if (new URLSearchParams(location.search).get('from') === 'hub') sessionStorage.setItem('galaxy-sim-from', 'hub'); } catch (e) {}
+  try { if (sessionStorage.getItem('galaxy-sim-from') !== 'playground') { const a = document.querySelector('.backbar a'); a.href = '../hub.html'; a.textContent = '← All modes'; a.nextSibling.remove(); a.nextSibling.remove(); } } catch (e) {}
 
   const G = await Kit.connect($('sky'));
   G.hold(true);
