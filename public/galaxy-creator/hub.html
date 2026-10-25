@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  /* Google Analytics, the same property the rest of the site reports to.
+     Like the app, this page is a static file in public/, so the site's layout
+     never runs for it and it would otherwise go uncounted. Set the id to an empty
+     string to drop it, and the folder makes no outside requests at all. */
+  window.ANALYTICS_ID = 'G-8H02CWQTGC';
+  if (window.ANALYTICS_ID) {
+    var gaTag = document.createElement('script');
+    gaTag.async = true;
+    gaTag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.ANALYTICS_ID;
+    document.head.appendChild(gaTag);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', window.ANALYTICS_ID);
+  }
+</script>
+<title>Galaxy Creator</title>
+<!-- The hub: the page after the home page's Get started. What to do (Create, Direct, Play),
+     and with which galaxy. Pointing at a mode previews it on the galaxy; your galaxy sits
+     below, with its saved shots and its game. (Sketched as Modes D in the playground.) -->
+<link rel="stylesheet" href="playground/landing.css">
+<style>
+  html, body { overflow-x: hidden; }
+  main { position: relative; z-index: 3; min-height: 100svh; display: grid; grid-template-rows: 1fr auto; grid-template-columns: minmax(0, 1fr); padding: 84px 0 calc(22px + env(safe-area-inset-bottom, 0px)); transition: opacity 0.6s, filter 0.6s; }
+  body.diving main, body.diving .top { opacity: 0; filter: blur(12px); pointer-events: none; }
+  .pick { align-self: center; padding: 0 clamp(20px, 6vw, 96px); }
+  .with { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: clamp(12px, 1.6vw, 20px); text-shadow: 0 1px 10px rgba(0,0,0,0.8); }
+  .with i { width: 22px; height: 16px; border-radius: 4px; background: #111 center / cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); flex: none; }
+  .with b { color: #fff; font-weight: 600; }
+
+  /* The modes: B's words, a size smaller, so the gallery fits beneath. */
+  .modes { display: grid; gap: clamp(0px, 0.4vw, 6px); justify-items: start; }
+  .mode { position: relative; border: 0; background: none; color: #fff; font: inherit; line-height: 1; cursor: pointer; text-align: left; display: block; padding: 0; }
+  .mode .w { display: block; font-weight: 800; letter-spacing: -0.055em; line-height: 0.92; font-size: clamp(56px, 8.6vw, 132px); text-shadow: 0 2px 40px rgba(0,0,0,0.3); transition: opacity 0.4s, transform 0.5s var(--spring-pop); }
+  .mode .w i { font-style: normal; color: rgba(255,255,255,0.35); }
+  .mode .d { position: absolute; left: calc(100% + clamp(14px, 2vw, 28px)); bottom: 0.7em; width: 30ch; font-size: clamp(14px, 1.15vw, 16px); line-height: 1.45; color: rgba(255,255,255,0.8); text-shadow: 0 1px 12px rgba(0,0,0,0.9); opacity: 0; transform: translateX(-8px); transition: opacity 0.35s, transform 0.5s var(--spring-smooth); pointer-events: none; }
+  .mode .d b { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; color: #fff; font-weight: 600; font-size: 14px; }
+  .mode .d b svg { width: 15px; height: 15px; }
+  .modes.pointing .mode .w { opacity: 0.28; }
+  .modes.pointing .mode.on .w { opacity: 1; transform: translateX(6px); }
+  .mode.on .d { opacity: 1; transform: none; }
+  .mode:focus-visible { outline: none; }
+  .mode:focus-visible .w { text-decoration: underline; text-decoration-thickness: 4px; text-underline-offset: 8px; }
+
+  /* The gallery: C's shelf. */
+  .shelf-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 clamp(20px, 6vw, 96px) 10px; font-size: 13px; color: rgba(255,255,255,0.6); text-shadow: 0 1px 10px rgba(0,0,0,0.8); }
+  .shelf-head b { color: #fff; font-weight: 600; }
+  .shelf { display: flex; gap: 12px; overflow-x: auto; padding: 6px clamp(20px, 6vw, 96px) 8px; scroll-snap-type: x mandatory; scroll-padding-inline: clamp(20px, 6vw, 96px); scrollbar-width: none; }
+  .shelf::-webkit-scrollbar { display: none; }
+  .gal { flex: none; width: 176px; border: 0; background: none; color: #fff; font: inherit; text-align: left; cursor: pointer; padding: 0; scroll-snap-align: start; display: grid; align-content: start; gap: 7px; transition: transform 0.45s var(--spring-pop), opacity 0.3s; }
+  .gal .th { aspect-ratio: 16 / 10; border-radius: 14px; background: #0b0b0e center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 10px 30px rgba(0,0,0,0.4); position: relative; overflow: hidden; transition: box-shadow 0.3s; }
+  .gal .th.loading::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .gal b { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .gal small { font-size: 11.5px; color: rgba(255,255,255,0.55); display: block; margin-top: 1px; }
+  .gal .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .gal .tags span { font-size: 10.5px; padding: 3px 7px; border-radius: 999px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); }
+  .gal:hover { transform: translateY(-3px); }
+  .gal[aria-pressed="true"] .th { box-shadow: inset 0 0 0 2px #fff, 0 14px 40px rgba(0,0,0,0.5); }
+  .shelf .gal:not([aria-pressed="true"]):not(.new) { opacity: 0.6; }
+  .shelf .gal:hover { opacity: 1 !important; }
+  .gal.new .th { display: grid; place-items: center; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.18); }
+  .gal.new .th svg { width: 28px; height: 28px; color: rgba(255,255,255,0.75); }
+
+  /* Previews on the galaxy (from Modes B). */
+  @media (min-width: 900px) { #sky, #map { width: 132vw; } }   /* centre at 66vw, clear of the words */
+  .bars i { position: fixed; left: 0; right: 0; height: 11vh; background: #000; z-index: 2; transform: scaleY(0); transition: transform 0.7s var(--spring-smooth); }
+  .bars i:first-child { top: 0; transform-origin: top; } .bars i:last-child { bottom: 0; transform-origin: bottom; }
+  body.m-direct .bars i { transform: scaleY(1); }
+  .tc { position: fixed; z-index: 3; right: clamp(20px, 3vw, 40px); top: calc(11vh + 14px); font-size: 12px; color: rgba(255,255,255,0.7); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; opacity: 0; transition: opacity 0.4s; }
+  .tc::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff5a4f; margin-right: 8px; vertical-align: 1px; animation: blink 1.2s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  body.m-direct .tc { opacity: 1; }
+  .morph { position: fixed; z-index: 3; right: clamp(20px, 3vw, 40px); top: 84px; font-size: 12px; color: rgba(255,255,255,0.7); opacity: 0; transition: opacity 0.4s; text-shadow: 0 1px 10px rgba(0,0,0,0.9); }
+  body.m-create .morph { opacity: 1; }
+  #map { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; opacity: 0; transition: opacity 0.6s; }
+  body.m-play #map { opacity: 1; }
+  .cover { position: fixed; inset: 0; z-index: 1; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.6s; }
+  .cover.on { opacity: 1; transition-duration: 0s; }
+  .going { position: fixed; z-index: 4; left: 50%; top: 50%; translate: -50% -50%; color: #fff; font-size: 15px; font-weight: 500; opacity: 0; transition: opacity 0.5s; text-shadow: 0 1px 14px rgba(0,0,0,0.9); pointer-events: none; white-space: nowrap; }
+  body.diving .going { opacity: 1; }
+  .top a.back { color: #fff; font-weight: 600; letter-spacing: -0.01em; }
+
+  @media (max-width: 700px) {
+    main { padding-top: 70px; }
+    .pick { align-self: end; padding-bottom: 18px; }
+    .mode .d { position: static; width: auto; display: none; transform: none; margin: 4px 0 8px; }
+    .mode.on .d { display: block; }
+    .gal { width: 138px; }
+    .shelf-head > span:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+<iframe id="sky" src="create/index.html?embed" title="" aria-hidden="true" tabindex="-1"></iframe>
+<div class="veil"></div>
+<div class="cover" id="cover"></div>
+<canvas id="map"></canvas>
+<div class="bars"><i></i><i></i></div>
+<div class="tc" id="tc">00:00:00</div>
+<div class="morph" id="morph"></div>
+<header class="top"><a class="back" href="./">← Galaxy Creator</a><span></span></header>
+<main>
+  <section class="pick">
+    <p class="with rise" style="animation-delay:.05s" id="with"></p>
+    <div class="modes" id="modes"></div>
+  </section>
+  <section class="rise" style="animation-delay:.45s">
+    <div class="shelf-head"><span><b>Your galaxy</b><span id="count" hidden></span></span><span>Pick what to do with it</span></div>
+    <div class="shelf" id="shelf"></div>
+  </section>
+</main>
+<div class="going" id="going"></div>
+<script src="playground/landing.js"></script>
+<script>
+(async function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const TAU = Math.PI * 2;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  const PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+  const sky = $('sky');
+  await new Promise((r) => { const iv = setInterval(() => { try { if (sky.contentWindow.galaxy) { clearInterval(iv); r(); } } catch (e) {} }, 50); });
+  const G = sky.contentWindow.galaxy;
+  const mine = G.getState();                                    // the galaxy this browser is working on
+  const BASE = Object.assign({}, G.base);
+  const HOME = { yaw: 0.35, pitch: 0.55, roll: 0, focus: [0, 0, 0], dist: 3.0 };
+  G.hold(true); G.setCamera(HOME);
+
+  // ---- the gallery ---------------------------------------------------------------------
+  // What this browser really has: the galaxy being worked on, its saved shots, and the game in progress.
+  const read = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+  const shots = (read('galaxy-shots') || []).length;
+  const save = read('galaxy-sim-v2');
+  const month = save && save.day > 0 && save.day < 365 ? Math.floor(save.day / (365 / 12)) + 1 : 0;
+  const LIB = [
+    { name: 'Your current galaxy', short: 'your galaxy', edited: 'Working on it now', look: mine,
+      tags: [shots ? `${shots} saved ${shots === 1 ? 'shot' : 'shots'}` : '', month ? `Game · month ${month}` : ''].filter(Boolean),
+      shots, game: month ? { month } : null },
+  ];
+  let chosen = LIB[0];
+  const lookOf = (gx) => Object.assign({}, BASE, gx.look);
+
+  // ---- the modes, worded for the galaxy you picked ----------------------------------------
+  function words(gx) {
+    const film = gx.shots ? `${gx.shots} saved ${gx.shots === 1 ? 'shot' : 'shots'}, or start a new one.` : 'Frame a few views and the camera flies between them.';
+    const play = gx.game ? (gx.game.done ? `Its year is done: ${gx.game.civs} civilisations. Play it again?` : `Its year is at month ${gx.game.month}. Pick up where you left off.`) : 'Give it a year. Forge, calm and shelter it until civilisations look up at it.';
+    return [
+      ['create', 'Create', gx === LIB[0] ? 'Keep shaping it: type, colour, light.' : `Edit ${esc(gx.name)}: shape it, colour it, light it.`, gx === LIB[0] ? 'Keep creating' : 'Edit it'],
+      ['direct', 'Direct', film, gx.shots ? 'Open its shots' : 'Start a shot'],
+      ['play', 'Play', play, gx.game && !gx.game.done ? `Continue, month ${gx.game.month}` : 'Begin the year'],
+    ];
+  }
+  function renderModes() {
+    const box = $('modes'), first = !box.children.length;
+    box.innerHTML = words(chosen).map(([m, w, d, go], i) => `<button class="mode${first ? ' rise' : ''}" style="animation-delay:${0.12 + i * 0.12}s" data-m="${m}"><span class="w">${w}<i>.</i></span><span class="d">${d}<br><b>${go} ${ARROW}</b></span></button>`).join('');
+    box.querySelectorAll('.mode').forEach((b) => {
+      b.addEventListener('mouseenter', () => { if (!coarse) point(b.dataset.m); });
+      b.addEventListener('focus', () => point(b.dataset.m));
+      b.addEventListener('click', () => { if (coarse && mode !== b.dataset.m) point(b.dataset.m); else dive(b.dataset.m); });
+      b.classList.toggle('on', b.dataset.m === mode);
+    });
+    $('with').innerHTML = `<i id="withth" style="${chosen.thumb ? `background-image:url(${chosen.thumb})` : ''}"></i><span>With <b>${esc(chosen.name === 'Your current galaxy' ? 'your current galaxy' : chosen.name)}</b>${chosen === LIB[0] ? '' : ' · ' + esc(chosen.edited.toLowerCase())}</span>`;
+  }
+  function renderShelf() {
+    const el = $('shelf');
+    $('count').textContent = `${LIB.length} saved`;
+    LIB.forEach((gx) => {
+      const b = document.createElement('button');
+      b.className = 'gal'; b.setAttribute('aria-pressed', String(gx === chosen));
+      b.innerHTML = `<span class="th loading"></span><span><b>${esc(gx.name)}</b><small>${esc(gx.look.type || 'Spiral')} · ${esc(gx.edited.toLowerCase())}</small>${gx.tags.length ? `<span class="tags">${gx.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</span>` : ''}</span>`;
+      b.addEventListener('click', () => choose(gx));
+      gx.el = b;
+      el.append(b);
+    });
+    const n = document.createElement('button');
+    n.className = 'gal new';
+    n.innerHTML = `<span class="th">${PLUS}</span><span><b>New galaxy</b><small>Start from nothing in Create</small></span>`;
+    n.addEventListener('click', () => dive('new'));
+    el.append(n);
+  }
+  function choose(gx) {
+    if (diving || gx === chosen) return;
+    chosen = gx;
+    LIB.forEach((x) => x.el.setAttribute('aria-pressed', String(x === gx)));
+    point(null);
+    G.setLive(lookOf(gx), true);
+    renderModes();
+  }
+
+  // ---- previews on the galaxy (Modes B) -------------------------------------------------
+  const LOOKS = [
+    ['Barred spiral · Hubble', { type: 'Barred', ...G.presets.Hubble, arms: 2, twist: 1.2 }],
+    ['Ring · Cosmic', { type: 'Ring', ...G.presets.Cosmic }],
+    ['Spiral · Ember', { type: 'Spiral', ...G.presets.Ember, arms: 4, twist: 1.6 }],
+    ['Elliptical · Aurora', { type: 'Elliptical', ...G.presets.Aurora }],
+  ];
+  const LIGHTS = [[0.62, 0.3, '#ffb35c'], [-0.5, 0.55, '#62e0d6'], [0.1, -0.78, '#ff7aa8'], [-0.7, -0.35, '#b49cff'], [0.85, -0.25, '#9be36b']];
+  const map = $('map'), g2 = map.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  const size = () => { map.width = map.clientWidth * dpr; map.height = map.clientHeight * dpr; };
+  addEventListener('resize', size); size();
+  const DISK = 1.42, EDGES = [0.12, 0.35, 0.62, 0.95];
+  const at = (r, a) => [Math.cos(a) * r * DISK, 0, Math.sin(a) * r * DISK];
+  let mode = null, since = 0, diving = false, lookI = -1, lookT = 0, cam0 = null;
+  const coarse = matchMedia('(hover: none)').matches;
+
+  function point(m) {
+    if (diving || m === mode) return;
+    const was = mode;
+    mode = m; since = performance.now();
+    document.body.classList.remove('m-create', 'm-direct', 'm-play');
+    if (m) document.body.classList.add('m-' + m);
+    $('modes').classList.toggle('pointing', !!m);
+    document.querySelectorAll('.mode').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
+    if (was === 'create' || was === 'play') G.setLive(lookOf(chosen), true);    // back to the galaxy you picked
+    if (m === 'create') lookT = 0;
+    if (m === 'direct') cam0 = G.camera();
+    if (m === 'play') G.setLive(Object.assign(lookOf(chosen), { spin: 0 }), true);
+    if (!m || was === 'direct') Landing.glide(G, HOME, 1200);
+  }
+  function drawPlay(now) {
+    g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g2.clearRect(0, 0, map.clientWidth, map.clientHeight);
+    if (mode !== 'play') return;
+    const k = Math.min(1, (now - since) / 1800);
+    g2.strokeStyle = `rgba(255,255,255,${0.12 * k})`; g2.lineWidth = 1;
+    EDGES.forEach((r) => { g2.beginPath(); for (let i = 0; i <= 64; i++) { const q = G.project(at(r, i / 64 * TAU)); if (q) i ? g2.lineTo(q.x, q.y) : g2.moveTo(q.x, q.y); } g2.stroke(); });
+    for (let s = 0; s < 8; s++) { const a = s / 8 * TAU + 0.27; const p = G.project(at(EDGES[0], a)), q = G.project(at(EDGES[3], a)); if (p && q) { g2.beginPath(); g2.moveTo(p.x, p.y); g2.lineTo(q.x, q.y); g2.stroke(); } }
+    g2.globalCompositeOperation = 'lighter';
+    LIGHTS.forEach(([x, z, c], i) => {
+      const kk = Math.max(0, Math.min(1, ((now - since) - 500 - i * 380) / 900));
+      if (!kk) return;
+      const q = G.project([x * DISK * 0.7, 0, z * DISK * 0.7]); if (!q) return;
+      const r = (16 + 6 * Math.sin(now / 600 + i)) * kk;
+      const gr = g2.createRadialGradient(q.x, q.y, 0, q.x, q.y, r * 2);
+      gr.addColorStop(0, c); gr.addColorStop(0.2, c + '88'); gr.addColorStop(1, c + '00');
+      g2.fillStyle = gr; g2.beginPath(); g2.arc(q.x, q.y, r * 2, 0, TAU); g2.fill();
+    });
+    g2.globalCompositeOperation = 'source-over';
+  }
+  function frame(now) {
+    const t = (now - since) / 1000;
+    if (!diving && !thumbing) {
+      if (mode === 'create' && now - lookT > 2600) {
+        lookI = (lookI + 1) % LOOKS.length; lookT = now;
+        G.setLive(Object.assign(lookOf(chosen), LOOKS[lookI][1]), true);
+        $('morph').textContent = LOOKS[lookI][0];
+      }
+      if (mode === 'direct') {
+        G.setCamera({ yaw: cam0.yaw + t * 0.09, pitch: Math.max(0.12, cam0.pitch - t * 0.035), roll: Math.sin(t * 0.4) * 0.03, focus: [0, 0, 0], dist: Math.max(1.4, cam0.dist * Math.exp(-t * 0.06)) });
+        $('tc').textContent = `00:${String(Math.floor(t)).padStart(2, '0')}:${String(Math.floor((t % 1) * 24)).padStart(2, '0')}`;
+      }
+      if (mode === 'play') { const c = G.camera(); if (c.pitch < 0.95) G.setCamera(Object.assign(c, { pitch: c.pitch + (0.95 - c.pitch) * 0.04 })); }
+      if (!mode) { const c = G.camera(); G.setCamera(Object.assign(c, { yaw: c.yaw + 0.0006 })); }
+    }
+    drawPlay(now);
+    requestAnimationFrame(frame);
+  }
+
+  // ---- thumbnails: each galaxy photographed live, behind a still sky --------------------------
+  let thumbing = false;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function thumbs() {
+    thumbing = true; $('cover').classList.add('on');
+    for (const gx of LIB) {
+      G.setLive(lookOf(gx), false);
+      await wait(120);
+      try {
+        const blob = await G.snap();
+        if (blob) { gx.thumb = URL.createObjectURL(blob); const th = gx.el.querySelector('.th'); th.style.backgroundImage = `url(${gx.thumb})`; th.classList.remove('loading'); }
+      } catch (e) {}
+    }
+    G.setLive(lookOf(chosen), false);
+    const w = $('withth'); if (w && chosen.thumb) w.style.backgroundImage = `url(${chosen.thumb})`;
+    await wait(80);
+    thumbing = false; $('cover').classList.remove('on');
+  }
+
+  // ---- going in: the picked galaxy travels by share link ----------------------------------
+  function dive(m) {
+    if (diving) return;
+    if (m !== 'new') point(m);
+    diving = true;
+    document.body.classList.add('diving');
+    G.setLive(Object.assign(lookOf(chosen), m === 'play' ? { spin: 0 } : {}), false);   // undo any preview
+    const link = () => { try { return new URL(G.link()); } catch (e) { return new URL('create/index.html', location.href); } };
+    const name = chosen === LIB[0] ? 'your galaxy' : chosen.name;
+    let url, say;
+    if (m === 'new') { url = new URL('create/index.html', location.href); say = 'A new galaxy'; }
+    if (m === 'create') { url = link(); say = 'Opening ' + name; }
+    if (m === 'direct') { url = link(); url.searchParams.set('mode', 'direct'); say = 'Filming ' + name; }
+    if (m === 'play') { url = new URL('playground/galaxy-sim.html?from=hub', location.href); say = chosen.game && !chosen.game.done ? `Back to month ${chosen.game.month}` : 'Rewinding to first light'; }
+    $('going').textContent = say;
+    const go = () => setTimeout(() => { location.href = url.href; }, 250);
+    if (m === 'play' && !(chosen.game && !chosen.game.done)) {
+      const L = lookOf(chosen), t0 = performance.now();          // the rewind, as in Modes B
+      (function rewind(now) {
+        const k = Math.min(1, (now - t0) / 1800);
+        G.setLive(Object.assign({}, L, { spin: 0, stars: L.stars * (1 - 0.8 * k) + 0.1 * k, dust: L.dust * (1 - k), form: L.form + (1.4 - L.form) * k, nebula: L.nebula + (1.3 - L.nebula) * k, halo: L.halo * (1 - 0.6 * k) }), true);
+        if (k < 1) requestAnimationFrame(rewind); else Landing.glide(G, { pitch: 0.95, dist: 2.7, yaw: 0.6 }, 900, go);
+      })(t0);
+    } else Landing.glide(G, m === 'direct' ? { dist: 1.6, pitch: 0.3 } : m === 'play' ? { pitch: 0.95, dist: 2.7, yaw: 0.6 } : { dist: 2.2, pitch: 0.75 }, 1200, go);
+  }
+
+  renderShelf(); renderModes();
+  $('modes').addEventListener('mouseleave', () => { if (!coarse) point(null); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') point(null); });
+  addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+  requestAnimationFrame(frame);
+  thumbs();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  /* Google Analytics, the same property the rest of the site reports to.
+     Like the app, this page is a static file in public/, so the site's layout
+     never runs for it and it would otherwise go uncounted. Set the id to an empty
+     string to drop it, and the folder makes no outside requests at all. */
+  window.ANALYTICS_ID = 'G-8H02CWQTGC';
+  if (window.ANALYTICS_ID) {
+    var gaTag = document.createElement('script');
+    gaTag.async = true;
+    gaTag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.ANALYTICS_ID;
+    document.head.appendChild(gaTag);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', window.ANALYTICS_ID);
+  }
+</script>
+<title>Galaxy sim · prototype</title>
+<!-- The galaxy sim, playable: the year of the sim rules (.notes/plans/sim-rules.md) compressed into about thirty
+     minutes. sim/sim.js runs the galaxy one day at a time; this page draws its 25 regions
+     over the real galaxy (?embed, through galaxy.project()), turns its state into galaxy
+     settings (setLive) so the picture ages with the sim, and gives you influence to spend.
+     The game saves as a seed and the actions you took; the sim is deterministic, so
+     loading replays them. -->
+<link rel="stylesheet" href="kit.css">
+<style>
+  canvas.layer { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 2; }
+  #hit { position: fixed; inset: 0; z-index: 3; cursor: grab; touch-action: none; }
+  #hit.picking { cursor: crosshair; }
+  #hit.over { cursor: pointer; }
+  #hit.dragging { cursor: grabbing; }
+
+  /* Time and place, top left. */
+  #clock { position: fixed; z-index: 9; left: 20px; top: 20px; width: 248px; padding: 14px; display: grid; gap: 12px; }
+  #clock .era { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  #clock .era b { font-size: 18px; line-height: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  #clock .era small, #clock .when { color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  #clock .when { display: flex; justify-content: space-between; margin-top: -6px; }
+  #clock .concord-line { font-size: 11.5px; line-height: 1.45; color: var(--ink-2); margin-top: -4px; }
+  #clock .concord-line b { color: #ffcc66; font-weight: 600; margin-right: 4px; }
+  #clock .challenge { font-size: 11.5px; line-height: 1.45; color: var(--ink-2); margin-top: -4px; }
+  #clock .challenge b { color: #9fd8ff; font-weight: 600; margin-right: 4px; }
+  #clock .challenge small { display: block; color: var(--ink-3); font-size: 11px; }
+  #clock .challenge i { display: block; height: 3px; border-radius: 2px; margin-top: 5px; background: linear-gradient(90deg, #9fd8ff var(--p), rgba(255,255,255,0.12) var(--p)); }
+  #clock .challenge.met b { color: #8ee6a8; }
+  #clock .challenge.missed { opacity: 0.6; }
+  .year { position: relative; height: 4px; border-radius: 4px; background: var(--chrome-3); overflow: hidden; }
+  .year i { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: 4px; }
+  .year em { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--chrome); }
+
+  /* Influence: what you have to spend, refilling a pip a day. */
+  #power { position: fixed; z-index: 9; right: 20px; top: 20px; padding: 12px 14px; display: grid; gap: 8px; width: 250px; }
+  #power .legacy { flex-wrap: wrap; gap: 2px 8px; }
+  #power .row { display: flex; justify-content: space-between; align-items: baseline; font-weight: 500; gap: 8px; flex-wrap: wrap; }
+  #power .row small { color: var(--ink-3); font-size: 11.5px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .pips { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+  .pips i { height: 8px; border-radius: 3px; background: var(--chrome-3); transition: background 0.25s; }
+  .pips i.on { background: var(--ink); }
+  .pips i.cost { background: #ff9f5a; }
+
+  /* Actions, bottom centre. */
+  #dock { position: fixed; z-index: 9; left: 50%; translate: -50% 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); padding: 8px; display: flex; gap: 4px; align-items: stretch; max-width: calc(100vw - 24px); }
+  .act { border: 0; background: none; color: var(--ink); font: inherit; border-radius: 14px; padding: 8px 10px 7px; display: grid; justify-items: center; gap: 3px; min-width: 72px; cursor: pointer; transition: background 0.2s, transform var(--t-pop) var(--spring-pop), opacity 0.2s; }
+  .act:hover { background: var(--chrome-2); }
+  .act:active { transform: scale(0.94); transition-duration: 0.1s; }
+  .act[aria-pressed="true"], .act[aria-pressed="true"]:hover { background: var(--ink); color: var(--on-ink); opacity: 1; }
+  .act:disabled { opacity: 0.35; cursor: default; background: none; transform: none; }
+  .act svg { width: 20px; height: 20px; }
+  .act b { font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .act small { font-size: 10.5px; color: inherit; opacity: 0.55; font-variant-numeric: tabular-nums; }
+  .act .short { display: none; }
+  .dock-sep { width: 1px; background: var(--hair); margin: 8px 4px; }
+  .speed { display: grid; grid-auto-flow: column; gap: 2px; align-items: center; padding: 0 2px; }
+  .speed button { border: 0; background: none; color: var(--ink-2); font: inherit; font-weight: 500; font-size: 12px; height: 34px; min-width: 34px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+  .speed button:hover { color: var(--ink); background: var(--chrome-2); }
+  .speed button[aria-pressed="true"] { color: var(--ink); background: var(--chrome-2); }
+  .speed svg { width: 15px; height: 15px; }
+
+  /* What you picked: a region, and whoever lives there. */
+  #card { position: fixed; z-index: 9; right: 20px; top: 108px; width: 300px; max-height: calc(100vh - 230px); overflow-y: auto; scrollbar-width: none; padding: 16px; display: grid; gap: 14px; }
+  #card[hidden] { display: none; }
+  .card-head { display: flex; align-items: center; gap: 10px; }
+  .card-head b { display: block; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .card-head small { color: var(--ink-3); font-size: 11.5px; }
+  .card-head .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; box-shadow: 0 0 12px currentColor; }
+  .card-head .x { margin-left: auto; }
+  .bars { display: grid; gap: 7px; }
+  .bar { display: grid; grid-template-columns: 76px 1fr 34px; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-2); }
+  .bar span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 11.5px; }
+  .bar .track { height: 5px; border-radius: 5px; background: var(--chrome-3); position: relative; overflow: hidden; }
+  .bar .track i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--ink); }
+  .bar .track em { position: absolute; top: -2px; bottom: -2px; width: 1.5px; background: var(--ink-3); }
+  .say { color: var(--ink-2); line-height: 1.45; background: var(--chrome-2); border-radius: 10px; padding: 9px 11px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-tile { background: var(--chrome-2); border-radius: 10px; padding: 8px 10px; display: grid; gap: 1px; }
+  .stat-tile em { font-style: normal; font-size: 10.5px; color: var(--ink-3); font-weight: 500; }
+  .stat-tile b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .chron { display: grid; gap: 7px; }
+  .chron div { display: grid; grid-template-columns: 40px 1fr; gap: 8px; color: var(--ink-2); line-height: 1.4; font-size: 12.5px; }
+  .chron em { font-style: normal; color: var(--ink-3); font-variant-numeric: tabular-nums; font-size: 11px; padding-top: 1px; }
+  .chron .you { color: var(--ink); font-weight: 500; }
+  .trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+  .trust span { font-size: 10.5px; text-align: center; padding: 4px 0; border-radius: 6px; background: var(--chrome-2); color: var(--ink-3); }
+  .trust span.on { background: var(--ink); color: var(--on-ink); font-weight: 600; }
+  .trust small { grid-column: 1 / -1; color: var(--ink-3); font-size: 11px; line-height: 1.4; margin-top: 3px; }
+  .card-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .card-acts .btn { height: 34px; font-size: 12px; }
+  .fxnote { font-size: 11px; color: var(--ink-3); line-height: 1.4; margin-top: -6px; }
+  .card-acts .btn:disabled { opacity: 0.4; cursor: default; }
+  .sub { font-size: 11px; font-weight: 500; color: var(--ink-3); margin-bottom: -6px; }
+
+  /* The chronicle as it happens, bottom left. */
+  #feed { position: fixed; z-index: 8; left: 22px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); width: min(320px, calc(50vw - 360px)); display: grid; gap: 6px; pointer-events: none; }
+  #feed div { color: rgba(255,255,255,0.82); font-size: 12.5px; line-height: 1.35; text-shadow: 0 1px 10px rgba(0,0,0,0.9); transition: opacity 0.6s, transform 0.5s var(--spring-smooth); }
+  #feed div em { font-style: normal; color: rgba(255,255,255,0.45); font-variant-numeric: tabular-nums; margin-right: 6px; font-size: 11px; }
+  #feed div.you { color: #ffd9a8; }
+  #feed div.big { color: #fff; font-weight: 600; }
+
+  /* A milestone: big and brief, in the middle of the sky. */
+  #banner { position: fixed; z-index: 8; left: 50%; top: 22%; translate: -50% 0; text-align: center; color: #fff; pointer-events: none; opacity: 0; transition: opacity 0.7s, transform 0.9s var(--spring-smooth); transform: translateY(10px); text-shadow: 0 2px 24px rgba(0,0,0,0.85); width: min(640px, 90vw); }
+  #banner.on { opacity: 1; transform: none; }
+  #banner small { display: block; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+  #banner b { font-size: clamp(22px, 3.4vw, 34px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; }
+
+  /* Alerts: warnings and requests, most urgent first, each with its answer. */
+  #alerts { position: fixed; z-index: 9; left: 50%; translate: -50% 0; top: 20px; width: min(420px, calc(100vw - 600px)); display: grid; gap: 6px; }
+  .alert { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 9px 9px 9px 14px; border-radius: 16px; cursor: pointer; }
+  .covered { text-align: center; font-size: 11.5px; color: rgba(255,255,255,0.6); text-shadow: 0 1px 8px rgba(0,0,0,0.9); }
+  .alert.new { animation: alert-in 0.5s var(--spring-pop); }
+  .alert i { width: 10px; height: 10px; border-radius: 50%; }
+  .alert.hot i { animation: hot 0.9s ease-in-out infinite; }
+  @keyframes hot { 50% { transform: scale(1.5); opacity: 0.5; } }
+  @keyframes alert-in { from { transform: translateY(-8px) scale(0.96); opacity: 0; } }
+  .alert > span { line-height: 1.35; font-size: 12.5px; color: var(--ink); }
+  .alert > span small { display: block; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .alert .btn { height: 32px; width: auto; padding: 0 12px; font-size: 12px; white-space: nowrap; }
+  #alerts .more { background: none; border: 0; cursor: pointer; text-decoration: underline; font: inherit; }
+  #alerts { max-height: calc(100vh - 140px); overflow: auto; }
+  .alert.ghost { pointer-events: none; overflow: hidden; animation: ghost-out 1.5s forwards; }
+  @keyframes ghost-out { 0%, 55% { opacity: 0.4; max-height: 140px; } 100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; } }
+  .tbar { position: relative; height: 6px; border-radius: 3px; background: var(--chrome-3); margin: 8px 0 4px; }
+  .tbar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: #ffcc66; }
+  .tbar em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+  .tbar span { position: absolute; top: 9px; translate: -50% 0; font-size: 10.5px; color: var(--ink-3); }
+  .alert .cost { display: block; color: var(--ink-2); }
+  .alert .choices { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .alert .choices .btn:not(.primary) { background: var(--chrome-2); }
+  .alert .ok { font-size: 11.5px; color: var(--ink-3); padding: 0 8px; white-space: nowrap; }
+  #reopen { position: fixed; z-index: 9; left: 50%; translate: -50% 0; top: 20px; width: auto; padding: 0 18px; }
+  .plus { position: fixed; z-index: 30; pointer-events: none; color: #ffd98a; font-weight: 700; font-size: 15px; text-shadow: 0 0 12px rgba(255,200,90,0.9), 0 1px 4px rgba(0,0,0,0.8); transition: transform 0.9s var(--spring-smooth), opacity 0.9s; }
+  #power .legacy { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  #power .row .num { font-variant-numeric: tabular-nums; margin-left: 4px; }
+  #power .row .of { color: var(--ink-3); font-size: 11px; }
+  #power .legacy b { color: var(--ink); font-weight: 600; }
+  #power .legacy .worth { font-style: normal; color: #ffcc66; }
+  #power.full .pips i.on { background: #ffcc66; box-shadow: 0 0 6px rgba(255,204,102,0.6); }
+  #power.full .row small { color: #ffcc66; }
+  .pips i.part { background: linear-gradient(90deg, var(--ink) var(--p), var(--chrome-3) var(--p)); }
+  .stars { font-size: 30px; letter-spacing: 4px; color: #ffcc66; }
+  .stars span { color: var(--chrome-3); }
+  .score { display: flex; justify-content: space-between; align-items: baseline; }
+  .score b { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
+  .tips { display: grid; gap: 6px; }
+  .concord-moment { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(255,204,102,0.18), rgba(255,204,102,0.04)); }
+  .concord-moment i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+  .concord-moment b { flex-basis: 100%; font-size: 17px; color: #ffcc66; margin-top: 4px; }
+  .concord-moment small { color: var(--ink-2); font-size: 12px; }
+  .breakdown summary { cursor: pointer; color: var(--ink-2); font-weight: 500; }
+  .breakdown div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--hair); color: var(--ink-2); }
+  .breakdown div small { display: block; color: var(--ink-3); font-size: 11px; }
+  .breakdown div b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  #modal .pair { position: sticky; bottom: -24px; background: var(--chrome); padding: 12px 0 4px; margin-bottom: -4px; }
+  .tips div { background: var(--chrome-2); border-radius: 10px; padding: 9px 11px; color: var(--ink-2); line-height: 1.45; }
+
+  /* The coach: one next step, always, under the clock. */
+  #coach { position: fixed; z-index: 9; left: 20px; top: 128px; width: 248px; padding: 12px 14px; display: grid; gap: 8px; }
+  #coach small { font-size: 11px; font-weight: 500; color: var(--ink-3); display: flex; justify-content: space-between; }
+  #coach small button { border: 0; background: none; color: var(--ink-3); font: inherit; cursor: pointer; padding: 0; }
+  #coach small button:hover { color: var(--ink); }
+  #coach p { line-height: 1.45; color: var(--ink); }
+  #coach .btn { height: 34px; }
+  .act { position: relative; }
+  .act.suggest:not(:disabled)::after { content: ''; position: absolute; top: 6px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: #ffcc66; box-shadow: 0 0 8px #ffcc66; animation: nudge 1.4s ease-in-out infinite; }
+  @keyframes nudge { 50% { transform: scale(0.6); opacity: 0.5; } }
+
+  /* What a tool does, above the dock while you point at it or are using it. */
+  #toolcard { position: fixed; z-index: 9; left: 50%; translate: -50% 0; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100vw - 24px)); padding: 14px 16px; display: grid; gap: 6px; transition: opacity 0.2s, transform 0.3s var(--spring-smooth); }
+  #toolcard[hidden] { display: none; }
+  #toolcard .t { display: flex; justify-content: space-between; align-items: baseline; }
+  #toolcard b { font-size: 15px; font-weight: 600; }
+  #toolcard .t small { color: var(--ink-3); font-size: 11.5px; }
+  #toolcard p { color: var(--ink-2); line-height: 1.45; }
+  #toolcard p em { font-style: normal; color: var(--ink); font-weight: 500; }
+  .tools { display: grid; gap: 10px; }
+  .tools div { display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: var(--ink-2); line-height: 1.45; }
+  .tools svg { width: 20px; height: 20px; color: var(--ink); margin-top: 1px; }
+  .tools b { color: var(--ink); font-weight: 600; }
+  .steps { counter-reset: step; display: grid; gap: 8px; list-style: none; }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: var(--ink-2); line-height: 1.45; }
+  .steps li::before { content: counter(step); width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+  .steps b { color: var(--ink); font-weight: 600; }
+  .hint { position: fixed; z-index: 8; left: 50%; translate: -50% 0; bottom: calc(112px + env(safe-area-inset-bottom, 0px)); color: rgba(255,255,255,0.75); font-size: 12.5px; text-shadow: 0 1px 10px rgba(0,0,0,0.95); pointer-events: none; transition: opacity 0.3s; white-space: nowrap; }
+
+  .tag { position: fixed; z-index: 4; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); color: #fff; font-size: 12px; font-weight: 600; text-shadow: 0 1px 10px rgba(0,0,0,0.95); white-space: nowrap; transition: opacity 0.3s; text-align: center; }
+  .tag.low { transform: translate(-50%, 8px); font-size: 11px; }
+  .tag small { display: block; font-weight: 400; color: rgba(255,255,255,0.65); font-size: 11px; }
+
+  /* The year's end, and the start. */
+  /* A people's world, up close. */
+  #worldview { position: fixed; inset: 0; z-index: 15; background: radial-gradient(ellipse at 60% 50%, #0b1020 0%, #050608 70%); opacity: 0; transition: opacity 0.4s; }
+  #worldview.on { opacity: 1; }
+  #worldview canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #worldview .wv-front { cursor: grab; }
+  #worldview .wv-panel { position: absolute; left: 20px; top: 20px; width: min(320px, calc(100vw - 40px)); padding: 16px; display: grid; gap: 12px; max-height: calc(100vh - 110px); overflow: auto; }
+  #worldview .wv-head { display: flex; gap: 10px; align-items: center; }
+  #worldview .wv-head i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor; flex: none; }
+  #worldview .wv-head b { font-size: 16px; font-weight: 600; display: block; }
+  #worldview .wv-head small { color: var(--ink-3); font-size: 11.5px; }
+  #worldview .wv-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  #worldview .wv-steps span { position: relative; height: 34px; border-radius: 6px; background: var(--chrome-3); overflow: hidden; display: grid; place-items: end start; padding: 4px; }
+  #worldview .wv-steps span.done { background: rgba(255,204,102,0.35); }
+  #worldview .wv-steps span.now { outline: 1px solid rgba(255,204,102,0.7); }
+  #worldview .wv-steps em { position: absolute; inset: 0 auto 0 0; background: rgba(255,204,102,0.25); }
+  #worldview .wv-steps b { position: relative; font-size: 9.5px; font-weight: 500; line-height: 1.1; color: var(--ink-2); }
+  #worldview p { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+  #worldview .wv-story { display: grid; gap: 5px; font-size: 11.5px; color: var(--ink-3); }
+  #worldview .wv-story div { display: grid; grid-template-columns: 38px 1fr; gap: 6px; }
+  #worldview .wv-close { position: absolute; right: 20px; top: 48px; width: auto; padding: 0 16px; }
+  #worldview .wv-hint { position: absolute; left: 60%; translate: -50% 0; bottom: 24px; font-size: 11.5px; color: rgba(255,255,255,0.45); pointer-events: none; }
+  @media (max-width: 760px) { #worldview .wv-panel { top: auto; bottom: 16px; left: 16px; max-height: 42vh; } #worldview .wv-hint { left: 50%; top: 64%; bottom: auto; } #worldview .wv-close { right: 16px; top: 16px; } }
+  #home { position: fixed; z-index: 9; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); width: auto; padding: 0 14px; }
+  #modal { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 16px; }
+  #modal[hidden] { display: none; }
+  #modal .card { width: min(460px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; padding: 24px; display: grid; gap: 16px; }
+  #modal h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  #modal p { color: var(--ink-2); line-height: 1.55; }
+  #modal ul { list-style: none; display: grid; gap: 8px; }
+  #modal li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; color: var(--ink-2); line-height: 1.45; }
+  #modal li b { color: var(--ink); font-weight: 600; }
+  #modal li i { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; }
+  .civ-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: center; background: var(--chrome-2); border-radius: 10px; padding: 9px 12px; }
+  .civ-row i { width: 10px; height: 10px; border-radius: 50%; }
+  .civ-row small { color: var(--ink-3); font-size: 11.5px; text-align: right; }
+  .marks { display: flex; flex-wrap: wrap; gap: 5px; }
+  .marks span { font-size: 11.5px; padding: 4px 9px; border-radius: 999px; background: var(--chrome-2); color: var(--ink-3); }
+  .marks span.got { background: var(--ink); color: var(--on-ink); }
+
+  @media (min-width: 761px) and (max-width: 1100px) { #feed { width: 300px; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
+  @media (max-width: 760px) {
+    #clock { left: 12px; top: 12px; width: auto; right: 132px; padding: 10px 12px; gap: 8px; }
+    #clock .era b { font-size: 15px; }
+    #clock .era small { display: none; }
+    #power { right: 12px; top: 12px; min-width: 0; width: 112px; padding: 10px 12px; }
+    #power .row small { display: none; }
+    #dock { left: 8px; right: 8px; translate: none; max-width: none; padding: 6px; overflow-x: auto; scrollbar-width: none; justify-content: space-between; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+    .act { min-width: 0; flex: 1; padding: 6px 2px; }
+    .act b { font-size: 11px; }
+    .act .long { display: none; } .act .short { display: inline; }
+    .dock-sep { margin: 8px 2px; }
+    .act small { display: none; }
+    .speed button { min-width: 30px; }
+    .speed button:not(:first-child):not([aria-pressed="true"]) { display: none; }   /* tap to cycle */
+    #card { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); max-height: 40vh; padding: 14px; }
+    #feed { left: 14px; width: calc(100vw - 28px); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+    #feed div:nth-child(n+3) { display: none; }
+    body.carded #feed { display: none; }
+    .hint { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+    #coach { left: 12px; right: 12px; width: auto; top: 96px; padding: 10px 12px; gap: 6px; }
+    #alerts { display: none; }
+    #power .legacy span:last-child { display: none; }
+    #power { gap: 6px; }
+    #coach .btn { height: 30px; }
+    body.carded #coach { display: none; }
+    #toolcard { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+    body.carded #toolcard { display: none; }
+    .backbar { display: none; }
+  }
+</style>
+</head>
+<body>
+<iframe id="sky" src="../create/index.html?embed" title="Galaxy"></iframe>
+<canvas id="map" class="layer"></canvas>
+<div id="hit"></div>
+<section id="clock" class="card"></section>
+<section id="power" class="card"></section>
+<section id="card" class="card" hidden></section>
+<div id="feed" aria-live="polite"></div>
+<div id="banner"><small></small><b></b></div>
+<div class="hint" id="hint"></div>
+<section id="coach" class="card"></section>
+<section id="alerts"></section>
+<button id="reopen" class="btn primary" hidden>The year's end</button>
+<section id="toolcard" class="card" hidden></section>
+<section id="dock" class="card"></section>
+<button type="button" id="home" class="btn" hidden>Whole galaxy</button>
+<div id="modal" hidden><div class="card"></div></div>
+<section id="worldview" hidden></section>
+
+<script src="ui.js"></script>
+<script src="kit.js"></script>
+<script src="sim/sim.js"></script>
+<script src="sim/world.js"></script>
+<script>
+(async function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const TAU = Math.PI * 2;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const rgba = (h, a) => { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b},${a})`; };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  Kit.backbar('Galaxy sim');
+  // Opened from the app's hub: the way back leads there, not to the playground.
+  try { if (new URLSearchParams(location.search).get('from') === 'hub') sessionStorage.setItem('galaxy-sim-from', 'hub'); } catch (e) {}
+  try { if (sessionStorage.getItem('galaxy-sim-from') === 'hub') { const a = document.querySelector('.backbar a'); a.href = '../hub.html'; a.textContent = '← Galaxy Creator'; a.nextSibling.remove(); a.nextSibling.remove(); } } catch (e) {}
+
+  const G = await Kit.connect($('sky'));
+  G.hold(true);
+  G.set('spin', 0);                                             // still stars, so the regions stay put
+  G.set('orbit', 0);
+  // Far enough back that the whole disk fits, tall phones included.
+  const HOME = { yaw: 0.6, pitch: 0.95, roll: 0, focus: [0, 0, 0], dist: 2.7 / Math.pow(Math.min(1, innerWidth / innerHeight * 1.4), 1.1) };
+  G.setCamera(HOME);
+
+  // ---- the game: a seed and what you did; the sim replays it ---------------------------------
+  const SAVE = 'galaxy-sim-v2', BEST = 'galaxy-sim-best';
+  const DAY_MS = 15 * 60 * 1000 / Sim.YEAR;                     // 1×: the year in fifteen minutes
+  const SPEEDS = [0, 1, 4, 16];
+  let s, speed = 1, acc = 0, selected = null, picking = null, hover = null, ended = false;
+  const fx = [];                                                // short-lived effects on the map
+
+  function start(seed, actions, upTo) {
+    s = Sim.create(seed);
+    shape = shapeFor(seed);
+    const todo = (actions || []).slice();
+    while (s.day < (upTo || 0) && s.day < Sim.YEAR) {
+      while (todo.length && todo[0].day === s.day) { const a = todo.shift(); Sim.act(s, a.kind, a.region, a.civ); }
+      Sim.step(s);
+    }
+    while (todo.length && todo[0].day === s.day) { const a = todo.shift(); Sim.act(s, a.kind, a.region, a.civ); }
+    seen = s.log.length; selected = null; picking = null; ended = s.day >= Sim.YEAR; fx.length = 0;
+    ['coach', 'alerts', 'card'].forEach((id) => { const el = $(id); el._key = el._shape = el._sig = el._order = el._last = null; if (el._ghosts) el._ghosts.clear(); });   // a new galaxy: nothing cached from the last
+    tags.forEach((el) => el.remove()); tags.clear(); banners.length = 0;
+    $('feed').innerHTML = '';
+    s.log.filter((e) => !(e.you && /^You (sheltered|sent gas)/.test(e.text))).slice(-5).forEach((e) => feedLine(e));
+    renderAll();
+  }
+  const save = () => store.set(SAVE, { seed: s.seed, actions: s.actions, day: s.day });
+  // Today's galaxy: the same seed for everyone on a given day, with your best score for it.
+  const today = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
+  const isToday = () => s && s.seed === today();
+  const dayBests = () => store.get(BEST + '-days') || {};
+  const fresh = () => Math.floor(Math.random() * 1e6) + 1;
+  function newGalaxy(seed) { $('reopen').hidden = true; start(seed); save(); setSpeed(1); if (s.trait) banner(s.trait.name, s.trait.text); }
+  let seen = 0;
+
+  // ---- where the regions are -------------------------------------------------------------
+  // One disk unit of the sim is DISK world units of the galaxy; each region is a cell between
+  // two radii and two angles, and its centre is where its lights go.
+  const DISK = 1.42;
+  const EDGES = [0, 0.12, 0.35, 0.62, 0.95];
+  const at = (r, a) => [Math.cos(a) * r * DISK, 0, Math.sin(a) * r * DISK];
+  const centre = (g) => (g.ring === 0 ? [0, 0, 0] : at(g.r, g.a));
+  function cell(g) {                                            // the region's outline, in world space
+    if (g.ring === 0) { const pts = []; for (let i = 0; i < 32; i++) pts.push(at(EDGES[1], i / 32 * TAU)); return pts; }
+    const r0 = EDGES[g.ring], r1 = EDGES[g.ring + 1], a0 = g.a - Math.PI / 8, a1 = g.a + Math.PI / 8, pts = [];
+    for (let i = 0; i <= 8; i++) pts.push(at(r1, lerp(a0, a1, i / 8)));
+    for (let i = 8; i >= 0; i--) pts.push(at(r0, lerp(a0, a1, i / 8)));
+    return pts;
+  }
+  function path(g2d, pts) {
+    let ok = false;
+    g2d.beginPath();
+    pts.forEach((p, i) => { const q = G.project(p); if (!q) return; ok = true; if (i) g2d.lineTo(q.x, q.y); else g2d.moveTo(q.x, q.y); });
+    g2d.closePath();
+    return ok;
+  }
+  function regionAt(x, y) {
+    const c = $('map').getContext('2d');
+    for (let i = s.regions.length - 1; i >= 0; i--) { const g = s.regions[i]; if (path(c, cell(g)) && c.isPointInPath(x * dpr, y * dpr)) return g; }
+    return null;
+  }
+
+  // ---- the galaxy's look follows the sim ----------------------------------------------------
+  // Young, gassy and dustless at first light; old, gold and dusty by the end. A flare puffs up
+  // the core's glow for a moment.
+  let flareGlow = 0, shape = {};
+  function shapeFor(seed) {
+    let k = (seed * 9301 + 49297) % 233280; const r = () => ((k = (k * 9301 + 49297) % 233280) / 233280);
+    const presets = Object.keys(G.presets);
+    const type = ['Spiral', 'Spiral', 'Barred', 'Barred', 'Ring'][Math.floor(r() * 5)];
+    return Object.assign({ type, arms: 2 + Math.floor(r() * 3), twist: +(0.8 + r() * 0.8).toFixed(2) }, G.presets[presets[Math.floor(r() * presets.length)]]);
+  }
+  function look(dt) {
+    const L = Sim.look(s);
+    flareGlow = Math.max(0, flareGlow - dt / 1600);
+    G.setLive({
+      ...shape,
+      stars: clamp(0.14 + 0.86 * L.stars / 26, 0.1, 1),
+      form: clamp(0.12 + 1.3 * Math.pow(L.youngFrac, 0.8), 0, 1.5),
+      nebula: clamp(0.18 + 1.05 * L.gas / 14, 0, 1.5),
+      dust: clamp(0.08 + 2.3 * L.metals, 0, 1.3),
+      clump: clamp(0.3 + 0.6 * L.youngFrac, 0, 1),
+      halo: 0.35 + 0.4 * Math.min(1, L.stars / 26) + 0.9 * flareGlow,
+      hole: clamp((L.bh - 0.18) * 1.6, 0, 0.6),
+      bloom: 0.9 + 0.6 * flareGlow,
+      companions: !s.companion.merged,
+    }, false);
+  }
+
+  // ---- drawing the map ------------------------------------------------------------------
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const map = $('map'), g2 = map.getContext('2d');
+  function resize() { map.width = innerWidth * dpr; map.height = innerHeight * dpr; }
+  addEventListener('resize', () => { resize(); placeCoach(); fitFeed(); }); resize();
+
+  const tags = new Map();
+  function tag(key, html, x, y, show, cls) {
+    let el = tags.get(key);
+    if (!el) { el = document.createElement('div'); el.className = 'tag' + (cls ? ' ' + cls : ''); document.body.append(el); tags.set(key, el); }
+    if (el._html !== html) { el.innerHTML = html; el._html = html; }
+    el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.opacity = show ? 1 : 0;
+  }
+  // A light per system: each region a civilisation holds gets a little cluster of them.
+  const sprinkle = (g, n) => { const out = []; let k = g.id * 7919 + 1; const r = () => ((k = (k * 16807) % 2147483647) / 2147483647); for (let i = 0; i < n; i++) { const a = r() * TAU, d = Math.sqrt(r()) * 0.06 * (g.ring + 1) / 2; const c = centre(g); out.push([c[0] + Math.cos(a) * d * DISK, 0, c[2] + Math.sin(a) * d * DISK]); } return out; };
+
+  function draw(now) {
+    const W = innerWidth, H = innerHeight;
+    g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g2.clearRect(0, 0, W, H);
+    const R = s.regions;
+    squashNow = squash();
+    const showGrid = picking || hover || selected !== null;
+    // Habitability and life: a soft wash of green where life could take hold.
+    R.forEach((g) => {
+      if (!path(g2, cell(g))) return;
+      const hab = g.hab;
+      if (hab > Sim.K.lifeOn && g.civ === null && g.worlds) { g2.fillStyle = `rgba(70, 225, 120, ${0.1 + 0.18 * Math.min(1, hab)})`; g2.fill(); }
+      const isSel = selected === g.id, isHover = hover && hover.id === g.id;
+      g2.lineWidth = isSel ? 1.6 : 1;
+      g2.strokeStyle = isSel ? 'rgba(255,255,255,0.9)' : isHover ? 'rgba(255,255,255,0.55)' : `rgba(255,255,255,${picking ? 0.22 : showGrid ? 0.1 : 0.05})`;
+      g2.stroke();
+      if (g.shelter > 0) { g2.setLineDash([3, 4]); g2.strokeStyle = `rgba(150,200,255,${0.4 + 0.5 * g.shelter / Sim.K.shelterDays})`; g2.lineWidth = 1.6; g2.stroke(); g2.setLineDash([]); }
+    });
+    // The coach's region: a gold outline, so its advice is easy to find.
+    if (advice && advice.region !== undefined && selected !== advice.region && path(g2, cell(R[advice.region]))) {
+      g2.strokeStyle = `rgba(255, 204, 102, ${0.5 + 0.35 * Math.sin(now / 300)})`; g2.lineWidth = 2; g2.setLineDash([6, 4]); g2.lineDashOffset = -now / 50; g2.stroke(); g2.setLineDash([]);
+      const q = G.project(centre(R[advice.region]));
+      if (q) tag('coach', `<span style="color:#ffcc66">${esc(Sim.regionName(R[advice.region]))}</span>`, q.x, q.y + 30, true, 'low');
+    } else tag('coach', '', 0, 0, false);
+    // Worlds: a dot for each planet that could hold life. Life only starts where there are some.
+    R.forEach((g) => {
+      if (!g.worlds || g.civ !== null) return;
+      const q = G.project(centre(g)); if (!q) return;
+      const lit = (hover && hover.id === g.id) || selected === g.id;
+      g2.fillStyle = `rgba(255,255,255,${lit ? 1 : 0.7})`;
+      for (let i = 0; i < g.worlds; i++) { g2.beginPath(); g2.arc(q.x + (i - (g.worlds - 1) / 2) * 7, q.y + 17, 2.2, 0, TAU); g2.fill(); }
+    });
+    // Life stirring, before anyone is there: a slow ring that tightens as it nears 1.
+    R.forEach((g) => {
+      if (g.civ !== null || g.life < 0.04) return;
+      const q = G.project(centre(g)); if (!q) return;
+      const k = clamp(g.life, 0, 1), p = 0.5 + 0.5 * Math.sin(now / 700 + g.id);
+      const host = R.find((x) => x.civ !== null && x.n.includes(g.id) && s.civs[x.civ].home === x.id);
+      g2.strokeStyle = host ? rgba(s.civs[host.civ].colour, 0.35 + 0.5 * k) : `rgba(160, 255, 200, ${0.25 + 0.5 * k})`; g2.lineWidth = host ? 1.6 : 1.2;
+      g2.beginPath(); g2.arc(q.x, q.y, 4 + (1 - k) * 10 + p * 2, 0, TAU); g2.stroke();
+      g2.fillStyle = `rgba(200, 255, 220, ${0.4 * k})`; g2.beginPath(); g2.arc(q.x, q.y, 1.6, 0, TAU); g2.fill();
+    });
+    // The calmed core: a quiet blue ring for as long as it lasts.
+    if (s.bh.calm > 0) {
+      const q = G.project([0, 0, 0]), e = G.project(at(EDGES[1] * 0.8, 0));
+      if (q && e) { g2.strokeStyle = `rgba(150, 200, 255, ${0.25 + 0.4 * s.bh.calm / Sim.K.calmDays})`; g2.lineWidth = 1.4; g2.setLineDash([2, 5]); g2.beginPath(); g2.arc(q.x, q.y, Math.hypot(e.x - q.x, e.y - q.y), now / 3000, now / 3000 + TAU); g2.stroke(); g2.setLineDash([]); }
+    }
+    // Civilisations: territory, lights, a name.
+    g2.globalCompositeOperation = 'lighter';
+    s.civs.forEach((c) => {
+      if (!c.alive) { tag('c' + c.id, '', 0, 0, false); return; }
+      const pulse = 0.8 + 0.2 * Math.sin(now / 650 + c.id * 1.7);
+      c.regions.forEach((id) => {
+        const g = R[id];
+        if (path(g2, cell(g))) { g2.fillStyle = rgba(c.colour, id === c.home ? 0.16 : 0.1); g2.fill(); }
+        const n = id === c.home ? 4 + c.tech * 3 : 3 + c.tech;
+        sprinkle(g, n).forEach((p, i) => {
+          const q = G.project(p); if (!q) return;
+          const big = i === 0 && id === c.home, r = big ? 22 + 5 * c.tech : 8 + 1.5 * c.tech;
+          const gr = g2.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
+          gr.addColorStop(0, rgba(c.colour, pulse)); gr.addColorStop(0.2, rgba(c.colour, 0.45 * pulse)); gr.addColorStop(1, rgba(c.colour, 0));
+          g2.fillStyle = gr; g2.beginPath(); g2.arc(q.x, q.y, r, 0, TAU); g2.fill();
+          g2.fillStyle = rgba(c.colour, 1); g2.beginPath(); g2.arc(q.x, q.y, big ? 2.6 : 1.4, 0, TAU); g2.fill();
+        });
+      });
+      const h = G.project(centre(R[c.home]));
+      if (h) {
+        g2.fillStyle = '#fff'; g2.beginPath(); g2.arc(h.x, h.y, 2.2, 0, TAU); g2.fill();
+        tag('c' + c.id, `${esc(c.name)}<small>${Sim.stage(c)} · ${c.regions.length} ${c.regions.length === 1 ? 'region' : 'regions'}</small>`, h.x, h.y, true);
+      }
+    });
+    // Contact: an arc between every pair that has met, brighter while it's news.
+    g2.globalCompositeOperation = 'lighter';
+    s.civs.forEach((c) => c.met.forEach((o) => {
+      if (o < c.id || !c.alive || !s.civs[o].alive) return;
+      const d = s.civs[o], a = G.project(centre(R[c.home])), b = G.project(centre(R[d.home]));
+      if (!a || !b) return;
+      const age = (now - (contactAt.get(c.id + ':' + o) || 0)) / 3000, k = age < 1 ? 1 - age : 0;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - Math.hypot(b.x - a.x, b.y - a.y) * 0.25;
+      const gr = g2.createLinearGradient(a.x, a.y, b.x, b.y); gr.addColorStop(0, rgba(c.colour, 0.35 + 0.6 * k)); gr.addColorStop(1, rgba(d.colour, 0.35 + 0.6 * k));
+      g2.strokeStyle = gr; g2.lineWidth = 1.2 + 2 * k; g2.setLineDash([2, 6]); g2.lineDashOffset = -now / 60;
+      g2.beginPath(); g2.moveTo(a.x, a.y); g2.quadraticCurveTo(mx, my, b.x, b.y); g2.stroke(); g2.setLineDash([]);
+    }));
+    // Ships: interstellar civilisations travel between their regions.
+    s.civs.forEach((c) => {
+      if (!c.alive || c.tech < 3 || c.regions.length < 2) return;
+      const h = G.project(centre(R[c.home])); if (!h) return;
+      c.regions.forEach((id, i) => {
+        if (id === c.home) return;
+        const q = G.project(centre(R[id])); if (!q) return;
+        const k = ((now / 5200 + i * 0.37 + c.id * 0.13) % 1), e = k < 0.5 ? k * 2 : 2 - k * 2;
+        g2.fillStyle = rgba(c.colour, 0.95); g2.beginPath(); g2.arc(lerp(h.x, q.x, e), lerp(h.y, q.y, e), 1.6, 0, TAU); g2.fill();
+      });
+    });
+    // Beacons: a column of light over the home world.
+    s.civs.forEach((c) => {
+      if (!c.alive || !c.beacon) return;
+      const h = G.project(centre(R[c.home])); if (!h) return;
+      const tall = 220, w = 7 + 3 * Math.sin(now / 400 + c.id);
+      const gr = g2.createLinearGradient(h.x, h.y, h.x, h.y - tall); gr.addColorStop(0, rgba(c.colour, 0.95)); gr.addColorStop(1, rgba(c.colour, 0));
+      g2.globalCompositeOperation = 'lighter';
+      g2.fillStyle = gr; g2.fillRect(h.x - w / 2, h.y - tall, w, tall);
+      g2.fillStyle = rgba('#ffffff', 0.7); g2.fillRect(h.x - 1, h.y - tall * 0.8, 2, tall * 0.8);
+      const halo = g2.createRadialGradient(h.x, h.y, 0, h.x, h.y, 34); halo.addColorStop(0, rgba(c.colour, 0.6)); halo.addColorStop(1, rgba(c.colour, 0));
+      g2.fillStyle = halo; g2.beginPath(); g2.arc(h.x, h.y, 34, 0, TAU); g2.fill();
+    });
+    // Golden ages: a slow gold shimmer around the territory.
+    s.civs.forEach((c) => {
+      if (!c.alive || !c.golden) return;
+      c.regions.forEach((id) => { if (path(g2, cell(R[id]))) { g2.strokeStyle = `rgba(255, 210, 110, ${0.35 + 0.25 * Math.sin(now / 500 + id)})`; g2.lineWidth = 1.5; g2.stroke(); } });
+    });
+    g2.globalCompositeOperation = 'source-over';
+    // Threats: a ring that tightens as the strike nears, and a countdown.
+    const live = new Set();
+    s.threats.forEach((x) => {
+      const left = x.at - s.day, k = 1 - clamp(left / (x.at - x.from || 1), 0, 1), p = 0.5 + 0.5 * Math.sin(now / (left < 5 ? 160 : 420));
+      const col = THREAT[x.kind].colour, key = 't' + x.id;
+      let pos = x.region === null ? at(1.08, 2.4) : centre(R[x.region]);
+      if (x.kind === 'flare') pos = [0, 0, 0];
+      const q = G.project(pos); if (!q) return;
+      live.add(key);
+      if (x.kind === 'grb') R[x.region].n.concat(x.region).forEach((id) => { if (R[id].ring && path(g2, cell(R[id]))) { g2.setLineDash([4, 4]); g2.strokeStyle = rgba(col, 0.35 + 0.3 * p); g2.lineWidth = 1.2; g2.stroke(); g2.setLineDash([]); } });
+      const rr = (x.kind === 'flare' ? 46 : x.kind === 'collide' ? 30 : 26) * (1.2 - 0.7 * k);
+      g2.strokeStyle = rgba(col, 0.5 + 0.4 * p); g2.lineWidth = 1.6 + k * 1.5;
+      g2.beginPath(); g2.ellipse(q.x, q.y, rr, rr * squashNow, 0, 0, TAU); g2.stroke();
+      tag(key, `${THREAT[x.kind].name}<small>${guarded(x) ? '✓ ' : ''}${dd(left)}</small>`, q.x, q.y + rr * squashNow, true, 'low');
+    });
+    // An omen's choices, marked where they are.
+    const omenSeen = new Set();
+    if (s.omen) s.omen.options.forEach((o, i) => {
+      if (o.fx[1] === undefined || omenSeen.has(o.fx[1])) return;
+      omenSeen.add(o.fx[1]);
+      const q = G.project(centre(R[o.fx[1]])); if (!q) return;
+      const key = 'to' + i; live.add(key);
+      const pulse = 0.5 + 0.5 * Math.sin(now / 300 + i);
+      g2.strokeStyle = `rgba(185,166,255,${0.45 + 0.4 * pulse})`; g2.lineWidth = 2; g2.setLineDash([5, 4]);
+      g2.beginPath(); g2.ellipse(q.x, q.y, 24, 24 * squashNow, 0, 0, TAU); g2.stroke(); g2.setLineDash([]);
+      tag(key, `<span style="color:#cbbcff">✦ ${esc(Sim.regionName(R[o.fx[1]]))}</span>`, q.x, q.y - 26 * squashNow, true);
+    });
+    tags.forEach((el, key) => { if (key[0] === 't' && !live.has(key)) { el.remove(); tags.delete(key); } });
+    // Stardust: golden motes to tap for influence, fading as they expire.
+    sparkPos.clear();
+    const buried = [];
+    s.sparks.forEach((x) => {
+      if ((x.from || 0) > s.day) return;
+      const g = R[x.region], c = centre(g), a = (x.id * 2.39996) % TAU, d = (0.25 + ((x.id * 0.618) % 1) * 0.6) * 0.06 * (g.ring + 1);
+      const q = G.project([c[0] + Math.cos(a) * d * DISK, 0, c[2] + Math.sin(a) * d * DISK]); if (!q) return;
+      const life = clamp((x.until - s.day) / 3, 0, 1), tw = 0.75 + 0.25 * Math.sin(now / 180 + x.id);
+      const r = (6 + 2 * tw) * (0.6 + 0.4 * life);
+      if (q.x > 0 && q.x < innerWidth && q.y > 0 && q.y < innerHeight - 110) {
+        sparkPos.set(x.id, q);
+        // Under a panel it can't be tapped: on its last day, it comes to you instead.
+        if (x.until - s.day <= 1 && !ended) { const top = document.elementFromPoint(q.x, q.y); if (top && top !== hit) buried.push(x.id); }
+      }
+      g2.globalCompositeOperation = 'lighter';
+      const gr = g2.createRadialGradient(q.x, q.y, 0, q.x, q.y, r * 2.6); gr.addColorStop(0, `rgba(255,220,140,${0.9 * life})`); gr.addColorStop(1, 'rgba(255,190,80,0)');
+      g2.fillStyle = gr; g2.beginPath(); g2.arc(q.x, q.y, r * 2.6, 0, TAU); g2.fill();
+      g2.fillStyle = `rgba(255,245,215,${life})`; g2.beginPath();
+      for (let i = 0; i < 8; i++) { const ang = i * Math.PI / 4 + now / 2000, rad = i % 2 ? r * 0.28 : r; g2.lineTo(q.x + Math.cos(ang) * rad, q.y + Math.sin(ang) * rad); }
+      g2.closePath(); g2.fill();
+      g2.globalCompositeOperation = 'source-over';
+    });
+    buried.forEach((id) => collect(id));
+    // Effects: flares, starbursts, births.
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const f = fx[i];
+      f.frames = (f.frames || 0) + 1;
+      const k = Math.min(Math.max(0, (now - f.t0) / f.ms), f.frames / 14);   // at least 14 frames, so slow machines see it too
+      if (k >= 1) { fx.splice(i, 1); continue; }
+      const q = G.project(f.p); if (!q) continue;
+      const unit = (() => { const e = G.project([f.p[0] + 0.1, 0, f.p[2]]); return e ? Math.hypot(e.x - q.x, e.y - q.y) / 0.1 : 200; })();
+      if (f.stream) {                                            // the companion pouring in: streaks from beyond the rim
+        g2.globalCompositeOperation = 'lighter';
+        for (let j = 0; j < 40; j++) {
+          const a = f.angle + (j / 40 - 0.5) * 1.6, kk = clamp(k * 1.6 - (j % 8) * 0.07, 0, 1);
+          const from = G.project(at(1.6, f.angle)), to = G.project(at(0.78, a));
+          if (!from || !to) continue;
+          const x = lerp(from.x, to.x, kk), y = lerp(from.y, to.y, kk);
+          g2.fillStyle = rgba(f.colour, 0.9 * (1 - k)); g2.beginPath(); g2.arc(x, y, 2.2, 0, TAU); g2.fill();
+        }
+        continue;
+      }
+      if (f.beam) {                                              // a gamma-ray burst: a beam straight through the region
+        g2.globalCompositeOperation = 'lighter';
+        g2.strokeStyle = rgba(f.colour, 0.9 * (1 - k)); g2.lineWidth = 10 * (1 - k) + 1;
+        g2.beginPath(); g2.moveTo(q.x - 900, q.y - 500); g2.lineTo(q.x + 900, q.y + 500); g2.stroke();
+        continue;
+      }
+      const r = unit * f.size * Math.pow(k, 0.6);
+      g2.strokeStyle = rgba(f.colour, 0.8 * (1 - k)); g2.lineWidth = 2 * (1 - k) + 0.5;
+      g2.beginPath(); g2.ellipse(q.x, q.y, r, r * f.squash, 0, 0, TAU); g2.stroke();
+      if (f.fill) { const gr = g2.createRadialGradient(q.x, q.y, 0, q.x, q.y, r); gr.addColorStop(0, rgba(f.colour, 0.5 * (1 - k))); gr.addColorStop(1, rgba(f.colour, 0)); g2.fillStyle = gr; g2.beginPath(); g2.arc(q.x, q.y, r, 0, TAU); g2.fill(); }
+    }
+    g2.globalCompositeOperation = 'source-over';
+  }
+  // How flat the disk looks from here, so rings on it read as ellipses.
+  const squash = () => { const a = G.project([0, 0, 0]), b = G.project([0.3, 0, 0]), c = G.project([0, 0, 0.3]); if (!a || !b || !c) return 0.6; const u = Math.hypot(b.x - a.x, b.y - a.y), v = Math.hypot(c.x - a.x, c.y - a.y); return clamp(Math.min(u, v) / Math.max(u, v, 1e-3), 0.15, 1); };
+  function burst(p, colour, size, ms, fill, beam) { fx.push({ p, colour, size, ms, fill, beam, t0: performance.now(), squash: squash() }); }
+  function stream(colour, ms) { fx.push({ p: [0, 0, 0], colour, ms, stream: true, angle: 2.4, t0: performance.now() }); }
+  let squashNow = 0.6;
+  const sparkPos = new Map(), contactAt = new Map();
+  const THREAT = {
+    nova: { name: 'Supernova', colour: '#ffa24d', answer: 'shelter' },
+    grb: { name: 'Gamma-ray burst', colour: '#c58bff', answer: 'shelter' },
+    flare: { name: 'Black hole flare', colour: '#ff6a5c', answer: 'calm' },
+    collide: { name: 'Companion galaxy', colour: '#ffe1b0', answer: 'merge' },
+  };
+  const guarded = (x) => Sim.guarded(s, x);
+
+  // ---- the chronicle, as it happens --------------------------------------------------------
+  const BIG = (e) => e.challenge || e.birth || e.milestone || e.contact || e.golden || e.collapse || e.gone || e.stage >= 2 || e.lost || e.setback || e.beacon || e.ask || e.welcome || e.storm || e.concordNear !== undefined || e.foresight || e.thin;
+  function news() {
+    const fresh = s.log.slice(seen);
+    seen = s.log.length;
+    fresh.forEach((e) => {
+      if (e.flare) { burst([0, 0, 0], '#ffd2a0', 0.55, 1800, true); flareGlow = 1; }
+      if (e.birth && !s.civs[e.civ].seedWorld && s.civs.filter((x) => !x.seedWorld).length === 1) firstPeople(s.civs[e.civ]);   // the first to arise on their own
+      if (e.seed) seedMoment(s.civs[e.civ]);
+      if (e.birth) { const c = s.civs[e.civ]; if (speed > 1) slow(`The ${c.name} arose: slowed to 1×`); burst(centre(s.regions[c.home]), c.colour, 0.16, 2200, true); burst(centre(s.regions[c.home]), '#ffffff', 0.32, 2600, false); banner('A new civilisation', `The ${c.name}, in ${Sim.regionName(s.regions[c.home])}`); }
+      if (e.contact) contactAt.set(Math.min(e.civ, e.other) + ':' + Math.max(e.civ, e.other), performance.now());
+      if (e.strike === 'nova') { const p = centre(s.regions[e.region]); burst(p, '#ffffff', 0.12, 900, true); burst(p, '#ffa24d', 0.3, 2400, false); }
+      if (e.strike === 'grb') { const p = centre(s.regions[e.region]); burst(p, '#c58bff', 0, 1500, false, true); burst(p, '#c58bff', 0.35, 2200, true); }
+      if (e.strike === 'collide') { banner('The collision', 'The companion galaxy crashes into yours'); stream('#ffb070', 3500); burst([0, 0, 0], '#ffe1b0', 1.2, 3000, false); flareGlow = 0.8; }
+      if (e.strike === 'calmed') burst([0, 0, 0], '#a8d4ff', 0.3, 1600, false);
+      if (e.golden) { const c = s.civs[e.civ]; c.regions.forEach((id) => burst(centre(s.regions[id]), '#ffd27a', 0.18, 4000, true)); banner('A golden age', `The ${c.name}`); }
+      if (e.beacon) { const c = s.civs[e.civ]; burst(centre(s.regions[c.home]), c.colour, 0.4, 3000, true); banner('A beacon', `The ${c.name} light theirs, with your help`); }
+      if (e.concord === true) { burst([0, 0, 0], '#ffd27a', 1.4, 4000, false); burst([0, 0, 0], '#ffffff', 0.9, 3000, false); flareGlow = 1; banner("The Gardener's Concord", e.text.replace(/^The Gardener's Concord: /, '')); }
+      if (e.test) { banner('The last test', 'Some peoples want one more sign of your care'); if (speed > 1) slow('The last test: slowed to 1×'); }
+      if (e.thin && speed > 1) { slow(`The ${s.civs[e.civ].name}'s trust is wearing thin: slowed to 1×`); }
+      if (e.omen && e.you && e.region !== undefined) { const p = centre(s.regions[e.region]); burst(p, '#b9a6ff', 0.2, 2200, true); UI.toast(e.text); }
+      if (e.challenge && (e.ask || e.met)) banner(e.met ? 'Challenge met ✓' : 'A challenge', e.met ? `${s.challenge.text} · +${Sim.K.challengeWorth} legacy` : `${s.challenge.text}, in ${dd(Sim.K.challengeFor)}`);
+      if (e.omen && e.ask) { banner('An omen', s.omen ? s.omen.title : ''); if (speed) { lastSpeed = speed; setSpeed(0); omenPaused = true; UI.toast('A choice: paused while you decide'); } }
+      if (e.concordNear === true) { burst([0, 0, 0], '#ffd27a', 0.7, 2600, false); banner('The concord is within reach', 'Keep their trust until the year ends'); }
+      if (e.concordNear === false) banner('The concord slipped away', 'Win back a people\'s trust to bring it within reach');
+      if (e.concord === false) banner('No concord', e.text.replace(/^No concord: /, ''));
+      if (e.schism) { banner('A schism', e.text.replace(/^A schism: /, '')); if (speed > 1) slow('A schism: slowed to 1×'); }
+      else if (e.dispute) { banner('A dispute', e.text.replace(/^A dispute: /, '')); if (speed > 1) { slow('A dispute: slowed to 1×'); } }
+      if (e.storm) { banner('A storm', e.text.replace(/^A storm of supernovae is coming: /, 'Supernovae are coming: ')); if (speed > 1) { slow('A storm: slowed to 1×'); } }
+      if (e.beaconTalk) banner('Coming soon', 'Beacons: keep influence in reserve');
+      if (e.concordTalk) banner('The peoples talk of uniting', `Your goal draws near: a concord, if ${Sim.K.concordMin} civilisations in contact trust you by month 12`);
+      // Routine care is in the card; the feed keeps to what happened.
+      if (e.you && /^You (sheltered|sent gas)/.test(e.text)) return;
+      feedLine(e);
+      if (e.milestone && !e.birth && !e.golden && !e.concord) banner('Milestone', e.headline || e.text);
+    });
+    if (fresh.length && selected !== null) renderCard();
+  }
+  // The first people: worth stopping the clock for.
+  // A people's world, up close: from their card, a double-click on their lights, or the seed world.
+  let speedBeforeWorld = 0;
+  const world = World.create($('worldview'), { sim: Sim, state: () => s, onOpen: () => { speedBeforeWorld = speed; setSpeed(0); }, onClose: () => { resume(speedBeforeWorld); } });
+  function seedMoment(c) {
+    const was = speed || 1; setSpeed(0);
+    setTimeout(() => modal(`<div class="stars" style="color:${c.colour}">●</div><h2>Your seed world</h2>
+      <p>The <b>${esc(c.name)}</b> already live in ${esc(Sim.regionName(s.regions[c.home]))}: a young people, with their first cities. ${esc(KIND_LINE[c.kind])}</p>
+      <p>Keep them safe while the galaxy grows around them. You can visit their world any time from their card, or by double-clicking their lights. The game waits while you look.</p>`,
+      [['See their world', () => { speed = was; world.open(c.id); }], ['Begin', () => resume(was), true]]), 600);
+  }
+  function firstPeople(c) {
+    const was = speed || 1; setSpeed(0);   // paused already: resume at 1×, not the last fast speed
+    setTimeout(() => modal(`<div class="stars" style="color:${c.colour}">●</div><h2>${s.civs.some((x) => x.seedWorld) ? 'A new civilisation' : 'The first civilisation'}</h2>
+      <p>The <b>${esc(c.name)}</b> have arisen in ${esc(Sim.regionName(s.regions[c.home]))}, on worlds you made possible. ${esc(KIND_LINE[c.kind])}</p>
+      <p>Tap their lights to read their story. When they reach spaceflight they will see you, and start to ask things of you.</p>`, [['See their world', () => { speed = was; world.open(c.id); }], ['Watch them grow', () => resume(was), true]]), 900);
+  }
+  const KIND_LINE = { Expansive: 'They are expansive: they will want room to grow, and metals to build with.', Mercantile: 'They are mercantile: they will want to reach other peoples, and metals to trade.', Contemplative: 'They are contemplative: they will want calm, and a quiet black hole.', Insular: 'They are insular: they will want to be kept safe at home.' };
+  function feedLine(e) {
+    const d = document.createElement('div');
+    if (e.you) d.className = 'you';
+    if (BIG(e)) d.className += ' big';
+    d.innerHTML = `<em>Mo ${Math.floor(e.day / Sim.MONTH) + 1}</em>${esc(e.text)}`;
+    $('feed').append(d);
+    while ($('feed').children.length > 5) $('feed').firstChild.remove();
+    fitFeed();
+  }
+  // On a short screen the feed would climb behind the coach: drop its oldest lines until it clears.
+  function fitFeed() {
+    const f = $('feed'), c = $('coach').getBoundingClientRect();
+    if (!c.height || c.left > f.getBoundingClientRect().right) return;
+    while (f.children.length > 1 && f.getBoundingClientRect().top < c.bottom + 10) f.firstChild.remove();
+  }
+  // Banners queue, so two in a day both get their moment.
+  const banners = [];
+  let bannerBusy = false;
+  function banner(kicker, text) { banners.push([kicker, text]); if (!bannerBusy) nextBanner(); }
+  function nextBanner() {
+    const b = $('banner'), n = banners.shift();
+    if (!n) { bannerBusy = false; return; }
+    bannerBusy = true;
+    b.firstChild.textContent = n[0]; b.lastChild.textContent = n[1];
+    b.style.top = Math.max(innerHeight * 0.22, $('alerts').getBoundingClientRect().bottom + 28) + 'px';   // never under the alert rows
+    b.classList.add('on');
+    setTimeout(() => { b.classList.remove('on'); setTimeout(nextBanner, 600); }, 3200);
+  }
+
+  // ---- the panels -----------------------------------------------------------------------
+  const ICONS = {
+    uplift: UI.svg('<path d="M12 19V6"/><path d="M6 11l6-6 6 6"/>'),
+    seed: UI.svg('<path d="M12 20v-7"/><path d="M12 13c0-4 3-7 7-7 0 4-3 7-7 7Z"/><path d="M12 15c0-3-2.4-5.5-6-5.5 0 3 2.4 5.5 6 5.5Z"/>'),
+    starburst: UI.svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>'),
+    shelter: UI.svg('<path d="M12 3.5 19 6.5v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9v-5Z"/>'),
+    calm: UI.svg('<circle cx="12" cy="12" r="3"/><path d="M4.5 12a7.5 7.5 0 0 1 7.5-7.5M19.5 12a7.5 7.5 0 0 1-7.5 7.5"/>'),
+    feed: UI.svg('<circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M12 3c5 0 9 4 9 9M12 21c-5 0-9-4-9-9"/>'),
+    merge: UI.svg('<circle cx="8" cy="12" r="4.5"/><circle cx="16.5" cy="12" r="3"/>'),
+  };
+  // Each tool: what it does, and when it is the right move. Shown above the dock, and in How to play.
+  const ACTIONS = [
+    { kind: 'seed', label: 'Seed', region: true, what: 'Pours fresh gas into a region. Gas is what stars are made from, so more stars form there over the next weeks.', when: 'A region with little gas (see its card) that you want to grow. Fresh gas thins out metals a little.' },
+    { kind: 'shelter', label: 'Shelter', region: true, what: 'Protects a region for 30 days: it calms three times faster, and supernovae and gamma-ray bursts barely touch it. Every shelter also leaves lasting nurture, which makes life grow there faster for the rest of the game.', when: 'Your main move. On green regions with worlds, where life is stirring, where someone lives, and wherever a warning points.' },
+    { kind: 'starburst', label: 'Starburst', short: 'Burst', region: true, what: 'Turns most of a region\'s gas into stars at once. The big ones die fast and forge heavy elements (metals), but the shock wrecks the calm there and next door, and sets back any life.', when: 'Early, in the first month or two, while nothing lives: it forges the metals planets need. Later, never near life.' },
+    { kind: 'calm', label: 'Calm core', short: 'Calm', what: 'Quiets the black hole at the centre for 20 days. A flare that comes while it is calm does nothing.', when: 'When the core stirs: a flare warning gives you about 10 days. Flares knock out the inner regions and anyone living there.' },
+    { kind: 'uplift', label: 'Uplift', card: true, region: true, what: 'Invest in a people: schools, power, ideas. They develop faster, and their world shows it. Once a month they are grateful for it.', when: 'When influence would otherwise sit full: a people you want to see grow, or one you need on side.' },
+    { kind: 'merge', label: 'Merge', what: 'Pulls the small companion galaxy into yours: a big gift of gas and metals to the outer ring, and a shake everywhere. Once only.', when: 'From month 3. If you wait, it crashes in on its own at the start of month 8 (month 7 if it is close), shaking everything, life included.' },
+  ];
+  function canDo(a) {
+    if (!a || Sim.spendable(s) + 1e-6 < Sim.K.cost[a.kind] || ended) return false;
+    if (a.kind === 'merge') return !s.companion.merged && Sim.month(s) >= 2;
+    return true;
+  }
+  function renderDock() {
+    const dock = $('dock');
+    if (!dock.firstChild) {
+      ACTIONS.filter((a) => !a.card).forEach((a) => {
+        const b = document.createElement('button');
+        b.className = 'act'; b.type = 'button'; b.dataset.kind = a.kind;
+        b.innerHTML = `${ICONS[a.kind]}<b><span class="long">${a.label}</span><span class="short">${a.short || a.label}</span></b><small>${Sim.K.cost[a.kind]}</small>`;
+        b.addEventListener('click', () => use(a));
+        b.addEventListener('mouseenter', () => { costPreview = Sim.K.cost[a.kind]; pointing = a.kind; renderPower(); renderToolcard(); });
+        b.addEventListener('mouseleave', () => { costPreview = 0; pointing = null; renderPower(); renderToolcard(); });
+        dock.append(b);
+      });
+      dock.append(Object.assign(document.createElement('div'), { className: 'dock-sep' }));
+      const sp = document.createElement('div'); sp.className = 'speed';
+      SPEEDS.forEach((v, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v;
+        b.innerHTML = v ? `${v}×` : UI.ICON.pause; b.setAttribute('aria-label', v ? `Speed ${v}×` : 'Pause');
+        b.addEventListener('click', () => {
+          // On phones only the current speed shows: tapping it moves to the next one.
+          if (matchMedia('(max-width: 760px)').matches && b.getAttribute('aria-pressed') === 'true') setSpeed(SPEEDS[(i + 1) % SPEEDS.length]);
+          else setSpeed(v);
+          b.blur();                                                // so Space still pauses
+        });
+        sp.append(b);
+      });
+      dock.append(sp);
+    }
+    dock.querySelectorAll('.act').forEach((b) => {
+      const a = ACTIONS.find((x) => x.kind === b.dataset.kind);
+      b.disabled = !canDo(a);
+      b.setAttribute('aria-pressed', String(picking === a.kind));
+      b.classList.toggle('suggest', !!advice && !advice.hint && advice.kind === a.kind && !picking);
+    });
+    dock.querySelectorAll('.speed button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.v === speed)));
+  }
+  function setSpeed(v) { speed = v; if (v !== 1) fastFrom = 0; renderDock(); renderClock(); }
+  // Warnings and requests drop the clock to 1×; Space takes it back to where you were.
+  let fastFrom = 0;
+  // Slow down once for each request or strike that is 3 days off. Checked after every day the
+  // loop steps, so a fast clock (several days a frame) cannot skip past it.
+  const alarmed = new Set();
+  function alarm() {
+    const due = s.civs.find((c) => c.alive && c.ask && c.ask.until - s.day <= 3 && !alarmed.has(`a${c.id}:${c.ask.until}`));
+    if (due) { alarmed.add(`a${due.id}:${due.ask.until}`); return `${days(due.ask.until - s.day)} left to answer the ${due.name}${due.ask.kind === 'beacon' ? ' (their beacon)' : ''}: slowed to 1×`; }
+    const hit = s.threats.find((x) => x.at - s.day <= 3 && x.at > s.day && !guarded(x) && (x.kind === 'flare' || (x.region !== null && s.regions[x.region].civ !== null)) && !alarmed.has(`t${x.at}:${x.region}`));
+    if (hit) { alarmed.add(`t${hit.at}:${hit.region}`); return `${hit.kind === 'flare' ? 'A black hole flare' : 'A strike on a people'} in ${days(hit.at - s.day)}: slowed to 1×`; }
+    return '';
+  }
+  const days = (n) => n <= 0 ? 'under a day' : `${n} day${n === 1 ? '' : 's'}`;
+  // Back from a pause (a pop-up, a world, a choice): at 1×, so nothing slips past while you get your bearings.
+  function resume(was) { if (was > 1) { setSpeed(1); fastFrom = was; UI.toast(`Back at 1× · Space for ${was}× again`); } else setSpeed(was || 0); }
+  function slow(msg) { const was = speed; setSpeed(1); fastFrom = was > 1 ? was : 0; UI.toast(fastFrom ? `${msg} · Space for ${fastFrom}× again` : msg); }
+
+  function placeCoach() { if (innerWidth > 760) $('coach').style.top = Math.round($('clock').getBoundingClientRect().bottom + 8) + 'px'; else $('coach').style.top = ''; }
+  function renderClock() {
+    const m = Sim.month(s), mi = Math.min(11, Math.floor(m)), day = Math.floor(s.day - mi * Sim.MONTH) + 1;
+    const ms = Object.keys(s.milestones).length;
+    $('clock').innerHTML = `
+      <div class="era"><b>${Sim.era(s)}</b><small>${speed ? `${speed}×` : 'Paused'}</small></div>
+      <div class="when"><span>Month ${mi + 1} · day ${Math.min(30, day)}${isToday() ? ' · today\'s galaxy' : ''}</span><span>${Sim.gyr(s).toFixed(1)} billion years</span></div>${s.trait && !(s.trait.id === 'close' && s.companion.merged) ? `<div class="when" title="${esc(s.trait.text)}"><span>✦ ${esc(s.trait.name)}</span><span>${esc(s.trait.text.split(':')[0])}</span></div>` : ''}
+      ${concordLine()}${challengeLine()}
+      <div class="year"><i style="width:${(s.day / Sim.YEAR * 100).toFixed(2)}%"></i>${[1, 2, 3, 4, 9].map((k) => `<em style="left:${(k / 12 * 100).toFixed(2)}%"></em>`).join('')}</div>`;
+    placeCoach();
+  }
+  // The month's challenge: the aim, how far along, and how long is left.
+  function challengeLine() {
+    const ch = s.challenge;
+    if (!ch) return '';
+    if (ch.done) return s.day - (ch.doneAt ?? s.day) > 6 ? '' : `<div class="challenge${ch.missed ? ' missed' : ' met'}"><b>${ch.missed ? 'Challenge missed' : 'Challenge met ✓'}</b> ${esc(ch.text)}${ch.missed ? '' : ` · +${Sim.K.challengeWorth} legacy`}</div>`;
+    const got = Math.max(0, ch.now - ch.base), pct = Math.min(100, got / ch.step * 100);
+    return `<div class="challenge"><b>Challenge</b> ${esc(ch.text)} · ${got} of ${ch.step} · ${dd(Math.max(0, ch.until - s.day))} left<small>${esc(ch.how.replace(/^./, (x) => x.toUpperCase()))}. Worth +${Sim.K.challengeWorth} legacy.</small><i style="--p:${pct.toFixed(0)}%"></i></div>`;
+  }
+  // The concord's progress, from the day it's announced until it's decided.
+  function concordLine() {
+    if (Sim.month(s) < Sim.K.concordTalk && s.concord === undefined) { const c0 = Sim.circle(s); return `<div class="concord-line"><b>The goal</b> A concord when the year ends: at least ${Sim.K.concordMin} peoples in contact (who have met each other) and are grateful to you (and two in three of all those in contact).${(() => { const n = s.civs.filter((x) => x.alive && x.aware && x.view >= Sim.K.concordView).length; const m2 = c0.members.length > 1 ? c0.trusted.length : 0; return n ? ` ${n === 1 ? 'One people trusts' : n + ' peoples trust'} you so far${m2 < n ? `; ${m2 ? m2 + ' of them are' : 'none of them are yet'} in contact with other peoples` : ''}.` : ''; })()}</div>`; }
+    if (s.concord !== undefined) return s.concord ? `<div class="when"><span>✦ The Gardener's Concord</span><span>${s.concord.members.length} united</span></div>` : '';
+    const c = Sim.circle(s);
+    const cools = (m) => Sim.coolsIn(s, m);
+    const who = c.members.length < 2 ? '' : c.members.slice().sort((a, b) => b.view - a.view).map((m) => `${esc(m.name)} ${c.trusts(m) ? `${Sim.viewOf(m) === 'Reverent' ? '✓✓' : '✓'}` : `✗ ${m.aware ? Sim.viewOf(m).toLowerCase() : 'can\'t see you yet'}`}`).join(' · ');
+    const head = c.ready ? 'Concord ✓ within reach' : c.members.length < 2 ? 'Concord: no peoples in contact yet.' : c.short ? `Concord: ${c.members.length} peoples in contact, ${Sim.K.concordMin} needed` : `Concord: ${c.trusted.length} grateful, ${c.need} needed`;
+    const dayNote = (c.trusted.some((m) => Sim.viewOf(m) === 'Reverent') ? ' ✓✓ reverent.' : '');
+    const tail = c.ready ? 'Keep their trust until the year ends.' + dayNote : c.members.length < 2 ? `It needs ${Sim.K.concordMin} peoples who know each other.` : c.short ? `${c.short} more must make contact.` : c.aware.length < c.need ? `Only ${c.aware.length} of them can see you yet: at least ${c.need} must, and be grateful or better.${dayNote}` : `Of the ${c.aware.length} in contact who can see you, at least ${c.need} must be grateful or better (at least ${Sim.K.concordMin}, and two in three).${dayNote}`;
+    return `<div class="concord-line"><b>${head}</b> ${who ? who + '. ' : ''}${tail}</div>`;
+  }
+  let costPreview = 0;
+  const fullIn = () => { let v = s.influence, b = s.bank || 0, d = 0; const inc = Sim.income(s); while (v < Sim.K.influenceMax - 0.01 && d < 99) { const f = Math.min(b, Sim.K.bankFlow, Sim.K.influenceMax - v - inc); v += inc + Math.max(0, f); b -= Math.max(0, f); d++; } return d; };
+  function renderPower() {
+    const n = Math.floor(s.influence), part = s.influence - n, L = Sim.legacy(s), next = Sim.STARS.find((x) => x > L);
+    const full = s.influence >= Sim.K.influenceMax - 0.01;
+    $('power').classList.toggle('full', full && !ended);
+    $('power').innerHTML = `<div class="row"><span>Influence <b class="num">${(Math.floor(s.influence * 10) / 10).toFixed(1)}</b><small class="of">/${Sim.K.influenceMax}</small></span><small>${ended ? 'The year is over' : full ? (s.bank >= Sim.K.bankMax - 0.05 ? 'Full, bank full · spend it' : 'Full · the rest is banked') : `+${Sim.income(s).toFixed(2)} a day · full in ${fullIn()}d`}${s.bank >= 0.1 ? ` · ${s.bank.toFixed(1)} banked` : ''}</small></div>
+      <div class="pips" style="grid-template-columns: repeat(${Sim.K.influenceMax}, 1fr)">${Array.from({ length: Sim.K.influenceMax }, (_, i) => i < n ? `<i class="${costPreview && i >= n - costPreview ? 'cost' : 'on'}"></i>` : i === n && part > 0 ? `<i class="part" style="--p:${Math.round(part * 100)}%"></i>` : '<i></i>').join('')}</div>
+      <div class="legacy"><span>Legacy <b>${L}</b>${Sim.concordWorth(s) ? ` <em class="worth">+${Sim.concordWorth(s)} if the concord holds</em>` : ''}</span> <span>${Sim.stars(s) ? '★'.repeat(Sim.stars(s)) + ' · ' : ''}${next ? `${['first', 'second', 'third'][Sim.STARS.indexOf(next)]} ★ at ${next}${Sim.concordWorth(s) && L + Sim.concordWorth(s) >= next ? ' (the concord would do it)' : ''}` : 'all three stars'}</span></div>`;
+  }
+
+  const dd = (n) => n <= 0 ? 'under a day' : `${n} ${n === 1 ? 'day' : 'days'}`;
+  const pct = (v) => Math.round(clamp(v, 0, 1) * 100);
+  function bar(label, v, mark, max) { const k = clamp(v / (max || 1), 0, 1); return `<div class="bar"><span>${label}</span><span class="track"><i style="width:${(k * 100).toFixed(1)}%"></i>${mark !== undefined ? `<em style="left:${(mark / (max || 1) * 100).toFixed(1)}%"></em>` : ''}</span><span>${pct(v / (max || 1))}%</span></div>`; }
+  function regionSay(g) {
+    if (g.ring === 0) return 'The core: too violent for life. Its black hole flares now and then; calm it to protect the inner ring.';
+    if (g.civ !== null) return null;
+    const K = Sim.K;
+    if (!g.worlds) return 'No worlds here that could hold life of its own: life will never start here. Stars and metals made here still help the neighbours, and peoples who reach the stars may settle it.';
+    const f = Sim.fate(s, g), name = (id) => s.civs[id].name;
+    if (f && f.kind === 'settle') return `You gave this region to the ${name(f.civ)}: they will settle it${g.life >= 0.1 ? ', and the life growing here will become part of them' : ''}.`;
+    const ask = f && f.askers && f.askers.length > 1 ? ` The ${f.askers.map(name).join(' and the ')} both want it: a dispute, in the list above.` : f && f.asker !== null ? ` The ${name(f.asker)} want it: give it to them and they settle it${g.life >= 0.1 ? ', ending the life here' : ''}; say no and ${f.kind === 'join' && f.civ !== f.asker ? `it still joins the ${name(f.civ)}` : 'it becomes a people of its own'}.` : '';
+    const apart = `To keep it apart as a people of its own: build its nurture to ${pct(Sim.K.apartNurture / Sim.K.nurtureMax)}% (now ${pct(g.nurture / Sim.K.nurtureMax)}%, about ${Math.max(0, Math.ceil((Sim.K.apartNurture - g.nurture) / Sim.K.nurtureGain))} more shelters) and have it sheltered when it wakes.`;
+    if (g.life >= 0.05 && f.kind === 'join') return `Life is growing here, beside the ${name(f.civ)}'s home. ${ask ? 'As things stand, when' : 'When'} it wakes it will <b>join the ${name(f.civ)}</b>, and they will thank you.${ask ? ' Your call:' + ask : ' ' + apart}`;
+    const rival = g.n.map((id) => s.regions[id]).find((x) => x.civ === null && x.worlds && x.life > g.life && Sim.fate(s, x) && Sim.fate(s, x).kind === 'new');
+    if (g.life >= 0.05) return `Life is growing here. When it wakes it will be <b>a new people</b> of its own${f.neighbour !== null && f.neighbour !== undefined && g.shelter > 0 && g.nurture >= Sim.K.apartNurture ? ` (your shelter keeps it apart from the ${name(f.neighbour)}; let the shelter lapse and it joins them)` : ''}${rival ? ` (unless the life in ${Sim.regionName(rival)}, further along, wakes first: then this joins them)` : ''}${g.refused !== undefined && g.refused !== null && s.civs[g.refused] ? ` (you refused the ${name(g.refused)} this region)` : ''}.${ask}`;
+    if (ask) return 'Unclaimed.' + ask;
+    if (g.hab > K.lifeOn) return g.shelter > 0 ? 'Habitable, and sheltered: life is taking hold, faster for your shelter.' : 'Habitable. Life is taking hold; shelter it to speed things up.';
+    const lacks = [];
+    if (g.metals < K.habMetal[0] + 0.12) lacks.push('heavy elements (stars must live and die here first)');
+    if (g.stability < K.habStab[0] + 0.1) lacks.push('calm (too many supernovae lately)');
+    if (g.sunlike < K.habSun[0] + 0.2) lacks.push('long-lived stars like the Sun (they take time to form from its gas)');
+    return lacks.length ? 'Not yet habitable. It needs ' + lacks.join(', and ') + '.' : 'Nearly habitable.';
+  }
+  function renderCard() {
+    const card = $('card');
+    document.body.classList.toggle('carded', selected !== null);
+    if (selected === null) { card.hidden = true; return; }
+    card.hidden = false;
+    const g = s.regions[selected], c = g.civ !== null ? s.civs[g.civ] : null;
+    let html = '';
+    if (c) {
+      const own = s.log.filter((e) => e.civ === c.id || e.other === c.id).slice(-9).reverse();
+      html += `<div class="card-head"><i class="dot" style="background:${c.colour};color:${c.colour}"></i><div><b>${esc(c.name)}</b><small>${c.kind} · ${g.id === c.home ? 'home region' : 'a colony'} · born month ${Math.floor(c.born / Sim.MONTH) + 1}${g.shelter > 0 ? ` · sheltered ${g.shelter} more ${g.shelter === 1 ? 'day' : 'days'}` : ''}</small></div></div><button type="button" class="btn primary" data-world="${c.id}" style="margin-top:8px">See their world</button><!--acts-->
+        <div class="stats"><div class="stat-tile"><em>Stage</em><b>${c.alive && Sim.develop(c) >= 4 ? 'World-city' : Sim.stage(c)}</b></div><div class="stat-tile"><em>Regions</em><b>${c.regions.length}</b></div>
+        <div class="stat-tile"><em>Their view of you</em><b>${Sim.viewOf(c)}</b></div><div class="stat-tile"><em>Met</em><b>${c.met.length ? c.met.length + ' ' + (c.met.length === 1 ? 'other' : 'others') : 'No one yet'}</b></div></div>
+        <div class="say">${esc(KIND_LINE[c.kind])}${c.rival !== undefined && s.civs[c.rival].alive ? ` Their rivals: the ${esc(s.civs[c.rival].name)} (${s.civs[c.rival].kind.toLowerCase()})${c.met.includes(c.rival) ? '. Help one, and the other resents it.' : ', not yet in contact.'}` : ''}</div>
+        ${c.aware ? `<div class="tbar" title="Their trust in you"><i style="width:${(clamp((c.view + 4) / 8, 0, 1) * 100).toFixed(1)}%"></i><em style="left:62.5%"></em><em style="left:87.5%"></em></div>` : ''}
+        ${c.aware ? `<div class="trust">${['Wary', 'Curious', 'Grateful', 'Reverent'].map((l) => `<span class="${Sim.viewOf(c) === l ? 'on' : ''}">${l}</span>`).join('')}<small>Trust rises when you answer their requests (+2), shield them from a warned strike (+1.5) or think ahead of them (+1). It falls when you ignore a request (−1.5), pass them over in a dispute (−2), say no (−0.5) or let a warned strike hit them (−2). It doesn't fade on its own. The concord needs grateful or better.</small><small style="margin-top:4px;color:var(--ink-2)">${c.view >= 3 ? 'Reverent: they would follow you anywhere.' : c.view >= Sim.K.concordView ? `Grateful: ${(3 - c.view).toFixed(1)} more to reverent, ${c.view - Sim.K.concordView < 0.05 ? 'only just over the concord\'s line' : `and ${(c.view - Sim.K.concordView).toFixed(1)} above the concord's line`}.` : `${(Sim.K.concordView - c.view).toFixed(1)} short of grateful: ${((n) => (n === 1 ? 'one answered request would do it' : `about ${n} answered requests would do it`))(Math.ceil((Sim.K.concordView - c.view) / 2))}.`}</small></div>` : `<div class="trust"><small>They can't see you yet. Once they reach spaceflight they will start to trust you, or not.</small></div>`}
+        ${c.ask ? `<div class="say"><b>${esc(c.ask.text)}.</b> ${days(c.ask.until - s.day)} left.</div>` : ''}
+        <div class="sub">Their story${c.honoured ? ` · you helped them ${c.honoured} ${c.honoured === 1 ? 'time' : 'times'}` : ''}</div><div class="chron">${own.map((e) => `<div><em>Mo ${Math.floor(e.day / Sim.MONTH) + 1}</em><span class="${e.you ? 'you' : ''}">${esc(e.text)}</span></div>`).join('')}</div>
+        <div class="sub">${esc(Sim.regionName(g))} · ${Sim.regionKind(g)}</div>`;
+    } else {
+      html += `<div class="card-head"><div><b>${esc(Sim.regionName(g).replace(/^./, (x) => x.toUpperCase()))}</b><small>${g.ring ? `${Sim.regionKind(g)} · ${g.worlds ? '●'.repeat(g.worlds) + ' ' + g.worlds + (g.worlds === 1 ? ' world' : ' worlds') : 'No worlds'}` : 'The centre'}${g.shelter > 0 ? ` · sheltered ${g.shelter} more ${g.shelter === 1 ? 'day' : 'days'}` : ''}</small></div></div><!--acts-->`;
+      const say = regionSay(g);
+      if (say) html += `<div class="say">${say}</div>`;
+    }
+    if (g.ring) {
+      html += `<div class="bars">${g.worlds || g.civ !== null ? bar('Habitable', g.hab, Sim.K.lifeOn) : ''}${g.civ === null ? bar('Life', g.life) : ''}${bar('Metals', g.metals, Sim.K.habMetal[1])}${bar('Calm', g.stability, Sim.K.habStab[1])}${bar('Sunlike stars', g.sunlike, Sim.K.habSun[1], 2)}${bar('Gas', g.gas, undefined, 2)}${g.nurture ? bar('Nurture', g.nurture, undefined, Sim.K.nurtureMax) : ''}</div>`;
+    } else {
+      html += `<div class="say">${s.bh.calm > 0 ? `The black hole is calmed for ${s.bh.calm} more days: flares do nothing.` : 'The black hole is restless. Calm it when a flare is coming.'}</div><div class="bars">${bar('Calm', g.stability)}${bar('Black hole', s.bh.mass, undefined, 1)}</div>`;
+    }
+    const near = s.threats.filter((x) => x.region === g.id || (x.kind === 'flare' && g.ring <= 1));
+    if (near.length) html = near.map((x) => `<div class="say" style="box-shadow: inset 3px 0 0 ${THREAT[x.kind].colour}"><b>${THREAT[x.kind].name} in ${dd(x.at - s.day)}.</b> ${guarded(x) ? (x.kind === 'flare' ? 'The core is calm: it will do nothing.' : g.shelter > x.at - s.day ? 'Your shelter will hold.' : 'Nothing at risk here.') : x.kind === 'flare' ? (s.bh.calm > 0 ? 'The calm runs out before it lands: calm the core again.' : 'Calm the core to stop it.') : g.shelter > 0 ? 'Your shelter runs out just before it lands: shelter again.' : 'Shelter here to shrug it off.'}</div>`).join('') + html;
+    // Act here: the tools that make sense for this region, right under its name.
+    const tools = !g.ring ? ['calm'] : c ? ['shelter', 'uplift', 'seed'] : ['shelter', 'seed', 'starburst'];
+    const acts = `<div class="card-acts" style="grid-template-columns: repeat(${tools.length}, 1fr)">${tools.map((k) => { const a = ACTIONS.find((x) => x.kind === k); return `<button type="button" class="btn${(k === 'shelter' && g.worlds) || k === 'calm' ? ' primary' : ''}" data-act="${k}"${canDo(a) ? '' : ' disabled'}>${k === 'shelter' && g.shelter > 0 ? 'Again' : a.short || a.label} · ${Sim.K.cost[k]}</button>`; }).join('')}</div>${c && s.influence >= Sim.K.cost.uplift && s.influence - Sim.K.cost.uplift < 3 ? `<div class="say" style="font-size:11.5px">Uplift would leave you ${(s.influence - Sim.K.cost.uplift).toFixed(1)}: a warning can need 2 or 3.</div>` : ''}${c && c.aware && c.upliftAt !== undefined && s.day - c.upliftAt < Sim.K.upliftEvery ? `<div class="say" style="font-size:11.5px">Uplift again now speeds them, but earns no trust for ${days(Sim.K.upliftEvery - (s.day - c.upliftAt))}.</div>` : ''}`;
+    // What the tools would do here, before you use them.
+    let fx2 = '';
+    if (g.ring) {
+      const take = Math.min(s.halo, 0.6), after = g.metals * (1 - Sim.K.dilution * take / (g.gas + g.sunlike * 0.5 + take));
+      const notes = [];
+      if (g.metals > 0.05 && g.metals - after > 0.02) notes.push(`seed thins metals ${pct(g.metals)}% → ${pct(after)}%`);
+      if (g.gas > 0.05) notes.push(`a starburst uses most of its gas (${pct(g.gas / 2)}% → ${pct(g.gas * 0.3 / 2)}%)${g.life > 0.05 || g.civ !== null ? ' and sets back life here' : ''}`);
+      if (notes.length) fx2 = `<div class="fxnote">${notes.join(' · ')}</div>`;
+    }
+    html = html.replace('<!--acts-->', acts + fx2);
+    // The card redraws every day; keep its buttons when they haven't changed, so a click in flight still lands.
+    const sig = g.id + '|' + acts, oldActs = card.querySelector('.card-acts');
+    const keep = oldActs && card._sig === sig;
+    card._sig = sig;
+    const tmp = document.createElement('div'); tmp.innerHTML = html;
+    if (keep) tmp.querySelector('.card-acts').replaceWith(oldActs);
+    else tmp.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => act(b.dataset.act, g.ring ? g.id : undefined)));
+    card.replaceChildren(...tmp.childNodes);
+    card.querySelectorAll('[data-world]').forEach((b) => b.addEventListener('click', () => world.open(+b.dataset.world)));
+  }
+  function renderHint() {
+    const h = $('hint');
+    let t = '';
+    if (picking) t = picking === 'merge' ? 'Confirm the merge in the tool card · Esc to cancel' : `Pick a region to ${ACTIONS.find((a) => a.kind === picking).label.toLowerCase()} · Esc to cancel`;
+    else if (s.day < 6 && selected === null) t = 'Tap a region to see what it needs · drag to turn, scroll to zoom';
+    h.textContent = t; h.style.opacity = t ? 1 : 0;
+  }
+  let pointing = null;
+  function renderToolcard() {
+    const kind = pointing || picking, el = $('toolcard');
+    if (!kind) { el.hidden = true; el._key = ''; return; }
+    const a = ACTIONS.find((x) => x.kind === kind);
+    el.hidden = false;
+    const key = [kind, picking, a.region && pointing === kind].join('|');   // a global tool's card is the same either way
+    if (el._key === key) return;                                 // don't rebuild under the pointer
+    el._key = key;
+    if (picking === a.kind && a.region && pointing !== a.kind) { el.innerHTML = `<div class="t"><b>${a.label}: tap a region</b><small>Esc to cancel</small></div>`; return; }
+    el.innerHTML = `<div class="t"><b>${a.label}</b><small>${Sim.K.cost[a.kind]} influence${a.region ? ' · on a region' : ''}</small></div>
+      <p>${esc(a.what)}</p><p><em>When:</em> ${esc(a.when)}</p>${picking === a.kind && a.region ? '<p><em>Now tap a region to use it.</em> Esc to cancel.</p>' : ''}`;
+    if (picking === a.kind && !a.region) {
+      const row = document.createElement('div'); row.className = 'pair';
+      row.append(UI.button({ label: 'Cancel', onClick: () => { picking = null; renderAll(); } }), UI.button({ variant: 'primary', label: `${a.label} · ${Sim.K.cost[a.kind]}`, onClick: () => apply(a.kind) }));
+      el.append(row);
+    }
+  }
+
+  // ---- the coach: one next step, read from the state of the galaxy -------------------------
+  // advice = { text, kind?, region? }: Show me selects the region and points at the tool.
+  let advice = null, coachForce = false;   // force: redraw even under the pointer (after an action)
+  const named = Sim.regionName;
+  const veteran = !!store.get(BEST);   // a returning player: the coach suggests, it doesn't script the opening
+  const coach = () => Sim.advise(s, { noStardust: sparkPos.size === 0, veteran });
+  function renderCoach() {
+    const el = $('coach');
+    if (!coachForce && matchMedia('(hover: hover)').matches && el.matches(':hover') && el._key) return;
+    coachForce = false;                 // hold still under the pointer: the next frame after it leaves catches up
+    advice = coach();
+    // The storm is past and nothing is open: offer the year's end rather than days of waiting.
+    const settled = !advice.kind && Sim.month(s) >= 11.4 && !ended && Sim.alerts(s).every((a) => a.ok);
+    const key = advice.text + settled + ended + (settled ? Math.ceil(Sim.YEAR - s.day) : '') + (advice.kind || '') + (advice.region ?? '') + (advice.kind && Sim.spendable(s) < Sim.K.cost[advice.kind] ? Math.floor(Sim.spendable(s) * 10) : '');
+    if (el._key === key) return;
+    el._key = key;
+    const tool = advice.kind && ACTIONS.find((x) => x.kind === advice.kind);
+    // Same advice, new words (a countdown): keep the button, so a click in flight still lands.
+    const shape = (advice.kind || '') + '|' + (advice.region !== undefined && advice.region !== null ? advice.region + named(s.regions[advice.region]) : '') + '|' + !!advice.hint + '|' + (tool ? canDo(tool) : '');
+    if (!settled && el._shape === shape && el.querySelector('p')) { el.querySelector('p').textContent = advice.text + (tool && !advice.hint && Sim.spendable(s) < Sim.K.cost[advice.kind] ? ` You need ${Sim.K.cost[advice.kind]} influence and have ${(Math.floor(Sim.spendable(s) * 10) / 10).toFixed(1)}: tap stardust, or wait a few days.` : ''); return; }
+    el._shape = shape;
+ const short = tool && !advice.hint && Sim.spendable(s) < Sim.K.cost[advice.kind] ? ` You need ${Sim.K.cost[advice.kind]} influence and have ${(Math.floor(Sim.spendable(s) * 10) / 10).toFixed(1)}: tap stardust, or wait a few days.` : '';
+    el.innerHTML = `<small><span>What to do next</span><button type="button" data-help>How to play</button></small><p>${esc(advice.text + short)}</p>`;
+    if (advice.kind && !advice.hint) {
+      const a = ACTIONS.find((x) => x.kind === advice.kind);
+      const b = UI.button({ variant: 'primary', label: advice.region !== undefined ? `${a.label} ${named(s.regions[advice.region])} · ${Sim.K.cost[a.kind]}` : `${a.label} · ${Sim.K.cost[a.kind]}`, onClick: ((k, r) => () => act(k, r))(advice.kind, advice.region) });
+      b.dataset.kind = a.kind;
+      el.append(b);
+    }
+    if (advice.hint && advice.region !== undefined) {
+      const b = UI.button({ label: `Show me ${named(s.regions[advice.region])}`, onClick: ((r) => () => { selected = r; renderAll(); })(advice.region) });
+      el.append(b);
+    }
+    if (settled) {
+      el.querySelector('p').textContent += ` Everything is answered and sheltered. The concord is decided on the last day, in ${Math.ceil(Sim.YEAR - s.day)} days.`;
+      el.append(UI.button({ variant: 'primary', label: 'On to the year\u2019s end · 16×', onClick: () => setSpeed(16) }));
+    }
+    el.querySelector('[data-help]').addEventListener('click', () => help());
+    renderDock();
+    fitFeed();
+  }
+  function coachReady() {                                       // the coach's button waits for influence like the dock does
+    const b = $('coach').querySelector('.btn[data-kind]');
+    if (!b) return;
+    const a = ACTIONS.find((x) => x.kind === b.dataset.kind);
+    b.disabled = !canDo(a);
+    b.style.opacity = b.disabled ? 0.4 : '';
+  }
+  function help() {
+    const was = speed; setSpeed(0);
+    modal(howTo(), [['Back to the galaxy', () => setSpeed(was), true]]);
+  }
+  function howTo() {
+    return `<h2>How to play</h2>
+      <p><b>The goal:</b> by the end of the year (13.8 billion years), a concord: at least ${Sim.K.concordMin} civilisations who know each other, and trust you. They appear on their own wherever a region stays habitable long enough. Your job is to make regions habitable, keep their peoples safe, and answer when they ask. Legacy scores everything along the way.</p>
+      <p><b>Life needs three things in a region.</b> Tap any region to see which it is missing:</p>
+      <ul>
+        <li><i style="background:#c9a27a"></i><span><b>Metals</b>, heavy elements for rocky planets. Stars make them by living and dying, so they build up over time.</span></li>
+        <li><i style="background:#9fd0ff"></i><span><b>Calm</b>, a long stretch without supernovae or black hole flares.</span></li>
+        <li><i style="background:#ffe1b0"></i><span><b>Sunlike stars</b>, long-lived ones that planets can circle. They form from gas.</span></li>
+      </ul>
+      <p>When all three are there, the region turns <b style="color:#3fbf85">green</b>. Life starts as a pulsing ring and, given time, becomes a civilisation with its own lights and name.</p>
+      <p><b>Worlds.</b> The white dots on a region are worlds that could hold life. No dots, no life, however green it gets.</p>
+      <p><b>To act</b>, tap a region and use the buttons on its card. Or pick a tool in the dock, then tap a region. Tools cost influence: a little every day, and +${Sim.K.sparkGain} for every stardust ✦ you tap. It holds up to ${Sim.K.influenceMax}.</p>
+      <p><b>Warnings</b> appear at the top with a countdown: a supernova or gamma-ray burst (shelter the region), a black hole flare (calm the core), the companion galaxy falling in (merge it). A strike on a civilisation you didn't shield can destroy a colony or burn their cities; it leaves a scar, and they know you saw it coming.</p>
+      <p><b>Requests</b> come from civilisations once they reach spaceflight, each in their own character. Answer and they trust you more; ignore them and they trust you less. Some requests cost others: inviting settlers into a region ends any life growing there. Refuse, and that life stays its own: when it wakes, it becomes a new people. Life you nurse next to a people's home, unasked, joins them when it's ready, and they thank you. Late in the year a storm of supernovae comes for several homes at once, and great civilisations ask for help lighting a <b>beacon</b>.</p>
+      <p><b>Uplift</b> (on a people's card, 4 influence) invests in them: they develop faster, and their world shows it. <b>Keeping life apart:</b> life that wakes beside a people's home joins them, unless you've nursed it well (nurture ${Math.round(Sim.K.apartNurture / Sim.K.nurtureMax * 100)}%, about four shelters) and it is sheltered when it wakes: then it becomes a people of its own. <b>The last test:</b> a month before the end, peoples only just over the concord's line ask for one more sign of care.</p>
+      <p><b>Challenges:</b> in months 2 to 5, and again around months 7 and 9, the galaxy sets one aim at a time (life in more regions, a nursed region, a new people, a people's next stage, stardust), with ${Sim.K.challengeFor} days to meet it. How is up to you. Each one met is worth +${Sim.K.challengeWorth} legacy; a missed one just passes.</p>
+      <p><b>Their worlds:</b> tap a people's lights and press <b>See their world</b> (or double-click them) to visit their planet. It changes as they grow: city lights on the night side, then roads, satellites and rockets, an orbital ring and colony worlds, and at last a world that is all city. Strikes scar it; a golden age lights the poles.</p>
+      <p><b>Influence</b> holds up to ${Sim.K.influenceMax}. What you earn past that is <b>banked</b> (up to ${Sim.K.bankMax}) and flows back ${Sim.K.bankFlow} a day once you spend below full: a reserve for the busy months. When influence runs short, an action draws on the bank.</p>
+      <p><b>Trust</b> comes from what you do: answer a people's requests and shield them from warned strikes, and they grow grateful; ignore them, pass them over in a dispute, or let a warned strike hit them, and they cool. It doesn't fade on its own. Peoples who can't see you yet don't count toward the concord.</p>
+      <p><b>The concord</b>: from month 7, the civilisations talk of uniting. If at least ${Sim.K.concordMin} peoples in contact, and two in three of them, trust you (grateful or better) when the year ends, it ends in a concord.</p>
+      <p><b>Legacy</b> is your score: every civilisation alive at the end, how far it got, its golden age, its beacon, how it feels about you, minus its scars. The end screen shows how it adds up.</p>
+      <div class="tools">${ACTIONS.map((a) => `<div>${ICONS[a.kind]}<span><b>${a.label}</b> · ${Sim.K.cost[a.kind]}. ${esc(a.what)}</span></div>`).join('')}</div>
+      <p>Stuck? The card under the clock always suggests a next step.</p>`;
+  }
+  // ---- alerts: every warning and request, most urgent first, each with its answer ------------
+  // The list is the sim's (shared with the coach); the page adds colours and the countdown line.
+  function alerts() {
+    return Sim.alerts(s).map((a) => {
+      const sheltered = a.threat && a.region !== undefined && s.regions[a.region].shelter > a.left;
+      const sub = a.threat ? `${dd(a.left)}${a.ok ? (a.threat === 'flare' ? ' · calmed in time' : sheltered || a.threat === 'grb' ? ' · sheltered' : ' · nothing at risk there') : ''}` : `${dd(a.left)} to answer`;
+      return Object.assign({}, a, a.omen ? { colour: '#b9a6ff', sub: `${esc(s.omen.text)} <b>${dd(a.left)} to choose · free</b>` } : { colour: a.threat ? THREAT[a.threat].colour : s.civs[a.civ].colour, sub });
+    });
+  }
+  // Rows keep their place: a new alert joins the bottom, so nothing moves under the pointer.
+  // Every request has an explicit no; a dispute is one row with both peoples and "neither".
+  const alertKey = (a) => a.omen ? 'omen' + (s.day + a.left) : a.threat ? a.threat + ':' + a.region + ':' + (s.day + a.left) : 'c' + a.civ + (a.rival !== undefined ? ':' + a.rival : '');
+  function renderAlerts() {
+    const all = ended ? [] : alerts(), covered = all.filter((a) => a.ok).length;
+    const box = $('alerts'), open = all.filter((a) => !a.ok);
+    // An alert that was just answered keeps its row for a moment, faded, so the rows below don't jump.
+    const ghosts = box._ghosts || (box._ghosts = new Map()), nowT = performance.now();
+    (box._order || []).forEach((k) => { if (!open.some((a) => alertKey(a) === k) && !ghosts.has(k) && box._last && box._last[k]) { ghosts.set(k, { a: box._last[k], until: nowT + 1500 }); setTimeout(() => { box._key = null; renderAlerts(); }, 1600); } });
+    ghosts.forEach((g, k) => { if (g.until < nowT) ghosts.delete(k); });
+    const order = (box._order || []).filter((k) => open.some((a) => alertKey(a) === k) || ghosts.has(k));
+    open.forEach((a) => { if (!order.includes(alertKey(a))) order.push(alertKey(a)); });
+    box._order = order;
+    const all3 = order.map((k) => open.find((a) => alertKey(a) === k) || Object.assign({}, ghosts.get(k).a, { ghost: true, age: 1500 - (ghosts.get(k).until - nowT) }));
+    const pin = (a) => a.dispute || a.omen || (a.threat && !a.ok), list = all3.filter(pin).concat(all3.filter((a) => !pin(a))).slice(0, box._all ? 12 : 3), more = open.length + ghosts.size - list.length;
+    box._last = Object.fromEntries(open.map((a) => [alertKey(a), a]));
+    const key = Math.floor(s.influence) + '|' + covered + '|' + more + '|' + list.map((a) => a.text + a.sub + (a.ghost ? 'g' : '')).join('|');
+    if (box._key === key) return;
+    box._key = key;
+    // Same rows, same buttons: update the countdowns in place, so a click in flight still lands.
+    const beaconLeft = (a) => { const k = s.civs[a.civ].ask; return k && k.regions ? k.regions.length - k.done.length : 0; };
+    const beaconSays = (a) => ` · ${beaconLeft(a)} ${beaconLeft(a) === 1 ? 'shelter' : 'shelters'} to go, ${Sim.K.cost.shelter * beaconLeft(a)} influence`;
+    const shape = covered + '|' + more + '|' + list.map((a) => alertKey(a) + (a.ghost ? 'g' : '') + (a.kind && !a.omen ? canDo(ACTIONS.find((x) => x.kind === a.kind)) : '') + (a.beacon ? beaconLeft(a) : '')).join('|');
+    if (box._shape === shape) {
+      list.forEach((a) => {
+        const row = [...box.children].find((r) => r.dataset.k === alertKey(a)), sm = row && row.querySelector('span > small');
+        if (!sm) return;
+        row.classList.toggle('hot', a.left <= 4);
+        if (a.omen) { const b = sm.querySelector('b'); if (b) b.textContent = `${dd(a.left)} to choose · free`; }
+        else sm.firstChild.textContent = a.sub + (a.beacon ? beaconSays(a) : '');
+      });
+      return;
+    }
+    box._shape = shape;
+    const was = box._seen || new Set();
+    box._seen = new Set(list.map(alertKey));
+    // Rows whose buttons haven't changed are moved, not rebuilt, so a click in flight still lands.
+    const sigOf = (a) => alertKey(a) + a.text + (a.ghost ? 'g' : '') + (a.kind && !a.omen ? canDo(ACTIONS.find((x) => x.kind === a.kind)) : '') + (a.beacon ? beaconLeft(a) : '') + '|' + covered;
+    const kept = new Map([...box.children].map((r) => [r.dataset.sig, r]));
+    box.innerHTML = '';
+    list.forEach((a) => {
+      const old = !a.ghost && !a.omen && kept.get(sigOf(a)), oldSm = old && old.querySelector('span > small');
+      if (oldSm) { old.classList.remove('new'); old.classList.toggle('hot', a.left <= 4); oldSm.firstChild.textContent = a.sub + (a.beacon ? beaconSays(a) : ''); box.append(old); return; }
+      const row = document.createElement('div'); row.dataset.sig = sigOf(a);
+      row.className = 'alert card' + (a.left <= 4 ? ' hot' : '') + (was.has(alertKey(a)) ? '' : ' new'); row.dataset.k = alertKey(a);
+      row.innerHTML = `<i style="background:${a.colour}"></i><span>${esc(a.text)}<small>${a.sub}</small></span>`;
+      if (a.ghost) { row.classList.add('ghost'); row.style.animationDelay = `-${Math.max(0, a.age)}ms`;   // a re-render mustn't restart it
+        box.append(row); return; }
+      const tool = ACTIONS.find((x) => x.kind === a.kind), cost = Sim.K.cost[a.kind];
+      const btn = (label, primary, fn, off) => { const b = UI.button({ variant: primary ? 'primary' : undefined, label, onClick: (ev) => { ev.stopPropagation(); fn(); } }); if (off) { b.disabled = true; b.style.opacity = 0.45; } return b; };
+      const no = (civ) => () => { apply('refuse', undefined, civ); };
+      if (a.omen) {
+        const box2 = document.createElement('div'); box2.className = 'choices';
+        s.omen.options.forEach((o, i) => { const b = btn(o.label, i < s.omen.options.length - 1 || s.omen.options.length === 2, () => { apply('choose', i); if (omenPaused) { omenPaused = false; resume(lastSpeed || 1); } }); if (o.fx[1] !== undefined) { let was = null; b.addEventListener('mouseenter', () => { was = selected; selected = o.fx[1]; renderCard(); }); b.addEventListener('mouseleave', () => { if (selected === o.fx[1]) { selected = was; renderCard(); } }); } box2.append(b); });
+        row.append(box2);
+      } else if (a.civ === undefined) row.append(btn(`${tool.label}${a.region !== undefined ? ' ' + Sim.regionName(s.regions[a.region]) : ''} · ${cost}`, true, () => act(a.kind, a.region), !canDo(tool)));
+      else {
+        const box2 = document.createElement('div'); box2.className = 'choices';
+        const d = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v)}`, nm = (id) => s.civs[id].name;
+        const minders = (chosen, other) => { const out = []; const rv = Sim.rivalOf(s, s.civs[chosen]); if (rv && rv.aware && rv.id !== other) out.push(`the ${rv.name} −${Sim.K.rivalHit} (their rivals)`); if (rv && rv.aware && rv.id === other) out.push(`the ${rv.name} a further −${Sim.K.rivalHit}, as their rivals`); s.civs.forEach((o) => { if (o.id !== chosen && o.id !== other && o.alive && o.aware && o.regions.some((id) => s.regions[id].n.includes(a.region))) out.push(`the ${o.name} −0.5 (they border it)`); }); return out; };
+        const sch = a.dispute && s.civs[a.civ].ask && s.civs[a.civ].ask.schism;
+        const disputeCost = a.dispute ? [a.civ, a.rival].map((id) => { const m = minders(id, id === a.civ ? a.rival : a.civ); return m.length ? ` ${sch ? 'Side with' : 'Give it to'} the ${nm(id)}: also ${m.join(', ')}.` : ''; }).join('') + (a.region !== undefined && s.regions[a.region].life > 0.05 ? ' Life is growing there: whoever settles it ends it.' : '') : '';
+        const tcost = (a.dispute ? `Trust: the one you choose ${d(2)}, the other ${d(sch ? -Sim.K.schismHit : -2)}. Neither: both ${d(-(sch ? 2 : 1) * Sim.K.refuseHit)}.${disputeCost}` : a.beacon ? `Trust: lit ${d(2)}; unlit ${d(-1.5)}.` : `Trust: answer ${d(2)}; say no ${d(-Sim.K.refuseHit)}; ignore ${d(-1.5)}.`) + ' (grateful at +1)' + (() => { const rv = Sim.rivalOf(s, s.civs[a.civ]); return rv && rv.aware && !a.dispute ? ` Their rivals the ${rv.name}: −${Sim.K.rivalHit} if you answer.` : ''; })();
+        row.querySelector('small').insertAdjacentHTML('beforeend', `<span class="cost">${tcost}${!canDo(tool) ? ` Needs ${Sim.K.cost[a.kind]} influence.` : ''}</span>`);
+        if (a.dispute) {
+          [a.civ, a.rival].forEach((id) => box2.append(btn(`${sch ? 'Side with' : 'Give it to'} the ${s.civs[id].name} · ${cost}`, true, () => act(a.kind, a.region, id), !canDo(tool))));
+          box2.append(btn('Neither', false, () => { apply('refuse', undefined, a.civ); apply('refuse', undefined, a.rival); }));
+        } else {
+          if (a.beacon) row.querySelector('small').firstChild.textContent += beaconSays(a);
+          box2.append(btn(`${a.beacon ? 'Shelter the next' : tool.label}${!a.beacon && a.region !== undefined ? ' ' + Sim.regionName(s.regions[a.region]) : ''} · ${cost}`, true, () => act(a.kind, a.region, a.civ), !canDo(tool)));
+          box2.append(btn('Say no', false, no(a.civ)));
+        }
+        row.append(box2);
+      }
+      row.addEventListener('click', () => { selected = a.select; renderAll(); });
+      box.append(row);
+    });
+    if (more > 0 || box._all) { box.insertAdjacentHTML('beforeend', `<button type="button" class="covered more">${box._all ? 'Show fewer' : `+${more} more: show them all`}</button>`); box.querySelector('.more').addEventListener('click', () => { box._all = !box._all; box._key = null; box._shape = null; renderAlerts(); }); }
+    if (covered) box.insertAdjacentHTML('beforeend', `<div class="covered">✓ ${covered} ${covered === 1 ? 'warning' : 'warnings'} with nothing to do: sheltered, calmed, or nothing at risk</div>`);
+  }
+  function renderAll() { renderClock(); renderPower(); renderCoach(); coachReady(); renderDock(); renderCard(); renderHint(); renderToolcard(); renderAlerts(); }
+
+  // ---- what you do ----------------------------------------------------------------------
+  // A dock tool never fires on its own: a region tool arms (tap a region to use it), a global
+  // tool asks for a confirm in the card above the dock. Region cards and the coach act directly.
+  function use(a) {
+    if (!canDo(a)) { UI.toast(a.kind === 'merge' && Sim.month(s) < 2 ? 'The companion can be merged from month 3' : `Needs ${Sim.K.cost[a.kind]} influence`); return; }
+    if (a.kind === 'calm') { selected = 0; act('calm'); return; }   // one core: nothing to pick
+    picking = picking === a.kind ? null : a.kind;
+    renderAll();
+  }
+  function act(kind, region, civ) {                             // a direct answer: from a region card, an alert or the coach
+    const a = ACTIONS.find((x) => x.kind === kind);
+    if (!canDo(a)) { UI.toast(`Needs ${Sim.K.cost[kind]} influence`); return; }
+    if (region !== undefined) selected = region;
+    apply(kind, region, civ);
+  }
+  function apply(kind, region, civ) {
+    const res = Sim.act(s, kind, region, civ);
+    picking = null;
+    if (!res.ok) { UI.toast(res.why === 'influence' ? 'Not enough influence yet' : 'Not now'); renderAll(); return; }
+    const p = region !== undefined ? centre(s.regions[region]) : [0, 0, 0];
+    if (kind === 'seed') burst(p, '#9cc0ff', 0.12, 1400, true);
+    if (kind === 'shelter') burst(p, '#9fd0ff', 0.14, 1400, false);
+    if (kind === 'starburst') { burst(p, '#ff9fd0', 0.2, 1600, true); burst(p, '#ffffff', 0.1, 900, true); }
+    if (kind === 'calm') burst(p, '#a8d4ff', 0.25, 1600, false);
+    if (kind === 'uplift') { burst(p, '#ffd27a', 0.16, 1800, true); burst(p, '#ffffff', 0.08, 900, false); }
+    if (kind === 'merge') { stream('#ffe1b0', 4000); burst([0, 0, 0], '#ffe1b0', 1.1, 4200, false); burst([0, 0, 0], '#ffffff', 0.7, 3200, false); s.regions.filter((g) => g.ring === 3).forEach((g) => burst(centre(g), '#ffd9a0', 0.14, 4200, true)); flareGlow = 0.8; banner('The merger', 'The companion galaxy pours gas and metals into your outer ring'); }
+    news(); save(); coachForce = true; renderAll();
+  }
+
+  // ---- stardust: tap it and it flies to your influence ------------------------------------------
+  function sparkAt(x, y) {
+    let best = null, bd = matchMedia('(hover: none)').matches ? 26 : 18;
+    sparkPos.forEach((q, id) => { const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = id; } });
+    return best;
+  }
+  function collect(id) {
+    const q = sparkPos.get(id);
+    if (!Sim.act(s, 'collect', id).ok) return;
+    const el = document.createElement('div'); el.className = 'plus'; el.textContent = '+' + Sim.K.sparkGain;
+    el.style.left = q.x + 'px'; el.style.top = q.y + 'px'; document.body.append(el);
+    const t = $('power').getBoundingClientRect();
+    requestAnimationFrame(() => { el.style.transform = `translate(${t.left + t.width / 2 - q.x}px, ${t.top + 20 - q.y}px) scale(0.8)`; el.style.opacity = 0.2; });
+    setTimeout(() => el.remove(), 950);
+    save(); renderPower(); renderDock(); renderCoach(); coachReady(); renderAlerts();
+  }
+
+  // ---- input: tap a region, drag to turn, scroll to zoom --------------------------------------
+  const hit = $('hit');
+  let drag = null;
+  const touches = new Map();                                    // two fingers pinch to zoom
+  let pinch = null;
+  hit.addEventListener('pointerdown', (e) => {
+    touches.set(e.pointerId, [e.clientX, e.clientY]);
+    hit.setPointerCapture(e.pointerId);
+    if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), dist: G.camera().dist }; drag = null; return; }
+    drag = { x: e.clientX, y: e.clientY, cam: G.camera(), moved: false };
+  });
+  const lift = (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; };
+  hit.addEventListener('pointercancel', (e) => { lift(e); drag = null; });
+  hit.addEventListener('pointermove', (e) => {
+    if (!s) return;
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pinch) { const [a, b] = [...touches.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomTo(pinch.dist * pinch.d / Math.max(1, d), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); return; }
+    if (drag) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.hypot(dx, dy) > 5) drag.moved = true;
+      if (drag.moved) { hit.classList.add('dragging'); G.setCamera(Object.assign({}, drag.cam, { yaw: drag.cam.yaw - dx * 0.005, pitch: clamp(drag.cam.pitch + dy * 0.004, 0.35, 1.45) })); }
+      return;
+    }
+    hover = regionAt(e.clientX, e.clientY);
+    hit.classList.toggle('over', !!hover || !!sparkAt(e.clientX, e.clientY));
+  });
+  hit.addEventListener('pointerup', (e) => {
+    if (!s) return;
+    const wasPinch = touches.size > 1 || pinch;
+    lift(e);
+    hit.classList.remove('dragging');
+    if (wasPinch) { drag = null; return; }
+    const d = drag; drag = null;
+    if (!d || d.moved) return;
+    const sp = sparkAt(e.clientX, e.clientY);
+    if (sp) { collect(sp); return; }
+    const g = regionAt(e.clientX, e.clientY);
+    if (picking === 'calm' && g && g.ring === 0) { selected = 0; apply('calm'); return; }
+    const armed = picking && ACTIONS.find((x) => x.kind === picking).region;
+    if (armed) { if (g && g.ring > 0) { selected = g.id; apply(picking, g.id); } else if (!g) { picking = null; renderAll(); } return; }
+    selected = g ? g.id : null;
+    renderAll();
+  });
+  hit.addEventListener('pointerleave', () => { hover = null; });
+  hit.addEventListener('dblclick', (e) => { if (!s) return; const g = regionAt(e.clientX, e.clientY); if (g && g.civ !== null) world.open(g.civ); });
+  hit.addEventListener('wheel', (e) => { e.preventDefault(); zoomTo(G.camera().dist * Math.exp(e.deltaY * 0.0012), e.clientX, e.clientY); }, { passive: false });
+  // Zooming in drifts the view toward the region under the pointer; zooming out drifts it home.
+  const ZOOM_NEAR = 0.07, ZOOM_FAR = 6;
+  let homeCam = null;
+  $('home').addEventListener('click', () => { const c = G.camera(); if (homeCam) G.setCamera(Object.assign(c, { dist: homeCam.dist, focus: homeCam.focus.slice(), pitch: homeCam.pitch })); $('home').hidden = true; });
+  function zoomTo(dist, x, y) {
+    if (!s) return;
+    const c = G.camera(), nd = clamp(dist, ZOOM_NEAR, ZOOM_FAR);
+    let target = null, k = 0;
+    if (nd < c.dist) { const g = regionAt(x, y); if (g) { target = centre(g); k = 1 - nd / c.dist; } }
+    else if (nd > c.dist) { target = [0, 0, 0]; k = clamp((nd - c.dist) / Math.max(0.01, 2.4 - c.dist), 0, 1); }
+    const f = c.focus.slice();
+    if (target) for (let i = 0; i < 3; i++) f[i] += (target[i] - f[i]) * k;
+    if (!homeCam) homeCam = JSON.parse(JSON.stringify(c));
+    G.setCamera(Object.assign(c, { dist: nd, focus: f }));
+    $('home').hidden = !(nd < homeCam.dist * 0.6 || Math.hypot(...f) > 0.3);
+  }
+  addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('input, textarea')) return;
+    if (e.key === 'Escape') { if (picking) picking = null; else selected = null; renderAll(); }
+    if (e.key === ' ') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (speed === 1 && fastFrom) setSpeed(fastFrom); else setSpeed(speed ? 0 : lastSpeed); }
+    const n = '123'.indexOf(e.key); if (n >= 0) setSpeed(SPEEDS[n + 1]);
+    const a = ACTIONS[['q', 'w', 'e', 'r', 't'].indexOf(e.key.toLowerCase())]; if (a && !e.metaKey && !e.ctrlKey) use(a);
+  });
+  let lastSpeed = 1, lastWhole = 0, omenPaused = false;
+
+  // ---- the start and the end --------------------------------------------------------------
+  function modal(html, buttons) {
+    const m = $('modal'), c = m.firstChild;
+    c.innerHTML = html;
+    const row = document.createElement('div'); row.className = 'pair';
+    buttons.forEach(([label, fn, primary]) => row.append(UI.button({ label, variant: primary ? 'primary' : undefined, onClick: () => { m.hidden = true; fn(); } })));
+    if (buttons.length === 1) row.style.gridTemplateColumns = '1fr';
+    c.append(row);
+    m.hidden = false;
+  }
+  function intro(saved) {
+    setSpeed(0);
+    modal(`<h2>Grow a galaxy until it grows life</h2>
+      <p>Your galaxy has just lit up. In a year it will be 13.8 billion years old. One young people already lives in it, on a seed world: keep them safe, and help the galaxy make more along the way.</p>
+      <ol class="steps">
+        <li><span><b>Forge metals early.</b> In the first month, starburst a few gassy regions where nothing lives yet, away from your seed world.</span></li>
+        <li><span><b>Tap the stardust ✦.</b> Exploding stars leave it behind. Each one is influence to spend.</span></li>
+        <li><span><b>Shelter green regions with worlds.</b> Green means life could start; the white dots are worlds that could hold it.</span></li>
+        <li><span><b>Answer warnings and requests.</b> Supernovae, flares and the civilisations themselves will ask things of you. Each comes with a button. Tap any region to see what it needs, and act from its card.</span></li>
+      </ol>
+      <p>Everyone gets the same <b>galaxy of the day</b>: same worlds, same threats, same peoples. Or play a random one.</p>
+      <p><b>The goal:</b> end the year in a concord, with most of the peoples who know each other trusting you. Legacy scores every civilisation, how far it gets and how it feels about you. Three stars is hard. The card under the clock always suggests a next step. A year takes about 15 minutes at 1×, and the game saves as you go.</p>`,
+      saved ? [['A random galaxy', () => newGalaxy(fresh())], [dayBests()[today()] ? `Today's galaxy · best ${dayBests()[today()]}` : "Today's galaxy", () => newGalaxy(today())], [`Continue, month ${Math.floor(saved.day / Sim.MONTH) + 1}`, () => { setSpeed(0); UI.toast('Paused: press 1× when you are ready'); }, true]]
+        : [['A random galaxy', () => newGalaxy(fresh())], [dayBests()[today()] ? `Today's galaxy · best ${dayBests()[today()]}` : "Today's galaxy", () => newGalaxy(today()), true]]);
+  }
+  const MARKS = [
+    ['habitable', 'Habitable', 'A region with enough metals, calm and long-lived stars'], ['life', 'Life', 'Life takes hold somewhere'],
+    ['civ', 'Civilisation', 'The first people arise'], ['flight', 'Spaceflight', 'Someone reaches space, and can see you'],
+    ['contact', 'Contact', 'Two peoples meet'], ['golden', 'Golden age', 'A people holds four regions in a long calm'],
+    ['five', 'Five at once', 'Five civilisations alive at the same time'], ['ten', 'Ten regions', 'Ten regions inhabited'],
+    ['beacon', 'Beacon', 'Help a great people light a beacon'], ['survivor', 'Comeback', 'A people that collapsed reaches the stars again'],
+    ['concord', 'Concord', 'Four peoples in contact, who trust you, unite'],
+  ];
+  // One line to remember each civilisation by, from its own story.
+  function epilogue(c) {
+    const mine = s.log.filter((e) => e.civ === c.id);
+    if (!c.alive) return 'They are gone. The chronicle keeps their name.';
+    if (c.beacon) return 'Their beacon shines across the galaxy. They lit it with your help.';
+    const blame = mine.filter((e) => e.blame).length, shields = mine.filter((e) => e.you && /shield|pass/.test(e.text)).length;
+    if (blame > c.honoured + shields) return `They remember the strikes you saw coming and let fall.`;
+    if (c.honoured >= 3) return `They remember you as the one who answered them, or knew before they asked: ${c.honoured} times.`;
+    if (c.honoured + shields >= 3) return `They remember you as the one who came: ${c.honoured} ${c.honoured === 1 ? 'answer' : 'answers'}, ${shields} ${shields === 1 ? 'strike' : 'strikes'} turned aside.`;
+    if (c.golden) return 'A golden age, and a long calm to enjoy it in.';
+    if (c.tech >= 3) return c.regions.length > 1 ? `They reached the stars, and spread across ${c.regions.length} regions.` : 'They reached the stars, but stayed close to home.';
+    return `Still on their world, at ${Sim.stage(c).toLowerCase()}. They have only begun to look up.`;
+  }
+  function finale() {
+    ended = true; setSpeed(0);
+    const alive = s.civs.filter((c) => c.alive), L = Sim.legacy(s), st = Sim.stars(s);
+    const best = store.get(BEST) || 0;
+    if (L > best) store.set(BEST, L);
+    if (isToday()) { const b = dayBests(); if (!(b[today()] >= L)) { b[today()] = L; store.set(BEST + '-days', b); } }
+    const share = `Galaxy sim · ${isToday() ? new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'a random galaxy'} · ${'★'.repeat(st)}${'☆'.repeat(3 - st)} ${L} · ${alive.length} ${alive.length === 1 ? 'people' : 'peoples'}${s.concord ? " · the Gardener's Concord" : ''}`;
+    finale.share = share;
+    // What would have helped most, from what happened this year.
+    const tips = [];
+    const ignored = s.log.filter((e) => e.ignored).length, setbacks = s.log.filter((e) => e.setback || e.collapse).length;
+    const crashed = s.log.some((e) => e.strike === 'collide'), bursts = s.actions.filter((a) => a.kind === 'starburst' && a.day < 50).length;
+    if (!s.concord && s.civs.length >= 3) tips.push(`No concord. It needs at least ${Sim.K.concordMin} peoples in contact, two in three of them grateful or better, when the year ends: answer their requests, and shield them when warnings come.`);
+    if (ignored) tips.push(`${ignored} ${ignored === 1 ? 'request went' : 'requests went'} unanswered. Each answer is worth legacy and trust.`);
+    if (setbacks) tips.push(`${setbacks === 1 ? 'Once' : setbacks + ' times'} a strike hit a people. Each leaves a scar (−4) and costs trust: shelter whatever a warning points at.`);
+    if ((s.sparksLost || 0) > 8) tips.push(`${s.sparksLost} stardust faded untouched. Each one is +${Sim.K.sparkGain} influence.`);
+    if (bursts < 2) tips.push('Starburst two or three gassy regions in the first month: the metals arrive sooner, and so does life.');
+    if (crashed) tips.push('Merge the companion galaxy around month 3. Left alone, it crashed in and shook everything.');
+    if (!tips.length) tips.push(st === 3 ? 'A near-perfect year. Try a new galaxy: each has its own character, worlds, threats and peoples.' : 'A clean year: the third star is in more peoples, more golden ages and beacons, and the concord. Each galaxy has its own character: try another.');
+    const parts = Sim.legacyParts(s);
+    const cc = s.concord ? `<div class="concord-moment">${s.concord.members.map((id) => `<i style="background:${s.civs[id].colour}"></i>`).join('')}<b>The Gardener's Concord</b><small>${s.concord.members.map((id) => s.civs[id].name).join(' · ')}</small></div>` : '';
+    modal(`${cc}<div class="stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></div>
+      <h2>${alive.length ? `${alive.length} ${alive.length === 1 ? 'civilisation' : 'civilisations'} at 13.8 billion years` : 'A quiet galaxy'}</h2>
+      <div class="score"><span>Legacy${L > best && best ? ' · a new best' : best ? ` · best ${Math.max(best, L)}` : ''}</span><b>${L}</b></div>
+      <p>${st < 3 ? `${Sim.STARS[st]} for ${'★'.repeat(st + 1)}.` : 'All three stars.'} ${s.concord ? "The year ended in the Gardener's Concord." : ''}</p>
+      ${s.civs.length ? `<div style="display:grid;gap:6px">${s.civs.map((c) => { const pt = parts.find((x) => x.civ === c.id); return `<div class="civ-row"><i style="background:${c.colour}"></i><span><b>${esc(c.name)}</b> · ${c.alive ? Sim.stage(c).toLowerCase() : 'gone'}${c.golden ? ' · golden age' : ''}<br><small style="text-align:left">${esc(epilogue(c))}</small></span><small>${pt ? `+${pt.total}` : '0'}<br>${Sim.viewOf(c)}</small></div>`; }).join('')}</div>` : ''}
+      ${parts.filter((p) => p.civ === undefined).map((p) => `<div class="civ-row"><i style="background:#ffcc66"></i><span><b>${esc(p.label)}</b></span><small>+${p.total}</small></div>`).join('')}
+      <details class="breakdown"><summary>How the score adds up</summary>${parts.map((p) => `<div><span>${esc(p.label)}${p.items ? `<small>${p.items.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`).join(' · ')}</small>` : ''}</span><b>${p.total}</b></div>`).join('')}</details>
+      <div class="sub">Next time</div><div class="tips">${tips.slice(0, 3).map((t) => `<div>${esc(t)}</div>`).join('')}</div>
+      <div class="marks">${MARKS.map(([k, t, why]) => `<span class="${s.milestones[k] !== undefined ? 'got' : ''}" title="${why}" data-why="${t}: ${why}">${t}</span>`).join('')}</div><p class="why" style="font-size:11.5px;color:var(--ink-3);margin-top:6px">Tap a mark to see what earns it.</p>`,
+      [['Look around', () => { $('reopen').hidden = false; }], ['New galaxy…', () => confirmNew(), true]]);
+    $('modal').querySelector('.marks').addEventListener('click', (ev) => { const w = ev.target.closest && ev.target.closest('[data-why]'); if (w) $('modal').querySelector('.why').textContent = w.dataset.why; });
+    const copy = UI.button({ label: 'Copy your result', onClick: () => { try { navigator.clipboard.writeText(share).then(() => UI.toast('Copied: ' + share)); } catch (e) { UI.toast(share); } } });
+    $('modal').querySelector('.pair').before(copy);
+  }
+  function confirmNew() {
+    modal(`<h2>Start a new galaxy?</h2><p>Your result and your best legacy are kept.</p>`, [['Back to the result', () => finale()], ['A random galaxy', () => newGalaxy(fresh())], ["Today's galaxy", () => newGalaxy(today()), true]]);
+  }
+
+  $('reopen').addEventListener('click', () => { $('reopen').hidden = true; finale(); });
+
+  // ---- the loop --------------------------------------------------------------------------
+  let last = performance.now(), lastDay = -1;
+  function frame(now) {
+    requestAnimationFrame(frame);                                // first, so no slip below can ever stop the clock
+    const dt = Math.min(250, now - last); last = now;
+    if (!s) return;                                             // before a galaxy is chosen
+    if (speed) lastSpeed = speed;
+    if (speed && !ended && document.visibilityState === 'visible') {
+      acc += dt * speed / DAY_MS;
+      let n = 0;
+      while (acc >= 1 && n < 8 && s.day < Sim.YEAR) {
+        Sim.step(s); acc -= 1; n++;
+        const why = speed > 1 && alarm();
+        if (why) { acc = 0; slow(why); break; }
+      }
+      if (s.day >= Sim.YEAR) { acc = 0; ended = true; news(); save(); setTimeout(finale, s.concord ? 5000 : 800); }
+    }
+    if (s.day !== lastDay) {
+      lastDay = s.day; news(); renderClock(); renderPower(); renderCoach(); coachReady(); renderDock(); renderHint(); renderAlerts();
+      if (selected !== null && Math.floor(s.influence) !== lastWhole) renderCard();
+      lastWhole = Math.floor(s.influence);
+      if (selected !== null) renderCard();
+      save();
+    }
+    try { look(dt); draw(now); } catch (err) { console.error(err); }
+  }
+
+  const saved = store.get(SAVE);
+  if (saved && saved.seed && saved.day > 0 && saved.day < Sim.YEAR) start(saved.seed, saved.actions, saved.day);
+  else start(Math.floor(Math.random() * 1e6) + 1);
+  // ?seed=n&day=d starts a given galaxy at a given day (handy for testing a late game).
+  const q = new URLSearchParams(location.search);
+  if (q.get('seed')) start(+q.get('seed'), [], +q.get('day') || 0);
+  if (q.get('seed')) setSpeed(+q.get('speed') || 0); else intro(saved && saved.day > 0 && saved.day < Sim.YEAR ? saved : null);
+  requestAnimationFrame(frame);
+  window.simDebug = { world: (id) => world.open(id), worldOpen: () => world.isOpen(), camera: () => G.camera(), zoomTo: (d, x, y) => zoomTo(d, x, y), state: () => s, sparks: () => [...sparkPos.entries()], act: (k, r) => apply(k, r), at: (id) => G.project(centre(s.regions[id])) };   // for automated playtests
+})();
+</script>
+</body>
+</html>

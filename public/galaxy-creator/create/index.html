@@ -2357,6 +2357,7 @@
   if (S.type !== 'Cycle' && TYPES.indexOf(S.type) < 0) S.type = 'Spiral';
   let saveTimer = 0;
   function persist() {
+    if (query.has('embed')) return;                  // an embedded galaxy (the home page, the hub, the game's sky) never touches the visitor's own
     if (shared && location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { try { localStorage.setItem('galaxy-creator', JSON.stringify(S)); } catch (e) {} }, 250);
@@ -4028,7 +4029,7 @@
   const focus = [0, 0, 0];           // what the camera orbits; Blender-style pan moves it
   let goal = null;                   // a view the camera is gliding to: {yaw, pitch, roll, target}
   let held = false;                  // a director holds the camera still between its own moves
-  let lastView = null;
+  let lastView = null, lastProj = null;
   let dist = DIST_FAR * 1.6;                                   // the opening shot swoops in from far out
   if (shared) {                                                // a shared view settles in, no long swoop
     yaw = shared.yaw; pitch = clamp(shared.pitch, -PITCH_MAX, PITCH_MAX); roll = shared.roll;
@@ -4305,7 +4306,7 @@
     const proj = perspective(FOV, W / H, Math.max(1e-4, dist * 0.002), 200);
     const LENS = lens();
     proj[8] -= LENS[0]; proj[9] -= LENS[1];
-    lastView = view;
+    lastView = view; lastProj = proj;
     const focalPx = (H / 2) / Math.tan(FOV / 2);
     const gasK = typeMix(GAS_BY_TYPE), dustK = typeMix(DUST_BY_TYPE);
     gl.disable(gl.DEPTH_TEST);
@@ -5093,6 +5094,16 @@
     surprise() { surprise(); persist(); },
     save: () => grabPNG(),
     snap: () => grabPNG(),               // a PNG blob of the galaxy alone
+    // Where a point in the galaxy lands on screen, as of the last frame: { x, y } in CSS
+    // pixels and depth (distance in front of the camera), or null if it is behind.
+    project(p) {
+      if (!lastView || !lastProj) return null;
+      const V = lastView, P = lastProj;
+      const vx = V[0] * p[0] + V[4] * p[1] + V[8] * p[2] + V[12], vy = V[1] * p[0] + V[5] * p[1] + V[9] * p[2] + V[13], vz = V[2] * p[0] + V[6] * p[1] + V[10] * p[2] + V[14];
+      const cx = P[0] * vx + P[8] * vz, cy = P[5] * vy + P[9] * vz, w = -vz;
+      if (w <= 1e-6) return null;
+      return { x: (cx / w * 0.5 + 0.5) * W, y: (0.5 - cy / w * 0.5) * H, depth: w };
+    },
     exportImage,                         // (edge) → { blob, w, h }: the same frame at 4K, 6K or 8K
     maxEdge: MAX_EDGE,
     recordLoop,                          // (seconds, onProgress) → { blob, ext }: one seamless turn
@@ -5333,7 +5344,7 @@
     }
     modes.set('direct');
     D.load(linked).then(() => Kit.toast('Shot opened from the link', 'tick'));
-  }
+  } else if (new URLSearchParams(location.search).get('mode') === 'direct') modes.set('direct');   // ?mode=direct opens in Direct
 
   Kit.bindKeys(G, {
     key: (e) => {
