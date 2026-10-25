@@ -64,10 +64,13 @@ works too in most browsers.
 | `H` | hide the toolbar; the Show tools pill or `H` brings it back |
 | Settings | the share link, Light, Dark or System appearance (dark by default), captions on screen, and every key command |
 
-**Direct mode.** The two small icons in the top right corner (sliders for Create,
-film for Direct), or `Tab`, trade the rail for a timeline, the way Blender switches
-workspaces. The camera stops drifting, so it only moves
-when you move it.
+**Modes.** Get started on the landing page opens the hub (`hub.html`): Create, Direct
+and Play, over your galaxy. Each mode opens on its own (Direct with
+`create/index.html?mode=direct`), and "← All modes" in the top right goes back to the
+hub; there is no switch between modes inside them.
+
+**Direct mode.** The rail gives way to a timeline. The camera stops drifting, so it only
+moves when you move it.
 
 | | |
 |---|---|
