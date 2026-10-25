@@ -1,0 +1,282 @@
+/* Galaxy Creator playground kit.
+   Tokens mirror DESIGN.md (light chrome) and MOTION.md (springs), which in
+   turn mirror the live page. Prototypes link this file rather than copying
+   the values. */
+@font-face {
+  font-family: "Geist"; font-style: normal; font-weight: 100 900;
+  font-display: swap; src: url("../geist.woff2") format("woff2");
+}
+:root {
+  --chrome: #ffffff;
+  --chrome-2: #f2f2f3;
+  --chrome-3: #e7e7e9;
+  --ink: #0a0a0b;
+  --ink-2: #6c6c70;
+  --ink-3: #a3a3a8;
+  --hair: rgba(0, 0, 0, 0.07);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.18);
+  --r-card: 24px;
+  --rail-pad: 10px;
+  /* Concentric corners: an item inset by the rail's padding takes the rail's
+     radius minus that padding, so the gap around each corner is even. */
+  --r-inset: calc(var(--r-card) - var(--rail-pad));
+  --r-md: 14px;
+  --r-sm: 10px;
+  --card-pad: 20px;
+  --card-w: 360px;           /* the flyout card's width: the rail's cards and the design page's demos */
+  --hit: 40px;
+  --on-ink: #ffffff;          /* text and knobs that sit on --ink */
+  --seg-pill: #ffffff;
+  --face: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.02);
+  --spring-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --spring-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.32, 0, 0.67, 0);
+  --t-snappy: 340ms; --t-pop: 450ms; --t-smooth: 390ms;
+}
+/* A scope can set its own theme (the design page shows both side by side). */
+[data-theme="light"] {
+  --chrome: #ffffff;
+  --chrome-2: #f2f2f3;
+  --chrome-3: #e7e7e9;
+  --ink: #0a0a0b;
+  --ink-2: #6c6c70;
+  --ink-3: #a3a3a8;
+  --hair: rgba(0, 0, 0, 0.07);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.18);
+  --on-ink: #ffffff;          /* text and knobs that sit on --ink */
+  --seg-pill: #ffffff;
+  color-scheme: light;
+}
+/* Dark chrome: the same shapes and motion, inverted. Still monochrome. */
+:root[data-theme="dark"], [data-theme="dark"] {
+  --chrome: #141416;
+  --chrome-2: #232326;
+  --chrome-3: #303034;
+  --ink: #f4f4f5;
+  --ink-2: #a1a1a7;
+  --ink-3: #6e6e75;
+  --hair: rgba(255, 255, 255, 0.08);
+  --lift: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --on-ink: #0a0a0b;
+  --seg-pill: #3a3a3f;
+  color-scheme: dark;
+}
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.35s; }
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring-snappy: linear(0, 0.047, 0.15, 0.28, 0.397, 0.527, 0.644, 0.744, 0.815, 0.882, 0.932, 0.968, 0.99, 1.007, 1.017, 1.021, 1.023, 1.022, 1.02, 1.018, 1.014, 1.011, 1.009, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 1);
+    --spring-pop: linear(0, 0.065, 0.209, 0.386, 0.565, 0.725, 0.857, 0.955, 1.022, 1.062, 1.08, 1.083, 1.076, 1.063, 1.048, 1.033, 1.02, 1.01, 1.002, 0.997, 0.994, 0.993, 0.993, 0.994, 0.995, 0.996, 0.998, 0.999, 0.999, 1, 1);
+    --spring-smooth: linear(0, 0.033, 0.106, 0.199, 0.3, 0.387, 0.482, 0.568, 0.644, 0.702, 0.759, 0.807, 0.847, 0.876, 0.903, 0.925, 0.942, 0.956, 0.966, 0.974, 0.981, 0.986, 0.99, 0.993, 0.995, 0.996, 0.998, 0.998, 0.999, 1, 1);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #000; }
+body {
+  font-family: var(--face); font-size: 12.5px; color: var(--ink);
+  -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none;
+}
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button { font: inherit; color: inherit; }
+
+/* The galaxy, full bleed behind everything. */
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
+
+/* Back to the gallery: small, low contrast, out of the way. */
+.backbar {
+  position: fixed; z-index: 30; top: 14px; right: 16px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: rgba(255, 255, 255, 0.42); letter-spacing: 0.01em;
+}
+.backbar a { color: rgba(255, 255, 255, 0.62); text-decoration: none; }
+.backbar a:hover { color: #fff; }
+
+/* Surfaces */
+.card {
+  background: var(--chrome); border-radius: var(--r-card); box-shadow: var(--lift);
+}
+
+/* Icon button with the grey active pill */
+.ib {
+  position: relative; width: var(--hit); height: var(--hit); border: 0; background: none;
+  border-radius: var(--r-inset); display: grid; place-items: center; cursor: pointer; color: var(--ink-2);
+  transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.ib:hover { color: var(--ink); }
+:where(.ib, .seg button, .btn, .sw, .swatches button, #show) { -webkit-tap-highlight-color: transparent; }
+.ib:active { transform: scale(0.9); transition-duration: 0.1s; }
+.ib[aria-pressed="true"], .ib[aria-selected="true"] { color: var(--ink); }
+.ib svg { width: 20px; height: 20px; position: relative; z-index: 1; }
+.ib .fill { opacity: 0; transition: opacity 0.2s; }
+.ib[aria-pressed="true"] .fill, .ib[aria-selected="true"] .fill { opacity: 1; }
+.pill-ind {
+  position: absolute; z-index: 0; background: var(--chrome-2); border-radius: var(--r-inset); pointer-events: none;
+  transition: left var(--t-snappy) var(--spring-snappy), right var(--t-snappy) var(--spring-snappy),
+              top var(--t-snappy) var(--spring-snappy), bottom var(--t-snappy) var(--spring-snappy),
+              opacity 0.2s;
+}
+.go-fwd > .pill-ind { transition-delay: 50ms, 0ms, 50ms, 0ms, 0ms; }
+.go-back > .pill-ind { transition-delay: 0ms, 50ms, 0ms, 50ms, 0ms; }
+
+/* Tooltip label */
+.tip {
+  position: absolute; z-index: 40; pointer-events: none; white-space: nowrap;
+  background: var(--ink); color: var(--on-ink); font-size: 11.5px; font-weight: 500;
+  padding: 5px 9px; border-radius: 8px;
+}
+
+/* Inside a card, controls are concentric with its corners: card radius minus card padding. */
+.card.concentric {
+  /* 20px around the content, and a card radius of padding + 10 so the controls'
+     10px corners stay concentric with the card's. */
+  --r-md: 10px; --r-sm: 10px;
+  border-radius: calc(var(--card-pad) + 10px); padding: var(--card-pad);
+}
+.card.concentric .ctl { gap: 12px; }
+
+/* Section title inside a card */
+.ctl-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 0 16px; }
+.ctl-title b { font-size: 20px; line-height: 24px; font-weight: 600; letter-spacing: -0.02em; }
+.ctl-title span { font-size: 11px; color: var(--ink-3); }
+.ctl { display: grid; gap: 6px; }
+
+/* Slider: grey pill, black fill, text inverts over the fill */
+.sl {
+  position: relative; isolation: isolate; height: 34px; border-radius: var(--r-sm); background: var(--chrome-2);
+  cursor: ew-resize; touch-action: none; outline: none; overflow: hidden;
+  transition: transform var(--t-pop) var(--spring-pop), opacity 0.25s, background 0.2s;
+}
+.sl:hover, .sl.drag { background: var(--chrome-3); }
+.sl.drag { transition: opacity 0.25s, background 0.2s; }
+.sl:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.sl-fill {
+  position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--ink);
+  transform-origin: left center; transform: scaleX(var(--v, 0));
+  transition: transform var(--t-snappy) var(--spring-snappy);
+}
+.sl.drag .sl-fill { transition: none; }
+.sl-txt {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; color: #fff; mix-blend-mode: difference; pointer-events: none; font-weight: 500;
+}
+.sl-txt output { font-variant-numeric: tabular-nums; }
+.sl.off { opacity: 0.35; }
+
+/* Segmented control with a stretching grey pill */
+.seg {
+  position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+  padding: 3px; background: var(--chrome-2); border-radius: var(--r-md);
+}
+.seg > .pill-ind { background: var(--seg-pill); box-shadow: 0 1px 4px rgba(0,0,0,0.1); border-radius: calc(var(--r-md) - 3px); }
+.seg button {
+  position: relative; z-index: 1; border: 0; background: none; border-radius: calc(var(--r-md) - 3px); padding: 8px 0;
+  color: var(--ink-2); font-weight: 500; cursor: pointer;
+  transition: color 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.seg button:hover, .seg button[aria-checked="true"] { color: var(--ink); }
+.seg button:active { transform: scale(0.94); transition-duration: 0.1s; }
+
+/* Switch */
+.sw {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  border: 0; background: none; cursor: pointer; padding: 8px 6px 8px 12px; border-radius: var(--r-sm);
+  color: var(--ink-2); font-weight: 500; transition: background 0.2s, color 0.2s;
+}
+.sw:hover { background: var(--chrome-2); color: var(--ink); }
+.sw[aria-checked="true"] { color: var(--ink); }
+.sw i { position: relative; width: 32px; height: 20px; border-radius: 999px; background: var(--chrome-3); transition: background var(--t-snappy) var(--spring-snappy); }
+.sw i::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: left var(--t-snappy) var(--spring-snappy), width var(--t-snappy) var(--spring-snappy);
+}
+.sw:active i::after { width: 20px; }
+.sw[aria-checked="true"] i { background: var(--ink); }
+.sw[aria-checked="true"] i::after { left: 14px; background: var(--on-ink); }
+.sw[aria-checked="true"]:active i::after { left: 10px; }
+
+/* Buttons */
+.btn {
+  height: 38px; border: 0; border-radius: var(--r-sm); background: var(--chrome-2); color: var(--ink);
+  font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+  transition: background 0.2s, transform var(--t-pop) var(--spring-pop);
+}
+.btn:hover { background: var(--chrome-3); }
+.btn:active { transform: scale(0.96); transition-duration: 0.1s; }
+.btn.primary { background: var(--ink); color: var(--on-ink); }
+.btn.primary:hover { opacity: 0.88; }
+.btn svg { width: 15px; height: 15px; }
+.btn .spin { animation: kit-spin 0.8s linear infinite; }
+.tick path { stroke-dasharray: 22; stroke-dashoffset: 22; animation: kit-draw 0.35s 0.05s var(--spring-smooth) forwards; }
+@keyframes kit-spin { to { transform: rotate(360deg); } }
+@keyframes kit-draw { to { stroke-dashoffset: 0; } }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* A button that fills as it works (recording a loop) */
+.btn.busy { position: relative; overflow: hidden; }
+.btn.busy > :not(.bar) { position: relative; }
+.btn .bar {
+  position: absolute; inset: 0; background: var(--ink); opacity: 0.12;
+  transform-origin: left center; transform: scaleX(var(--p, 0)); transition: transform 0.25s linear;
+}
+.btn span { font-variant-numeric: tabular-nums; }
+
+/* Colour — the one place hue is allowed */
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 0 2px; }
+.swatches button {
+  aspect-ratio: 1; border: 0; border-radius: 50%; cursor: pointer; padding: 0;
+  box-shadow: 0 0 0 0 #fff, 0 0 0 0 var(--ink);
+  transition: transform var(--t-pop) var(--spring-pop), box-shadow var(--t-snappy) var(--spring-snappy);
+}
+.swatches button:hover { transform: scale(1.08); }
+.swatches button:active { transform: scale(0.9); transition-duration: 0.1s; }
+.swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--chrome), 0 0 0 3.5px var(--ink); }
+.picks { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.pick { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: var(--r-sm); color: var(--ink-2); font-weight: 500; cursor: pointer; }
+.pick:hover { background: var(--chrome-2); color: var(--ink); }
+.pick input { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border: 0; border-radius: 50%; padding: 0; background: none; cursor: pointer; flex: none; }
+.pick input::-webkit-color-swatch-wrapper { padding: 0; }
+.pick input::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+.pick input::-moz-color-swatch { border: 0; border-radius: 50%; }
+
+/* Settings: small section labels and one key command per line */
+.ctl-label { padding: 4px 12px 0; color: var(--ink-3); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+.keys { display: grid; gap: 2px; }
+.key { display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 0 6px 0 12px; color: var(--ink-2); font-weight: 500; }
+.key kbd + kbd { margin-left: 4px; }
+
+/* Small stat line (rolling numbers) */
+.stat { display: flex; justify-content: space-between; padding: 6px 4px 2px; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.stat b { color: var(--ink-2); font-weight: 500; }
+.roll { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.roll > span { display: inline-block; }
+
+/* Toast: the one dark element */
+#toast {
+  position: fixed; z-index: 50; left: 50%; bottom: 24px; transform: translateX(-50%); pointer-events: none;
+  background: var(--ink); color: var(--on-ink); border-radius: 999px; height: 36px; padding: 0 16px;
+  display: flex; align-items: center; gap: 8px; font-weight: 500; white-space: nowrap; overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.45);
+}
+#toast svg { width: 14px; height: 14px; flex: none; }
+
+/* One focus ring everywhere: black, never coloured. */
+:where(.ib, .seg button, .sw, .btn, .swatches button, .tab, .act, .tg, .chips button, .dots button, .logo, #show):focus-visible,
+:where(.pick, .ink):has(input:focus-visible) {
+  outline: none; box-shadow: 0 0 0 2px var(--chrome), 0 0 0 4px var(--ink);
+}
+:where(.ib, .seg button, .sw, .btn, .swatches button, .tab, .act, .tg, .chips button, .dots button, .logo, #show, .pick input, .ink input) { outline: none; }
+
+/* Shutter flash for snaps: light, quick, no words. */
+#flash { position: fixed; inset: 0; z-index: 60; background: #fff; pointer-events: none; opacity: 0; }
+
+kbd {
+  font: inherit; font-size: 10.5px; color: var(--ink-2); background: var(--chrome-2);
+  border-radius: 5px; padding: 1px 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::after { transition-duration: 0.12s !important; transition-delay: 0s !important; transition-timing-function: ease !important; }
+}

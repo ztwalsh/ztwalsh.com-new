@@ -127,7 +127,7 @@
 <main>
   <div class="row">
     <p class="sub rise" style="animation-delay:.5s">Create a galaxy from nothing. Direct it like a film. Share it as an 8K still, a video, or a link.</p>
-    <a class="cta rise" style="animation-delay:.65s" href="create/index.html">Get started <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <a class="cta rise" style="animation-delay:.65s" href="hub.html">Get started <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
   </div>
   <h1 class="display"><span class="rise" style="animation-delay:.1s">Galaxy </span><span class="rise" style="animation-delay:.22s">Creator</span></h1>
 </main>
@@ -181,6 +181,14 @@
     h.style.fontSize = (100 * room / w * 0.99) + 'px';
   }
   document.fonts.ready.then(fit); addEventListener('resize', fit);
+  // Get started: the words leave, the galaxy stays, and the hub opens on the same sky.
+  document.querySelector('.cta').addEventListener('click', (e) => {
+    e.preventDefault();
+    const href = e.currentTarget.href;
+    document.querySelectorAll('main, .top').forEach((el) => { el.style.transition = 'opacity .45s, filter .45s'; el.style.opacity = 0; el.style.filter = 'blur(10px)'; });
+    setTimeout(() => { location.href = href; }, 420);
+  });
+  addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 </script>
 </body>
 </html>
